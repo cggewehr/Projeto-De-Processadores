@@ -159,9 +159,9 @@ return2:
 ;---------------------------------------------HEXtoDEC-------------------------------------------------------;
 ; Recebe um valore (HEX) se separas ele  em decimal(DEC) e Unidade(DEC)                                      ;
 ;                                                                                                            ;
-;   REGISTRADORES - (r7)NUmeroOriginal - ENTRADA                                                             ;
-;                   (r9) DECIMAL       - SAIDA                                                               ;
-;                   (r10) UNIDADE      - SAIDA                                                               ;
+;   REGISTRADORES - (r14)NUmeroOriginal - ENTRADA                                                            ;
+;                   (r9) DECIMAL        - SAIDA                                                              ;
+;                   (r10) UNIDADE       - SAIDA                                                              ;
 ;                                                                                                            ;
 ;   RETORNO - Ao final da subrotina os valores de r9, r10, irao representar a dezena e unidade do numero     ;
 ;             respectivamente                                                                                ;
@@ -179,7 +179,7 @@ return2:
 ;                     3 iteração ->  r10(Unidade) = 6  | r9(Dezena) = 2                                      ;
 ;------------------------------------------------------------------------------------------------------------;
 HEXtoDEC:                                                                                                    ;
-    add r10, r0, r7        ; Carrega o r7(Numero original) no r10(parte da dezena do contador)               ;
+    add r10, r0, r14       ; Carrega o r14(Numero original) no r10(parte da dezena do contador)              ;
     xor r9, r9, r9         ; Zera r9(dezena)                                                                 ;
                                                                                                              ;
 dezena:                    ; Loop que por subtrações sucessivas calcula a dezena                             ;
@@ -196,11 +196,112 @@ fimHEXtoDECzero;                                                                
     st r9, r0, r9;         ; Salva o valor da dezena em r9                                                   ;
     st r10, r0, r10        ; Salva o valor da unidade em r10                                                 ;
     rts                    ; Retorno da Subrotina                                                            ;
+
+
+
+;---------------------------------------------escreveSSD-----------------------------------------------------;
+; Escreve Nos Displays e alterna entre eles                                                                  ;
+;                                                                                                            ;
+;   REGISTRADORES - (r5)  Dado a ser escrito na porta    - SAIDA                                             ;
+;                   (r7)  Index(dispARRAY)/ContContinuo  - -/ENTRADA                                         ;
+;                   (r9)  Valor da dezena Automatica     - SAIDA da HEXtoDEC                                 ;
+;                   (r10) Valor da unidade Automatica    - SAIDA da HEXtoDEC                                 ;
+;                   (r11) Valor da dezena Manual         - SAIDA da HEXtoDEC                                 ;
+;                   (r12) Valor da unidade manual        - SAIDA da HEXtoDEC                                 ;
+;                   (r14) Valor do contador Continuo     - ENTRADA                                           ;
+;                   (r15) Endereço inicial do DispARRAY  - ENTRADA                                           ;
+
+;
+;                                                                                                            ;
+;   RETORNO - Ao final da subrotina deverá ter sido escrito na porta de saida e nos 4 displays de 7 segmentos;
+;             os valores de Contador Automatico ( Unidade, Dezena) e Contador Manual( Unidade, Dezena) da    ;
+;             Direita para a Esquerda, respectivamente.                                                      ;
+                                           ;
+;   FUCUNCIONAMENTO - É utiliza a subrotina de HEXtoDEC para adquirir os valores de dezena e unidade de cada ;
+;                     contador e após isso é setada os resgistradores da porta:
+;                     REG_PORT_CONFIG ( 12 bits de saida)                                                    ;
+;                     REG_PORT ENABLE ( Habilita para a escrita esss 12 bits)                                ;
+             ;        Então é carregado o valor do endereço inicial do array dos valores do disp
+;   EXEMPLO  - r7 = 1A(hex) = 26(dec)                                                                        ;
+;                     Inicio     ->  r10(Unidade) = 1A | r9(Dezena) = 0                                      ;
+;                     1 iteração ->  r10(Unidade) = 10 | r9(Dezena) = 1                                      ;
+;                     2 iteração ->  r10(Unidade) = 6  | r9(Dezena) = 2                                      ;
+;                     3 iteração ->  r10(Unidade) = 6  | r9(Dezena) = 2                                      ;
+
+escreveSSD:
+    push r5
+    push r7
+    push r9
+    push r10
+    push r11
+    push r12
+    push r14
+    push r15          ; Salva o contexto nos registradores que irá alterar
+    
+    add r14, r0, r7   ; Carrega em r14 o valor do contador contiuno
+    jsr #HEXtoDEC     ; Pula na subrotina de transformação de valores hexa pra decimal
+    add r9,  r0, r9   ; Guarda em r9 o valor da dezena do numero r7(continuo)
+    add r10, r0, r10  ; Guarda em r10 o valor da unidade do numero r7(continuo)
+    
+    add r14, r0, r8   ; carrega em r14 o valor do contador manual
+    jsr #HEXtoDEC      ; Chama a subrotina de transformação de valores hexa pra decimal
+    add r11, r0, r9   ; Guarda em r11 o valor da dezena do numero r7(continuo)
+    add r12, r0, r10  ; Guarda em r12 o valor da unidade do numero r7(continuo)
+
+	ldh r5, #F0h      ;  
+	ldl r5, #00h      ;
+	st r5, r0, r3     ; PortConfig <= "1111 0000 0000 0000" | (12 downto 0)LSBs = SAIDA
+
+	ldh r5, #0Fh      ; 
+	ldl r5, #FFh      ;
+	st r5, r0, r4     ; PortEnable <= "0000 1111 1111 1111" | Habilita acesso somente aos bits do SSD
+    
+    
+    ldh r15, #array   
+    ldl r15, #array   ; R15 <- endereço inicial do array
+    
+    st r7, r15, r10   ; r7 <= array[Unidade Automatico]
+    ldh r5, #01h      ; Primeiro display
+	ldl r5, r7        ; Valor de 8 bits a ser colocado no SSD
+    st r5, r0, r2     ; PortData <= "0000 0001 & (Valor Unidade Atomatico)" | PRIMEIRO SSD
+    
+    jsr #delay
+    
+    st r7, r15, r9    ; r7 <= array[Dezena Automatico]
+    ldh r5, #02h      ; Segundo display
+	ldl r5, r7        ; Valor de 8 bits a ser colocado no SSD
+    st r5, r0, r2     ; PortData <= "0000 0010 &  (Valor Dezena Atomatico)" | SEGUNDO SSD
+    
+    jsr #delay
+    
+    st r7, r15, r12   ; r7 <= array[Unidade Manual]
+    ldh r5, #04h      ; Terceiro display
+	ldl r5, r7        ; Valor de 8 bits a ser colocado no SSD
+    st r5, r0, r2     ; PortData <= "0000 0100 &  (Valor Unidade Manual)" | TERCEIRO SSD
+    
+    jsr #delay
+    
+    st r7, r15, r11   ; r7 <= array[Dezena Manual]
+    ldh r5, #08h      ; Quarto display
+	ldl r5, r7        ; Valor de 8 bits a ser colocado no SSD
+    st r5, r0, r2     ;PortData <= "0000 1000 &  (Valor Dezena Manual)" | QUARTO SSD
+    
+    jsr #delay
+  
+    pop r15
+    pop r14 
+    pop r12
+    pop r11
+    pop r10
+    pop r9
+    pop r7
+    pop r5
+    
+    rts
 ;------------------------------------------------------------------------------------------------------------;
 
 
-
-
+    
 ; compensaTempo, incrementaContinuo, incrementaManual devem ter o mesmo tmepo de execução
 
 ; --- delay              : TODO
@@ -389,5 +490,14 @@ return: ; Esse trecho de código nunca executa
 	pop r0
 	
 	rts
-	
+ 
 .endcode	
+
+.data
+    ; array SSD representa o array de valores a serem postos nos displays de sete seg
+                   ; 0 ,    1,    2,    3,    4,    5,    6,    7,    8,    9
+    arraySSD:   db #03h, #9fh, #25h, #0dh, #99h, #49h, #21h, #1fh, #01h, #09h
+    ; Array que escolhe qual disp sera utilizado
+                   ; Mais da direita -> Mais da esquerda
+    arrayDisp:  db #01h, #02h, #04h, #08h
+.enddata
