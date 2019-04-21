@@ -41,36 +41,25 @@
 ;net "port_io[12]" loc = P17;  // Display 3 (Left-most) 
 ;net "port_io[11]" loc = P18;  // Display 2
 ;net "port_io[10]" loc = N15;  // Display 1
-;net "port_io[9]" loc = N16;  // Display 0 (Right-most)
+;net "port_io[9]"  loc = N16;  // Display 0 (Right-most)
 ;////////////////////////////////////////////////////////////////////
 ; ID da porta = 0
 
 .code
 
 ;---------------------------------------Ponto de Entrada-----------------------------------------------------
+;Seta o SP;
+;Seta r0  em ZERO
+;Seta o endereço de Port DATA
+;Seta o endereço de Port CONFIG
+;Seta o endereço de Port Enable
+;Retorna NADA
 main:
 ;   Seta SP para ultimo endereço no espaço de endereçamento da memória
 	ldh r15, #7fh
     ldl r15, #FFh           
     ldsp r15 
-
-;	Push para pilha registradores a serem utilizados no programa
-	push r0
-	push r1
-	push r2
-	push r3
-	push r4
-	push r5
-	push r6
-	push r7
-	push r8
-	push r9
-	push r10
-	push r11
-	push r12
-	push r13
-	push r14
-
+    
 ;   r0 <= 0
 	xor r0, r0, r0
 	
@@ -110,6 +99,7 @@ main:
 ;	r12 <= 0 (inicializa Unidade do contador do display manual)
 	xor r12, r12, r12
 
+    
 ;	PortConfig <= "0000000011111111", MSBs = Saída (LEDs), LSBs = Entrada (Switches)
 	ldh r5, #00h
 	ldl r5, #FFh
@@ -121,6 +111,8 @@ main:
 	st r5, r0, r3
 
 ;-----------------------------------------Loop do Programa Principal-----------------------------------------	
+; Verifica o estado dos botoes e displays de 10 em 10 ms
+
 pollingLoop:
 	
 	jsr #delay ; Gasta 10ms de processador
@@ -132,12 +124,13 @@ pollingLoop:
 ; 	Retorna zero se nenhum botao estiver pressionado, 1 se botao de cima estiver pressionado, -1 se botao de baixo estiver pressionado
 	jsr #lerPorta
 	
-;	Gera flag zero
+;	Gera flag zero para condição de pulo
 	add r1, r0, r1
 	
 ;	Ambos os jumps devem voltar para label "return1"
-	jmpzd #compensaTempo ; TODO: Verificar return address apos salto
-	jmpd #incrementaManual ; Atualiza valor de r8
+	;Caso o retorno da porta seja zero
+    jmpzd #compensaTempo ; TODO: Verificar return address apos salto //?? Que return adress????
+	jmpd #incrementaManual ; Atualiza valor de r8 /????? Contador automático?
 	
 return1:
 	
@@ -163,6 +156,51 @@ return2:
 ;----------------------------------- Fim do Programa Principal-----------------------------------------------
 ; Abaixo estão as subrotinas:
 
+;---------------------------------------------HEXtoDEC-------------------------------------------------------;
+; Recebe um valore (HEX) se separas ele  em decimal(DEC) e Unidade(DEC)                                      ;
+;                                                                                                            ;
+;   REGISTRADORES - (r7)NUmeroOriginal - ENTRADA                                                             ;
+;                   (r9) DECIMAL       - SAIDA                                                               ;
+;                   (r10) UNIDADE      - SAIDA                                                               ;
+;                                                                                                            ;
+;   RETORNO - Ao final da subrotina os valores de r9, r10, irao representar a dezena e unidade do numero     ;
+;             respectivamente                                                                                ;
+;                                                                                                            ;
+;   FUCUNCIONAMENTO - Primeiramente carrega os valores a serem traduzidos de HEX para DEC nos registradores  ;
+;                     de dezena, apois isso é iniciado um loop de subtrações sucessivas onde a cada iteração ;
+;                     é diminuido 10(decimal)/A(HEX) do valor total, quando o valor se apresentar zero,      ;
+;                     finalizao loop e quando se apresentar negativo (ex -3, soma-se 10, -3+10 = 7) e        ;
+;                     finaliza o loop                                                                        ;
+;                                                                                                            ;
+;   EXEMPLO  - r7 = 1A(hex) = 26(dec)                                                                        ;
+;                     Inicio     ->  r10(Unidade) = 1A | r9(Dezena) = 0                                      ;
+;                     1 iteração ->  r10(Unidade) = 10 | r9(Dezena) = 1                                      ;
+;                     2 iteração ->  r10(Unidade) = 6  | r9(Dezena) = 2                                      ;
+;                     3 iteração ->  r10(Unidade) = 6  | r9(Dezena) = 2                                      ;
+;------------------------------------------------------------------------------------------------------------;
+HEXtoDEC:
+    add r10, r0, r7        ; Carrega o r7(Numero original) no r10(parte da dezena do contador)
+    xor r9, r9, r9         ; Zera r9(dezena)
+    
+dezena:                    ; Loop que por subtrações sucessivas calcula a dezena
+    subi r10, #0Ah;
+    jmpzd #fimHEXtoDECzero ; Caso o a Unidade for igual a zero, não é necessario realizar mais uma soma
+    jmpnd #fimHEXtoDEC     ; Acabou de calcular a dezena e unidade do numero
+    addi r9, #01h          ; Incrementa a dezena do numero; 
+    jmpd #dezenaAUTO       ; Retorna para o loop de calculo de dezena
+    
+fimHEXtoDEC:
+    addi r10, #0Ah; 
+    
+fimHEXtoDECzero;
+    st r9, r0, r9;         ; Salva o valor da dezena em r9
+    st r10, r0, r10        ; Salva o valor da unidade em r10
+    rts                    ; Retorno da Subrotina
+
+
+
+
+
 ; compensaTempo, incrementaContinuo, incrementaManual devem ter o mesmo tmepo de execução
 
 ; --- delay              : TODO
@@ -170,15 +208,17 @@ return2:
 ; --- compensaTempo      :      DONE
 ; --- incrementaManual   : 		DONE
 ; --- incrementaContinuo :      DONE
+; --- HEXtoDEC           :      DONE
 ; --- traduzSSD          : TODO
 ; --- controleSSD        : TODO
 ; --- escrevePorta       : TODO
 
 lePorta:
-
+; Retorna Estado do botao ( 1 INCREMENTO Pressionado, 
+;                           0 NENHUM     Pressionado, 
+;                          -1 DECREMENTO Pressionado)
 ;	r1 <= Dado da porta
 	ld r1, r0, r2
-	
 	rts
 	
 compensaTempo:
