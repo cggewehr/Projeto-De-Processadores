@@ -178,25 +178,25 @@ return2:
 ;                     2 iteração ->  r10(Unidade) = 6  | r9(Dezena) = 2                                      ;
 ;                     3 iteração ->  r10(Unidade) = 6  | r9(Dezena) = 2                                      ;
 ;------------------------------------------------------------------------------------------------------------;
-HEXtoDEC:
-    add r10, r0, r7        ; Carrega o r7(Numero original) no r10(parte da dezena do contador)
-    xor r9, r9, r9         ; Zera r9(dezena)
-    
-dezena:                    ; Loop que por subtrações sucessivas calcula a dezena
-    subi r10, #0Ah;
-    jmpzd #fimHEXtoDECzero ; Caso o a Unidade for igual a zero, não é necessario realizar mais uma soma
-    jmpnd #fimHEXtoDEC     ; Acabou de calcular a dezena e unidade do numero
-    addi r9, #01h          ; Incrementa a dezena do numero; 
-    jmpd #dezenaAUTO       ; Retorna para o loop de calculo de dezena
-    
-fimHEXtoDEC:
-    addi r10, #0Ah; 
-    
-fimHEXtoDECzero;
-    st r9, r0, r9;         ; Salva o valor da dezena em r9
-    st r10, r0, r10        ; Salva o valor da unidade em r10
-    rts                    ; Retorno da Subrotina
-
+HEXtoDEC:                                                                                                    ;
+    add r10, r0, r7        ; Carrega o r7(Numero original) no r10(parte da dezena do contador)               ;
+    xor r9, r9, r9         ; Zera r9(dezena)                                                                 ;
+                                                                                                             ;
+dezena:                    ; Loop que por subtrações sucessivas calcula a dezena                             ;
+    subi r10, #0Ah;                                                                                          ;
+    jmpzd #fimHEXtoDECzero ; Caso o a Unidade for igual a zero, não é necessario realizar mais uma soma      ;
+    jmpnd #fimHEXtoDEC     ; Acabou de calcular a dezena e unidade do numero                                 ;
+    addi r9, #01h          ; Incrementa a dezena do numero;                                                  ;
+    jmpd #dezenaAUTO       ; Retorna para o loop de calculo de dezena                                        ;
+                                                                                                             ;
+fimHEXtoDEC:                                                                                                 ;
+    addi r10, #0Ah;                                                                                          ;
+                                                                                                             ;
+fimHEXtoDECzero;                                                                                             ;
+    st r9, r0, r9;         ; Salva o valor da dezena em r9                                                   ;
+    st r10, r0, r10        ; Salva o valor da unidade em r10                                                 ;
+    rts                    ; Retorno da Subrotina                                                            ;
+;------------------------------------------------------------------------------------------------------------;
 
 
 
@@ -204,9 +204,9 @@ fimHEXtoDECzero;
 ; compensaTempo, incrementaContinuo, incrementaManual devem ter o mesmo tmepo de execução
 
 ; --- delay              : TODO
-; --- lePorta            : 		DONE
+; --- lePorta            :      DONE
 ; --- compensaTempo      :      DONE
-; --- incrementaManual   : 		DONE
+; --- incrementaManual   :      DONE
 ; --- incrementaContinuo :      DONE
 ; --- HEXtoDEC           :      DONE
 ; --- traduzSSD          : TODO
