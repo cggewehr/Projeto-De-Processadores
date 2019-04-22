@@ -8,8 +8,8 @@
 ; ------------------------ r04 = &PortEnable
 ; ------------------------ r05 = Dado a ser lido/escrito
 ; ------------------------ r06 = Contador de 10ms
-; ------------------------ r07 = Contador do display continuo
-; ------------------------ r08 = Contador do display manual
+; ------------------------ r07 = Valor do contador continuo de 1 seg
+; ------------------------ r08 = Valor do contador manual
 ; ------------------------ r09 = Decimal do contador do display continuo
 ; ------------------------ r10 = Unidade do contador do display continuo
 ; ------------------------ r11 = Decimal do contador do display manual
@@ -49,11 +49,12 @@
 
 ;---------------------------------------Ponto de Entrada-----------------------------------------------------
 ;Seta o SP;
-;Seta r0  em ZERO
+;Seta r0 em ZERO
 ;Seta o endereço de Port DATA
 ;Seta o endereço de Port CONFIG
 ;Seta o endereço de Port Enable
 ;Retorna NADA
+
 main:
 ;   Seta SP para ultimo endereço no espaço de endereçamento da memória
 	ldh r15, #7fh
@@ -63,8 +64,8 @@ main:
 ;   r0 <= 0
 	xor r0, r0, r0
 	
-;	r1 <= 1
-	addi r1, r0, #01h
+;	r1 <= 0
+	xor r1, r1, r1
 	
 ;	r2 <= &PortData
 	ldh r2, #80h
@@ -98,15 +99,17 @@ main:
 	
 ;	r12 <= 0 (inicializa Unidade do contador do display manual)
 	xor r12, r12, r12
-
+	
+;	r13 <= 100
+	addi r13, r0, #100d
     
-;	PortConfig <= "0000000011111111", MSBs = Saída (LEDs), LSBs = Entrada (Switches)
-	ldh r5, #00h
+;	PortConfig <= "00111111_11111111", bit 15 e 14 = entrada, outros = saida
+	ldh r5, #3Fh
 	ldl r5, #FFh
 	st r5, r0, r2
 
-;	PortEnable <= "1111111111111111", habilita acesso a todos os bits da porta de I/O 
-	ldh r5, #FFh
+;	PortEnable <= "11011110_11111111", habilita acesso a todos os bits da porta de I/O, menos bit 13 e bit 8
+	ldh r5, #CEh
 	ldl r5, #FFh
 	st r5, r0, r3
 
@@ -114,32 +117,25 @@ main:
 ; Verifica o estado dos botoes e displays de 10 em 10 ms
 
 pollingLoop:
-	
-	jsr #delay ; Gasta 10ms de processador
+
+; 	Gasta 10ms de processador	
+	jsr #delay 
 	
 ;	Incrementa contador de 10ms
 	addi r6, r0, #01h
 	
-; 	Le porta ( verificar estado dos botoes ) 
-; 	Retorna zero se nenhum botao estiver pressionado, 1 se botao de cima estiver pressionado, -1 se botao de baixo estiver pressionado
+; 	Le porta ( Verificar estado dos botoes ) 
 	jsr #lerPorta
+
+;	Define valor a ser exibido no contador manual
+	jsr #incrementaManual
 	
-;	Gera flag zero para condição de pulo
-	add r1, r0, r1
-	
-;	Ambos os jumps devem voltar para label "return1"
-	;Caso o retorno da porta seja zero
-    jmpzd #compensaTempo ; TODO: Verificar return address apos salto //?? Que return adress????
-	jmpd #incrementaManual ; Atualiza valor de r8 /????? Contador automático?
-	
-return1:
-	
-; 	Se contador de 10 ms = 100, r5 <= 0, portanto, pula para subrotina 
+;	Incrementa contador de 10 ms
+	addi r6, r6, #01h
+
+; 	Se contador de 10 ms = 100, incrementa contador continuo (1 seg)
 	sub r5, r13, r6
-	jmpzd #incrementaContinuo
-	jmpd #compensaTempo
-	
-return2:
+	jsr #incrementaContinuo
 
 ;	Atualiza valores de r9, r10, r11, r12 conforme os valores de r7 e r8
 	jsr #traduzSSD
@@ -155,22 +151,35 @@ return2:
 	
 ;----------------------------------- Fim do Programa Principal-----------------------------------------------
 ; Abaixo estão as subrotinas:
+    
+; compensaTempo, incrementaContinuo, incrementaManual devem ter o mesmo tempo de execução
+
+; --- delay              : TODO
+; --- lePorta            :      DONE
+; --- compensaTempo      :      DONE
+; --- incrementaManual   :      DONE
+; --- incrementaContinuo :      DONE
+; --- HEXtoDEC           :      DONE
+; --- traduzSSD          : TODO
+; --- controleSSD        : TODO
+; --- escrevePorta       : TODO
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;HEXtoDEC;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Recebe um valore (HEX) se separas ele  em decimal(DEC) e Unidade(DEC)                                      ;
 ;                                                                                                            ;
-;   REGISTRADORES - (r14)NUmeroOriginal - ENTRADA                                                            ;
-;                   (r9) DECIMAL        - SAIDA                                                              ;
-;                   (r10) UNIDADE       - SAIDA                                                              ;
+;   REGISTRADORES - (r14) NumeroOriginal - ENTRADA                                                           ;
+;                   (r9)  DECIMAL        - SAIDA                                                             ;
+;                   (r10) UNIDADE        - SAIDA                                                             ;
 ;                                                                                                            ;
 ;   RETORNO - Ao final da subrotina os valores de r9, r10, irao representar a dezena e unidade do numero     ;
 ;             respectivamente                                                                                ;
 ;                                                                                                            ;
-;   FUCUNCIONAMENTO - Primeiramente carrega os valores a serem traduzidos de HEX para DEC nos registradores  ;
-;                     de dezena, apois isso é iniciado um loop de subtrações sucessivas onde a cada iteração ;
-;                     é diminuido 10(decimal)/A(HEX) do valor total, quando o valor se apresentar zero,      ;
-;                     finalizao loop e quando se apresentar negativo (ex -3, soma-se 10, -3+10 = 7) e        ;
-;                     finaliza o loop                                                                        ;
+;   FUNCIONAMENTO - Primeiramente carrega os valores a serem traduzidos de HEX para DEC nos registradores    ;
+;                   de dezena, apois isso é iniciado um loop de subtrações sucessivas onde a cada iteração   ;
+;                   é diminuido 10(decimal)/A(HEX) do valor total, quando o valor se apresentar zero,        ;
+;                   finalizao loop e quando se apresentar negativo (ex -3, soma-se 10, -3+10 = 7) e          ;
+;                   finaliza o loop                                                                          ;
 ;                                                                                                            ;
 ;   EXEMPLO  - r7 = 1A(hex) = 26(dec)                                                                        ;
 ;                     Inicio     ->  r10(Unidade) = 1A | r9(Dezena) = 0                                      ;
@@ -215,14 +224,14 @@ fimHEXtoDECzero;                                                                
 ;             os valores de Contador Automatico ( Unidade, Dezena) e Contador Manual( Unidade, Dezena) da    ;
 ;             Direita para a Esquerda, respectivamente.                                                      ;
 ;                                                                                                            ;
-;   FUCUNCIONAMENTO - É utiliza a subrotina de HEXtoDEC para adquirir os valores de dezena e unidade de cada ;
-;                     contador e após isso é setada os resgistradores da porta:                              ;
-;                     REG_PORT_CONFIG ( 12 bits de saida)                                                    ;
-;                     REG_PORT ENABLE ( Habilita para a escrita esss 12 bits)                                ;
-;                     Então é carregado o valor do endereço inicial do array dos valores do disp que é       ;
-;                     indexado pelo proprio numero                                                           ;
-;                     Finalmente é mostrado nos disp os valores seguidos do delay para vizualização, é feito ;
-;                     para os 4 displays e entao retorna                                                     ;                       
+;   FUNCIONAMENTO - É utiliza a subrotina de HEXtoDEC para adquirir os valores de dezena e unidade de cada   ;
+;                   contador e após isso é setada os resgistradores da porta:                                ;
+;                   REG_PORT_CONFIG ( 12 bits de saida)                                                      ;
+;                   REG_PORT ENABLE ( Habilita para a escrita esss 12 bits)                                  ;
+;                   Então é carregado o valor do endereço inicial do array dos valores do disp que é         ;
+;                   indexado pelo proprio numero                                                             ;
+;                   Finalmente é mostrado nos disp os valores seguidos do delay para vizualização, é feito   ;
+;                   para os 4 displays e entao retorna                                                       ;                       
 ;------------------------------------------------------------------------------------------------------------;
 escreveSSD:                                                                                                  ;
     push r5                                                                                                  ;
@@ -294,26 +303,15 @@ escreveSSD:                                                                     
     rts                ; REtorna                                                                             ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-
-    
-; compensaTempo, incrementaContinuo, incrementaManual devem ter o mesmo tmepo de execução
-
-; --- delay              : TODO
-; --- lePorta            :      DONE
-; --- compensaTempo      :      DONE
-; --- incrementaManual   :      DONE
-; --- incrementaContinuo :      DONE
-; --- HEXtoDEC           :      DONE
-; --- traduzSSD          : TODO
-; --- controleSSD        : TODO
-; --- escrevePorta       : TODO
-
 lePorta:
-; Retorna Estado do botao ( 1 INCREMENTO Pressionado, 
-;                           0 NENHUM     Pressionado, 
-;                          -1 DECREMENTO Pressionado)
+; Retorna Estado do botao 
+
 ;	r1 <= Dado da porta
 	ld r1, r0, r2
+	
+;	Gera flag zero para condição de pulo
+	add r1, r0, r1
+	
 	rts
 	
 compensaTempo:
@@ -417,31 +415,60 @@ manual++:
 
 incrementaContinuo:
 	
-;	Incrementa contador continuo, demorando 72 ciclos
-	addi r7, #01h    ;3  ciclos
-	ld r15, r0, r0   ;7  ciclos
-	ld r15, r0, r0   ;11 ciclos
-	nop              ;14 ciclos
-	nop              ;17 ciclos
-	nop              ;20 ciclos
-	nop              ;23 ciclos
-	nop              ;26 ciclos
-	nop              ;29 ciclos
-	nop              ;32 ciclos
-	nop              ;35 ciclos
-	nop              ;38 ciclos
-	nop              ;41 ciclos
-	nop              ;44 ciclos
-	nop              ;47 ciclos
-	nop              ;50 ciclos
-	nop              ;53 ciclos
-	nop              ;56 ciclos
-	nop              ;59 ciclos
-	nop              ;62 ciclos
-	nop              ;65 ciclos
-	nop              ;68 ciclos
+;	Incrementa contador continuo se passou 1 seg, demorando 72 ciclos
+
+;	Se 1 segundo se passou, nao incrementa contador
+	jmpzd #returnContinuo ;3 ciclos 
 	
-	rts              ;72 ciclos
+	addi r7, #01h         ;6  ciclos
+	ld r15, r0, r0        ;11 ciclos
+	ld r15, r0, r0        ;14 ciclos
+	nop                   ;17 ciclos
+	nop                   ;20 ciclos
+	nop                   ;23 ciclos
+	nop                   ;26 ciclos
+	nop                   ;29 ciclos
+	nop                   ;32 ciclos
+	nop                   ;35 ciclos
+	nop                   ;38 ciclos
+	nop                   ;41 ciclos
+	nop                   ;44 ciclos
+	nop                   ;47 ciclos
+	nop                   ;50 ciclos
+	nop                   ;53 ciclos
+	nop                   ;56 ciclos
+	nop                   ;59 ciclos
+	nop                   ;62 ciclos
+	nop                   ;65 ciclos
+	nop                   ;68 ciclos
+
+	rts                   ;72 ciclos
+	
+  returnContinuo:
+  
+	nop                   ;7 ciclos
+	nop                   ;10 ciclos
+	nop                   ;13 ciclos
+	nop                   ;16 ciclos
+	nop                   ;19 ciclos
+	nop                   ;22 ciclos
+	nop                   ;25 ciclos
+	nop                   ;28 ciclos
+	nop                   ;31 ciclos
+	nop                   ;34 ciclos
+	nop                   ;37 ciclos
+	nop                   ;40 ciclos
+	nop                   ;43 ciclos
+	nop                   ;46 ciclos
+	nop                   ;49 ciclos
+	nop                   ;52 ciclos
+	nop                   ;55 ciclos
+	nop                   ;58 ciclos
+	nop                   ;61 ciclos
+	nop                   ;64 ciclos
+	ld r15, r0, r0        ;68 ciclos
+
+	rts                   ;72 ciclos
 	
 ;;-----------------------------------Copiado do trabalho anterior--------------------------------------------
 ;pollingLoop: ; Repete esse loop infinitamente	
