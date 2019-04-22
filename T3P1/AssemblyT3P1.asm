@@ -358,13 +358,13 @@ incrementaManual:
 	xor r14, r14, r14
 	addi r14, r0, #01h
 
-;	r15 <= Mascara de comparação para BTN DOWN (00000000_00000001)
-	ldh r15, #00h
-	ldl r15, #01h
+;	r15 <= Mascara de comparação para BTN DOWN (10000000_00000000)
+	ldh r15, #80h
+	ldl r15, #00h
 
 ;	Se BTN DOWN foi pressionado, r1 <= 0, decrenenta contador
 	and r1, r1, r15
-	subi r1, #01h
+	sub r1, r1, r15
 	jmpzd #manual--
 	
 ;	Carrega lixo em r15 para manter tempo de execução constante, independente da tomada de branch (11 ciclos)
@@ -377,13 +377,13 @@ incrementaManual:
 	pop r1
 	push r1
 	
-;	r15 <= Mascara de comparação para BTN UP (00000000_00000010)
-	ldh r15, #00h
-	ldl r15, #02h	
+;	r15 <= Mascara de comparação para BTN UP (01000000_00000000)
+	ldh r15, #04h
+	ldl r15, #00h	
 
 ;	Se BTN UP foi pressionado, r1 <= 0, incrementa contador
 	and r1, r1, r15
-	subi r1, #02h
+	sub r1, r1, r15
 	jmpzd #manual++
 	
 ;	Carrega lixo em r15 para manter tempo de execução constante, independente da tomada de branch (11 ciclos)
