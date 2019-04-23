@@ -7,14 +7,14 @@
 ; ------------------------ r03 = &PortConfig
 ; ------------------------ r04 = &PortEnable
 ; ------------------------ r05 = Dado a ser lido/escrito
-; ------------------------ r06 = Contador de 10ms
+; ------------------------ r06 = Contador de 2ms
 ; ------------------------ r07 = Valor do contador continuo de 1 seg
 ; ------------------------ r08 = Valor do contador manual
 ; ------------------------ r09 = Decimal do contador do display continuo
 ; ------------------------ r10 = Unidade do contador do display continuo
 ; ------------------------ r11 = Decimal do contador do display manual
 ; ------------------------ r12 = Unidade do contador do display manual
-; ------------------------ r13 = 100
+; ------------------------ r13 = 500
 ; ------------------------ r14 = Temporario
 ; ------------------------ r15 = PUSH SP, após isso, Temporario
 
@@ -79,7 +79,7 @@ main:
 	ldh r4, #80h
 	ldl r4, #02h
 	
-;	r6 <= 0 (inicializa contador de 10ms)
+;	r6 <= 0 (inicializa contador de 2ms)
 	xor r6, r6, r6
 	
 ;	r7 <= 0 (inicializa contador do display continuo)
@@ -100,8 +100,8 @@ main:
 ;	r12 <= 0 (inicializa Unidade do contador do display manual)
 	xor r12, r12, r12
 	
-;	r13 <= 100
-	addi r13, r0, #100d
+;	r13 <= 500
+	addi r13, r0, #500d
     
 ;	PortConfig <= "00111111_11111111", bit 15 e 14 = entrada, outros = saida
 	ldh r5, #3Fh
@@ -114,14 +114,14 @@ main:
 	st r5, r0, r3
 
 ;-----------------------------------------Loop do Programa Principal-----------------------------------------	
-; Verifica o estado dos botoes e displays de 10 em 10 ms
+; Verifica o estado dos botoes e displays de 2 em 2 ms
 
 pollingLoop:
 
-; 	Gasta 10ms de processador	
+; 	Gasta 2ms de processador	
 	jsr #delay 
 	
-;	Incrementa contador de 10ms
+;	Incrementa contador de 2ms
 	addi r6, r0, #01h
 	
 ; 	Le porta ( Verificar estado dos botoes ) 
@@ -130,10 +130,10 @@ pollingLoop:
 ;	Define valor a ser exibido no contador manual
 	jsr #incrementaManual
 	
-;	Incrementa contador de 10 ms
+;	Incrementa contador de 2 ms
 	addi r6, r6, #01h
 
-; 	Se contador de 10 ms = 100, incrementa contador continuo (1 seg)
+; 	Se contador de 2 ms = 500, incrementa contador continuo (1 seg)
 	sub r5, r13, r6
 	jsr #incrementaContinuo
 
@@ -249,7 +249,7 @@ escreveSSD:                                                                     
     add r10, r0, r10  ; Guarda em r10 o valor da unidade do numero r7(continuo)                              ;
                                                                                                              ;
     add r14, r0, r8   ; carrega em r14 o valor do contador manual                                            ;
-    jsr #HEXtoDEC      ; Chama a subrotina de transformação de valores hexa pra decimal                      ;
+    jsr #HEXtoDEC     ; Chama a subrotina de transformação de valores hexa pra decimal                       ;
     add r11, r0, r9   ; Guarda em r11 o valor da dezena do numero r7(continuo)                               ;
     add r12, r0, r10  ; Guarda em r12 o valor da unidade do numero r7(continuo)                              ;
                                                                                                              ;
