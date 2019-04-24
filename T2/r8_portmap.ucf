@@ -1,0 +1,38 @@
+///////////////////////////     BASIC    ///////////////////////////
+net "rst" loc = C9;           // BTN DOWN
+net "clk" loc = V10;          // 100MHz board clock
+
+///////////////////////////     INPUT    ///////////////////////////
+
+net "port_io[0]" loc = T10;   // SW0 (Right-most)
+//net "port_io[0]" loc = C4;   // BTN UP (Right-most)
+net "port_io[1]" loc = T9;    // SW1
+//net "port_io[1]" loc = D9;    // BTN RIGHT
+net "port_io[2]" loc = V9;    // SW2
+net "port_io[3]" loc = M8;    // SW3
+net "port_io[4]" loc = N8;    // SW4
+net "port_io[5]" loc = U8;    // SW5
+net "port_io[6]" loc = V8;    // SW6
+net "port_io[7]" loc = T5;    // SW7 (Left-most)
+
+///////////////////////////     OUTPUT   ///////////////////////////
+
+net "port_io[8]" loc = U16;   // LED 0 (Right-most)
+net "port_io[9]" loc = V16;   // LED 1 
+net "port_io[10]" loc = U15;  // LED 2
+net "port_io[11]" loc = V15;  // LED 3
+net "port_io[12]" loc = M11;  // LED 4 
+net "port_io[13]" loc = N11;  // LED 5
+net "port_io[14]" loc = R11;  // LED 6
+net "port_io[15]" loc = T11;  // LED 7 (Left-most)
+
+////////////////////////////////////////////////////////////////////
+#
+#net "port_io[8]" loc = T17;   // Segmento A
+#net "port_io[9]" loc = T18;   // Segmento B
+#net "port_io[10]" loc = U17;  // Segmento C
+#net "port_io[11]" loc = U18;  // Segmento D
+#net "port_io[12]" loc = M14;  // Segmento E 
+#net "port_io[13]" loc = N14;  // Segmento F
+#net "port_io[14]" loc = P18;  // SSD display 2
+#net "port_io[15]" loc = P17;  // SSD display 3 (Left-most)
