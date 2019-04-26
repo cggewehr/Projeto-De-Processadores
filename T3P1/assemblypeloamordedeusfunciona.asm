@@ -10,10 +10,10 @@
 ; ------------------------ r06 = Contador de 2ms
 ; ------------------------ r07 = Valor do contador continuo de 1 seg
 ; ------------------------ r08 = Valor do contador manual
-; ------------------------ r09 = Decimal do contador do display continuo
-; ------------------------ r10 = Unidade do contador do display continuo
-; ------------------------ r11 = Decimal do contador do display manual
-; ------------------------ r12 = Unidade do contador do display manual
+; ------------------------ r09 = Dezena
+; ------------------------ r10 = Unidade
+; ------------------------ r11 = Temporario
+; ------------------------ r12 = Temporario
 ; ------------------------ r13 = 500
 ; ------------------------ r14 = Temporario
 ; ------------------------ r15 = Contador do Display (0, 1, 2, 3)
@@ -120,104 +120,34 @@ main:
 ; Verifica o estado dos botoes e displays de 2 em 2 ms
 
 pollingLoop:
-	
-;	Incrementa contador de 2ms                                                                       4 ciclos
-	addi r6, #01h
-	
-; 	Le porta ( Verificar estado dos botoes )                                              4 ciclos + lerPorta
-	jsrd #lePorta                                                                                    
-
-;	Define valor a ser exibido no contador manual                                        4 ciclos + incManual
- 	jsrd #incrementaManual                                                                            
-
-;Incrementa somente uma vez o contador de 2 ms	
-;	Incrementa contador de 2 ms                                                                      
-;	addi r6, #01h 
-
-; 	Se contador de 2 ms = 500, incrementa contador continuo (1 seg)                    8 ciclos + incContinuo
-;	sub r5, r13, r6
-	jsrd #incrementaContinuo
-	
-;	Determina qual numero sera escrito no display	
-;	if display = 0 ou 1, numero a ser convertido = continuo, se display = 2 ou 3, numero a ser convertido = manual	
-	
-;	Salva r13                                                                                        4 ciclos
-	push r13                                                                                        
-	
-;	Gera flag de zero, se display = 0, pula para displayContinuo                           4 ciclos + jmp (3)
-	add r15, r0, r15                                                                                 
-	jmpzd #displayContinuo
-	
-;	Mascara para comparação com numero 1                                                             8 ciclos
-	ldh r13, #00h
-	ldl r13, #01h
-	
-;	Se display = 1, pula para displayContinuo                                                  8 ciclos + (8)
-	and r13, r13, r15
-	sub r13, r13, r15
-	jmpzd #displayContinuo
-	jmpd #displayManual
-	
-returnDisplayContinuoManual:
-
-;	Restaura r13	                                                                                 4 ciclos
-	pop r13 
-	
-;	Escreve na porta os valores determinados
-	jsrd #escreveSSD
-	
-;	Incrementa contador do display	                                                                 4 ciclos
-	addi r15, #01h                                                                                   
-	
-;   Salva r13	                                                                                     4 ciclos
-	push r13
-
-;	r13 <= mascara de comparação (00000000_00000100)                                                 8 ciclos
-	ldh r13, #00h
-	ldl r13, #04h
-
-;	Se contador de display == 4, contador de display <= 0                                    8 ciclos + jmp(3)
-	and r13, r13, r15
-	sub r13, r13, r15
-	jmpzd #setaDisplayZero
-	
-returnDisplayZero:
-;	Restaura r13                                                                                     4 ciclos
-	pop r13
 
 ; 	Gasta 2ms de processador	                                                             4 ciclos + delay
-	jsrd #delay 
+	jsrd #delay                                                                   
 	
+; 	Le porta ( Verificar estado dos botoes )                                              4 ciclos + lerPorta
+	jsrd #lePorta     
+
+;	Define valor a ser exibido no contador manual                                        4 ciclos + incManual
+ 	jsrd #incrementaManual    
+
+;	Define valor do contador automatico
+    jsrd #incrementaContinuo
+	
+;;;;;;;;;;
+    jsrd #findDisplay
+
+;;;;;;;;;;
+    jsrd #escrevePorta
+
 ;	Retorna para loop de polling                                                                     4 ciclos
 	jmpd #pollingLoop
-	
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;	
-
-	
-setaDisplayZero:     
-                                                                                 
-;   display <= 0                                                                             4 ciclos + jmp(4)
-	xor r15, r15, r15 
-	jmpd #returnDisplayZero
-	
-displayContinuo:
-	
-;	Argumento para HEXtoDEC = contador Continuo de 1 seg                                     4 ciclos + jmp(4)
-	add r14, r0, r7
-	jmpd #returnDisplayContinuoManual
-	
-displayManual:
-
-;	Argumento para HEXtoDEC = contador manual                                                4 ciclos + jmp(4)
-	add r14, r0, r8
-	jmpd #returnDisplayContinuoManual
 	
 ;----------------------------------- Fim do Programa Principal-----------------------------------------------
 ; Abaixo estão as subrotinas:
     
 ; compensaTempo, incrementaContinuo, incrementaManual devem ter o mesmo tempo de execução
 
-; --- delay              :      DONE                                                           100 001 ciclos
+; --- delay              :      DONE                                                         1 000 001 ciclos
 ; --- lePorta            :      DONE                                                                 8 ciclos
 ; --- compensaTempo      :      DONE                                                                72 ciclos
 ; --- incrementaManual   :      DONE                                                                72 ciclos
@@ -225,146 +155,7 @@ displayManual:
 ; --- HEXtoDEC           :      DONE                                                               125 ciclos
 ; --- escreveSSD         :      DONE                                                               130 ciclos
 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;HEXtoDEC;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Recebe um valore (HEX) se separas ele  em decimal(DEC) e Unidade(DEC)                                      ;
-;                                                                                                            ;
-;   REGISTRADORES - (r14) NumeroOriginal - ENTRADA                                                           ;
-;                   (r9)  DECIMAL        - SAIDA                                                             ;
-;                   (r10) UNIDADE        - SAIDA                                                             ;
-;                                                                                                            ;
-;   RETORNO - Ao final da subrotina os valores de r9, r10, irao representar a dezena e unidade do numero     ;
-;             respectivamente                                                                                ;
-;                                                                                                            ;
-;   FUNCIONAMENTO - Primeiramente carrega os valores a serem traduzidos de HEX para DEC nos registradores    ;
-;                   de dezena, apois isso é iniciado um loop de subtrações sucessivas onde a cada iteração   ;
-;                   é diminuido 10(decimal)/A(HEX) do valor total, quando o valor se apresentar zero,        ;
-;                   finalizao loop e quando se apresentar negativo (ex -3, soma-se 10, -3+10 = 7) e          ;
-;                   finaliza o loop                                                                          ;
-
-;------------------------------------------------------------------------------------------------------------;
-; ciclos = (multiplos de 10) = 22*(decimal) + 16 | MULTIPLOS DE 10 (0, 10, 20, 30, 40, ..., 90) 
-; ciclos =     (resto)       = 22*(decimal) + 27 | QUALQUER OUTRO NUMERO(1, 22, 33, 44, ..., 99)
-HEXtoDEC:   
-           
-    xor r9, r9, r9         ; Zera r9(dezena)                                                         
-    add r10, r0, r14       ; Carrega o r14(Numero original) no r10(parte da unidade do contador)     8 ciclos             
-
-dezena:                    ; Loop que por subtrações sucessivas calcula a dezena                             
-    jmpzd #fimHEXtoDEC     ; Caso o numero for igual a zero
-    subi r10, #0Ah         ; Subtrai 10 do numero orignal                                                            
-    jmpnd #menor_de_dez    ; Numero menor que 10   
-    addi r9, #01h          ; Incrementa a dezena do numero;
-    add r10, r0, r10       ; Carrega novamente r10 para gerar as flags para comparação    
-    jmpd #dezena           ; Retorna para o loop de calculo de dezena                                        
-
-menor_de_dez:
-    addi r10, #0Ah         ; Como valor é menor que 10, soma-se 10 na unidade para recuperar o valor                                                   
-    ;jmpd #fimHEXtoDEC     ; Nao executa a instrução mas passa pro label igual
-    
-fimHEXtoDEC:                                                                                             
- ;;;;;   st r9, r0, r9          ; Salva o valor da dezena em r9                                                   
- ;;;;;   st r10, r0, r10        ; Salva o valor da unidade em r10   
-    
-    rts                    ; Retorno da Subrotina                                                            
-
-    
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;DELAY;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; gasta tempo do processador
-delay:
-; com uma freqencia de 50Mhz, temos que 2 ms = 100 000 ciclos de processador
-; um loop com 10 ciclos executado 10 000 vezes
-    push r6
-    ldh r6, #27h
-    ldl r6, #0Eh    ; r6 <= 9998
-
-delay_loop:
-    subi r6, #01h      ; decrementa contador                                4 ciclos
-    jmpzd #fim_delay   ; casp seja zero, finaliza o delay                   3 ciclos -- era jmpzd
-    jmpd  #delay_loop  ; pula para gastar tempo de processador              4 ciclos
-;                                                                ;Total =~ 10 ciclos
-fim_delay:    
-    pop r6
-    nop           ; Adiciona 3 ciclos
-    rts           ; retorna subrotina
-    
-;Ideal = 100 000 ciclos
-;Atual = 100 001 ciclos
-    
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;escreveSSD;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-escreveSSD: 
-	push r11  ; &arrayDisp
-    push r12  ; &arraySSD            
-	push r13  ; mascara de comparação para display
-    push r14  ; numero                                                                                             
-    push r15  ; display (0, 1, 2, 3)                                                                20 ciclos                         
-         
-	ldh r11, #arrayDisp
-	ldl r11, #arrayDisp
-
-;	r11 <= arrayDisp[Display (da iteração atual)]                                                   28 ciclos
-	ld r11, r11, r15
-	
-;	r5 <= display                                                                                   32 ciclos
-	xor r5, r5, r5
-	add r5, r0, r11
-	
-;	Desloca bits de enable do display até sua posição                                               40 ciclos
-	sl0 r5, r5 ; MSB @ 4
-	sl0 r5, r5 ; MSB @ 5
-	sl0 r5, r5 ; MSB @ 6
-	sl0 r5, r5 ; MSB @ 7
-	sl0 r5, r5 ; MSB @ 8
-	sl0 r5, r5 ; MSB @ 9
-	sl0 r5, r5 ; MSB @ 10
-	sl0 r5, r5 ; MSB @ 11
-	sl0 r5, r5 ; MSB @ 12
-
-;	r9 <= Dezena, r10 <= unidade                                                                    76 ciclos
-	jsrd #HEXtoDEC
-
-;	r13 <= mascara de comparação (00000000_00000001) para determinar se numero é par                80 ciclos
-	ldh r13, #00h
-	ldl r13, #01h
-	
-;	Se numero for par, usa unidade, se for impar, usa dezena	                                    84 ciclos
-	and r13, r13, r15
-	jmpzd #dispPar
-	jmpd #dispImpar
-;																	  94 ciclos ( em media 6 ciclos p/ jumps)
-returnJumpParImpar:
-;                    |     15 14    |13|  12 11 10 9  |8| 7 6 5 4 3 2 1 0 |
-;	Escreve na porta (entrada_botoes)x(display_enable) x  (dados_display)	
-	st r5, r0, r2
-	
-;	Restaura registradores                                                                          98 ciclos
-	pop r15
-	pop r14
-	pop r13
-	pop r12
-	pop r11
-
-;   Volta para pollingLoop                                                                         118 ciclos
-	rts
-;                                                                                           FINAL: 130 ciclos
-dispPar:
-
-;	Dado a ser escrito é a unidade do numero passado como argumento para HEXtoDEC
-
-	ld r10, r12, r10
-	add r5, r5, r10
-	jmpd #returnJumpParImpar
-	
-dispImpar:
-
-;	Dado a ser escrito é a dezena do numero passado como argumento para HEXtoDEC
-	
-	ld r9, r12, r9
-	add r5, r5, r9
-	jmpd #returnJumpParImpar
-	
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 lePorta:
 ; Retorna Estado do botao 
@@ -374,34 +165,8 @@ lePorta:
 	
 ;	Retorna para pollingLoop
 	rts
-	
-compensaTempo:
-	
-;	Executa 72 ciclos
-	nop 			;3  ciclos
-	nop 			;6  ciclos
-	nop 			;9  ciclos
-	nop				;12 ciclos
-	nop 			;15 ciclos
-	nop 			;18 ciclos
-	nop 			;21 ciclos
-	nop 			;24 ciclos
-	nop 			;27 ciclos
-	nop 			;30 ciclos
-	nop 			;33 ciclos
-	nop 			;36 ciclos
-	nop 			;39 ciclos
-	nop 			;42 ciclos
-	nop 			;45 ciclos
-	nop 			;48 ciclos
-	nop 			;51 ciclos
-	nop 			;54 ciclos
-	nop 			;57 ciclos
-	nop 			;60 ciclos
-	xor r0, r0, r0  ;64 ciclos
-	xor r0, r0, r0  ;68 ciclos
-	
-	rts             ;72 ciclos
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 incrementaManual:
 ;net "port_io[14]" loc = A8;    // BUTTON UP
@@ -439,7 +204,7 @@ incrementaManual:
 	push r1
 	
 ;	r12 <= Mascara de comparação para BTN UP (01000000_00000000)
-	ldh r12, #04h
+	ldh r12, #40h
 	ldl r12, #00h	
 
 ;	Se BTN UP foi pressionado, r1 <= 0, incrementa contador
@@ -472,8 +237,7 @@ manual++:
 ;	Contador display manual ++
 	addi r8, #01h
 	jmpd #returnManual++
-
-;------------------------------------ AUXILIARES incrementaManual -------------------------------------------
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 incrementaContinuo:
 	
@@ -534,6 +298,241 @@ incrementaContinuo:
 	
 ;	Retorna para pollingLoop
 	rts                   ;72 ciclos
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;HEXtoDEC;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Recebe um valore (HEX) se separas ele  em decimal(DEC) e Unidade(DEC)                                      ;
+;                                                                                                            ;
+;   REGISTRADORES - (r1) NumeroOriginal - ENTRADA                                                            ;
+;                   (r9)  DECIMAL        - SAIDA                                                             ;
+;                   (r10) UNIDADE        - SAIDA                                                             ;
+;                                                                                                            ;
+;   RETORNO - Ao final da subrotina os valores de r9, r10, irao representar a dezena e unidade do numero     ;
+;             respectivamente                                                                                ;
+;                                                                                                            ;
+;   FUNCIONAMENTO - Primeiramente carrega os valores a serem traduzidos de HEX para DEC nos registradores    ;
+;                   de dezena, apois isso é iniciado um loop de subtrações sucessivas onde a cada iteração   ;
+;                   é diminuido 10(decimal)/A(HEX) do valor total, quando o valor se apresentar zero,        ;
+;                   finalizao loop e quando se apresentar negativo (ex -3, soma-se 10, -3+10 = 7) e          ;
+;                   finaliza o loop                                                                          ;
+
+;------------------------------------------------------------------------------------------------------------;
+; ciclos = (multiplos de 10) = 22*(decimal) + 16 | MULTIPLOS DE 10 (0, 10, 20, 30, 40, ..., 90) 
+; ciclos =     (resto)       = 22*(decimal) + 27 | QUALQUER OUTRO NUMERO(1, 22, 33, 44, ..., 99)
+HEXtoDEC:   
+           
+    xor r9, r9, r9         ; Zera r9(dezena)                                                         
+    add r10, r0, r1       ; Carrega o r1(Numero original) no r10(parte da unidade do contador)     8 ciclos             
+
+dezena:                    ; Loop que por subtrações sucessivas calcula a dezena                             
+    jmpzd #fimHEXtoDEC     ; Caso o numero for igual a zero
+    subi r10, #0Ah         ; Subtrai 10 do numero orignal                                                            
+    jmpnd #menor_de_dez    ; Numero menor que 10   
+    addi r9, #01h          ; Incrementa a dezena do numero;
+    add r10, r0, r10       ; Carrega novamente r10 para gerar as flags para comparação    
+    jmpd #dezena           ; Retorna para o loop de calculo de dezena                                        
+
+menor_de_dez:
+    addi r10, #0Ah         ; Como valor é menor que 10, soma-se 10 na unidade para recuperar o valor                                                   
+    ;jmpd #fimHEXtoDEC     ; Nao executa a instrução mas passa pro label igual
+    
+fimHEXtoDEC:                                                                                             
+ ;;;;;   st r9, r0, r9          ; Salva o valor da dezena em r9                                                   
+ ;;;;;   st r10, r0, r10        ; Salva o valor da unidade em r10   
+    
+    rts                    ; Retorno da Subrotina                                                            
+
+    
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;DELAY;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; gasta tempo do processador
+
+delay:
+	push r1
+	push r6
+
+delay_fino:
+	ldh r1, #00h
+	ldl r1, #0Ah
+	subi r1, #01h
+	jmpzd #fim_delay
+	;jmpd #delay_grosso
+
+	
+delay_grosso:
+; com uma freqencia de 50Mhz, temos que 2 ms = 1 000 000 ciclos de processador
+; um loop com 10 ciclos executado 100 000 vezes = 1 000 000 
+    
+    ldh r6, #27h
+    ldl r6, #0Eh    ; r6 <= 9998
+
+delay_loop:
+    subi r6, #01h      ; decrementa contador                                4 ciclos
+    jmpzd #delay_fino  ; casp seja zero, finaliza o delay                   3 ciclos -- era jmpzd
+    jmpd  #delay_loop  ; pula para gastar tempo de processador              4 ciclos
+;                                                                ;Total =~ 10 ciclos
+fim_delay:    
+    pop r6
+    pop r1
+    nop           ; Adiciona 3 ciclos
+    rts           ; retorna subrotina
+    
+;Ideal = 100 000 ciclos
+;Atual = 100 001 ciclos
+    
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;escreveSSD;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+escreveSSD: 
+	push r11  ; &arrayDisp
+    push r12  ; &arraySSD            
+	push r13  ; mascara de comparação para display
+    push r1  ; numero                                                                                             
+    push r15  ; display (0, 1, 2, 3)                                                                20 ciclos                         
+         
+	ldh r11, #arrayDisp
+	ldl r11, #arrayDisp
+
+	ldh r12, #arraySSD
+	ldl r12, #arraySSD
+
+;	r11 <= arrayDisp[Display (da iteração atual)]                                                   28 ciclos
+	ld r11, r11, r15
+	
+;	r5 <= display                                                                                   32 ciclos
+	xor r5, r5, r5
+	add r5, r0, r11
+	
+;	Desloca bits de enable do display até sua posição                                               40 ciclos
+	sl0 r5, r5 ; MSB @ 4
+	sl0 r5, r5 ; MSB @ 5
+	sl0 r5, r5 ; MSB @ 6
+	sl0 r5, r5 ; MSB @ 7
+	sl0 r5, r5 ; MSB @ 8
+	sl0 r5, r5 ; MSB @ 9
+	sl0 r5, r5 ; MSB @ 10
+	sl0 r5, r5 ; MSB @ 11
+	sl0 r5, r5 ; MSB @ 12
+
+;	r9 <= Dezena, r10 <= unidade                                                                    76 ciclos
+	jsrd #HEXtoDEC
+
+;	r13 <= mascara de comparação (00000000_00000001) para determinar se numero é par                80 ciclos
+	ldh r13, #00h
+	ldl r13, #01h
+	
+;	Se numero for par, usa unidade, se for impar, usa dezena	                                    84 ciclos
+	and r13, r13, r15
+	jmpzd #dispPar
+	jmpd #dispImpar
+;																	  94 ciclos ( em media 6 ciclos p/ jumps)
+returnJumpParImpar:
+;                    |     15 14    |13|  12 11 10 9  |8| 7 6 5 4 3 2 1 0 |
+;	Escreve na porta (entrada_botoes)x(display_enable) x  (dados_display)	
+	st r5, r0, r2
+	
+;	Restaura registradores                                                                          98 ciclos
+	pop r15
+	pop r1
+	pop r13
+	pop r12
+	pop r11
+
+;   Volta para pollingLoop                                                                         118 ciclos
+	rts
+;                                                                                           FINAL: 130 ciclos
+dispPar:
+
+;	Dado a ser escrito é a unidade do numero passado como argumento para HEXtoDEC
+
+;	r10 <= arraySSD(r10)
+	ld r10, r12, r10
+	add r5, r5, r10
+	jmpd #returnJumpParImpar
+	
+dispImpar:
+
+;	Dado a ser escrito é a dezena do numero passado como argumento para HEXtoDEC
+	
+;	;	r10 <= arraySSD(r10)	
+	ld r9, r12, r9
+	add r5, r5, r9
+	jmpd #returnJumpParImpar
+	
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+findDisplay:
+
+;	Salva r13                                                                                        4 ciclos
+	push r13                                                                                        
+	
+;	Gera flag de zero, se display = 0, pula para displayContinuo                           4 ciclos + jmp (3)
+	add r15, r0, r15                                                                                 
+	jmpzd #displayContinuo
+	
+;	Mascara para comparação com numero 1                                                             8 ciclos
+	ldh r13, #00h
+	ldl r13, #01h
+	
+;	Se display = 1, pula para displayContinuo                                                  8 ciclos + (8)
+	and r13, r13, r15
+	sub r13, r13, r15
+	jmpzd #displayContinuo
+	jmpd #displayManual
+	
+returnDisplayContinuoManual:
+
+;	Restaura r13	                                                                                 4 ciclos
+	pop r13 
+	
+;	rts
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;	
+displayContinuo:
+	
+;	Argumento para HEXtoDEC = contador Continuo de 1 seg                                     4 ciclos + jmp(4)
+	add r1, r0, r7
+	jmpd #returnDisplayContinuoManual
+	
+displayManual:
+
+;	Argumento para HEXtoDEC = contador manual                                                4 ciclos + jmp(4)
+	add r1, r0, r8
+	jmpd #returnDisplayContinuoManual
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+incrementaDisplay:
+
+;	Incrementa contador do display	                                                                 4 ciclos
+	addi r15, #01h                                                                                   
+
+;   Salva r13	                                                                                     4 ciclos
+	push r13
+
+;	r13 <= mascara de comparação (00000000_00000100)                                                 8 ciclos
+	ldh r13, #00h
+	ldl r13, #04h
+
+;	Se contador de display == 4, contador de display <= 0                                    8 ciclos + jmp(3)
+	and r13, r13, r15
+	sub r13, r13, r15
+	jmpzd #setaDisplayZero
+	
+returnDisplayZero:
+;	Restaura r13                                                                                     4 ciclos
+	pop r13
+
+;	Retorna para main
+	rts
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+setaDisplayZero:     
+                                                                                 
+;   display <= 0                                                                             4 ciclos + jmp(4)
+	xor r15, r15, r15 
+	jmpd #returnDisplayZero
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	
 ;;-----------------------------------Copiado do trabalho anterior--------------------------------------------
 ;pollingLoop: ; Repete esse loop infinitamente	
