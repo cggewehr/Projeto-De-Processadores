@@ -47,6 +47,7 @@ architecture Behavioural of R8 is
     type instrucionType is (tipo1, tipo2, outras);
     signal instType  : instrucionType;    -- Instruo tipo 1, tipo 2 ou outra (instruoes sem writeback no banco de registradores)
 
+    -- Tem que ver isso daki, ta gerando um registrador 10necessauro
 	signal currentState                : State;
 	signal regBank                     : RegisterArray(0 to 15);        -- Banco de registradores	 
     signal regPC                       : std_logic_vector(15 downto 0); -- Program Counter
@@ -58,9 +59,17 @@ architecture Behavioural of R8 is
 	signal ALUaux                      : std_logic_vector(16 downto 0); -- Sinal com 16 bits pra lidar com overflow 
     signal regALU                      : std_logic_vector(15 downto 0); -- Registrador ula
     signal outALU                      : std_logic_vector(15 downto 0); -- 
-
+    --signal aluout16                    : std_logic_vector(16 downto 0); -- Sinal com 16 bits pra lidar com overflow
+    --signal ALU_op1                     : std_logic_vector(15 downto 0); -- Primeiro operador da ula
+    --signal ALU_op2                     : std_logic_vector(15 downto 0); -- Segundo de saida da ULA
+    
+    signal regFLAGS : std_logic_vector(3 downto 0);
+    alias n :std_logic is regFLAGS(3);
+    alias z :std_logic is regFLAGS(2);
+    alias c :std_logic is regFLAGS(1);
+    alias v :std_logic is regFLAGS(0);
+    
     signal flagN, flagZ, flagC, flagV  : std_logic;                                    -- Flags ALU| negativo, zero, carry, OVFLW
-
     
 	alias OPCODE     : std_logic_vector(3  downto 0) is regIR(15 downto 12);
 	alias REGTARGET  : std_logic_vector(3  downto 0) is regIR(11 downto 8);
@@ -84,7 +93,7 @@ begin
                            currentInstruction = SR0  or
                            currentInstruction = SR1  or 
                            currentInstruction = NOT_A else
-                           
+                -- NAO esta falando o SUBI??????         
                 tipo2 when currentInstruction = ADDI or
                            currentInstruction = SUBI or
                            currentInstruction = LDL  or
@@ -117,24 +126,24 @@ begin
                           -- arrumar os pulos condicionais com as falgs
                           JUMP_R when OPCODE = x"C" and (
                                       ( REGSOURCE2 = x"0") or                 -- JMPR
-                                      ( REGSOURCE2 = x"1" and flagN = '1') or -- JMPNR
-                                      ( REGSOURCE2 = x"2" and flagZ = '1') or -- JMPZR
-                                      ( REGSOURCE2 = x"3" and flagC = '1') or -- JMPCR
-                                      ( REGSOURCE2 = x"4" and flagV = '1')    -- JMPVR
+                                      ( REGSOURCE2 = x"1" and n = '1') or -- JMPNR
+                                      ( REGSOURCE2 = x"2" and z = '1') or -- JMPZR
+                                      ( REGSOURCE2 = x"3" and c = '1') or -- JMPCR
+                                      ( REGSOURCE2 = x"4" and v = '1')    -- JMPVR
                           )else
                           JUMP_A when OPCODE = x"C" and (
                                       ( REGSOURCE2 = x"5") or                 -- JMP
-                                      ( REGSOURCE2 = x"6" and flagN = '1') or -- JMPN
-                                      ( REGSOURCE2 = x"7" and flagZ = '1') or -- JMPZ
-                                      ( REGSOURCE2 = x"8" and flagC = '1') or -- JMPC
-                                      ( REGSOURCE2 = x"9" and flagV = '1')    -- JMPV
+                                      ( REGSOURCE2 = x"6" and n = '1') or -- JMPN
+                                      ( REGSOURCE2 = x"7" and z = '1') or -- JMPZ
+                                      ( REGSOURCE2 = x"8" and c = '1') or -- JMPC
+                                      ( REGSOURCE2 = x"9" and v = '1')    -- JMPV
                           )else
                           
                           JUMP_D when OPCODE = x"D" or ( OPCODE = x"E" and (  -- JMPD  
-                                      ( JMPD_AUX = "00" and flagN = '1') or   -- JMPND
-                                      ( JMPD_AUX = "01" and flagZ = '1') or   -- JMPZD
-                                      ( JMPD_AUX = "10" and flagC = '1') or   -- JMPCD
-                                      ( JMPD_AUX = "11" and flagV = '1')      -- JMPVD
+                                      ( JMPD_AUX = "00" and n = '1') or   -- JMPND
+                                      ( JMPD_AUX = "01" and z = '1') or   -- JMPZD
+                                      ( JMPD_AUX = "10" and c = '1') or   -- JMPCD
+                                      ( JMPD_AUX = "11" and v = '1')      -- JMPVD
                                     )
                           )else 
                             
@@ -143,24 +152,23 @@ begin
                           JSRD  when OPCODE = x"F" else
                           NOP; -- Precisa pra n ser perder nos pulos condicionais negativos
                           
-
-                          
 	process(clk, rst)
 	begin
 		if rst = '1' then      
-			currentState <= Sfetch;
-            -- ADICIONAR O RESTO DOS REGISTRADORES
-			regPC <= (others=>'0');
-			regSP <= (others=>'0');
-            regALU<= (others=>'0');
-            regIR <= (others=>'0');
-            regA <= (others=>'0');
-            regB <= (others=>'0');
+
+			regPC <=    (others=>'0');
+			regSP <=    (others=>'0');
+            regALU<=    (others=>'0');
+            regIR <=    (others=>'0');
+            regA <=     (others=>'0');
+            regB <=     (others=>'0');
             --data_out <= (others=>'0');
             
-            for i in 0 to 15 loop     -- zera os registradores
+            for i in 0 to 15 loop     -- Zera os registradores
                 regBank(i) <= (others => '0');
             end loop;
+            
+            currentState <= Sfetch;
             
 		elsif rising_edge(clk) then
 			if currentState = Sfetch then  -- Requests next instruction from memory
@@ -174,6 +182,7 @@ begin
 			elsif currentState = Sreg then 
 				-- Reads register bank
 				regA <= regBank(to_integer(unsigned(REGSOURCE1)));
+                
 				if (instType = tipo2 or currentInstruction = PUSH)then
                     regB <= regBank(to_integer(unsigned(REGTARGET)));
 				else
@@ -192,12 +201,23 @@ begin
 				currentState <= Shalt;
 
 			elsif currentState = Sula then
-				-- utilizao da ULA
+				-- utilizao da ALU
                 regALU <= outALU;
+                
+                --Geração de flag
+                if currentInstruction = ADD or currentInstruction = SUB or currentInstruction = ADDI or currentInstruction = SUBI then
+                    v <= flagV; -- Flag de overflow
+                    c <= flagC; -- Flag de carry
+                end if;
+                
+                if (instType = tipo1) or (currentInstruction = ADDI or currentInstruction = SUBI) then
+                    n <= flagN; -- Flag de negativo
+                    z <= flagZ; -- Flag de zero
+                end if;
                 
 				--Defines next state
 				if (instType = tipo1) or (instType = tipo2) then
-					currentState <= Swbk;
+					currentState <= Swbk;   
 				elsif currentInstruction = LD then
 					currentState <= Sld;
 				elsif currentInstruction = ST then
@@ -218,7 +238,6 @@ begin
 					currentState <= Sfetch;
 				end if;
 				
-                
 			elsif currentState = Swbk then -- Ultimo ciclo de instrues logicas e aritmeticas
 				regBank(to_integer(unsigned(REGTARGET))) <= regALU;
 				currentState <= Sfetch;
@@ -228,34 +247,32 @@ begin
 				currentState <= Sfetch;
                 
 			elsif currentState = Sst then -- Ultimo ciclo de store
-                --data_out <= regA; torar o data out do process
 				currentState <= Sfetch;
                 
 			elsif currentState = Sjmp then -- Ultimo ciclo p/ saltos
-                regPC <= regALU; -- Atualiza o pc
+                regPC <= regALU; -- Atualiza o PC
 				currentState <= Sfetch;
                 
-			elsif currentState = Ssbrt then -- Ultimo ciclo Subrotina                             
-                regPC <= regALU;       
+			elsif currentState = Ssbrt then -- Ultimo ciclo Subrotina
+                regPC <= regALU; -- Atualiza o PC
                 regSP <= regSP - 1; 
 				currentState <= Sfetch;
                 
 			elsif currentState = Spush then -- Ultimo ciclo p push
-                regSP <= regSP - 1;
-                --data_out <= regA;
+                regSP <= regSP - 1;      -- Adicionado na apresentação          
 				currentState <= Sfetch;
                 
-			elsif currentState = Srts then -- Ultimo cilco retorno subronita
-                --regSP <= regSP + 1;
-                regPC <= data_in; -- volta o pc da oulha
+			elsif currentState = Srts then -- Ultimo ciclo retorno subronita 
+                regSP <= regSP + 1;
+                regPC <= data_in; -- Volta o PC da pilha
 				currentState <= Sfetch;
                 
 			elsif currentState = Spop then -- Ultimo ciclo de POP
                 regSP <= regSP + 1;
-                regBank(to_integer(unsigned(REGTARGET)))<= data_in; --banco de registdadores enderaado <= mem pelo SP
+                regBank(to_integer(unsigned(REGTARGET)))<= data_in; -- Banco de registradores enderaçado <= mem pelo SP
 				currentState <= Sfetch;
                 
-			elsif currentState = Sldsp then -- Yltimo ciclo de load do sp
+			elsif currentState = Sldsp then -- Ultimo ciclo de load do SP
                 regSP  <= regALU;
 				currentState <= Sfetch;
             else
@@ -263,14 +280,11 @@ begin
 			end if;			
 		end if;
 	end process;
-    
-    -- Flags para a ULA
 	
 	ALUaux <= ('0' & regA) + ('0' & regB) when currentInstruction = ADD else
 			  ('0' & regA) + ('0' & ((not(regB))+1)) when currentInstruction = SUB else
 			  ('0' & regB) + ('0' & x"00" & CONSTANTE) when currentInstruction = ADDI else
-			  ('0' & regB) + ((not('0' & x"00" & CONSTANTE))+1) when currentInstruction = SUBI else
-              (others => '0');
+			  ('0' & regB) + ((not('0' & x"00" & CONSTANTE))+1) when currentInstruction = SUBI;
     
     outALU <= ALUaux(15 downto 0) when (currentInstruction = ADD or currentInstruction = SUB or currentInstruction = ADDI or currentInstruction = SUBI) else 
               regA and regB when currentInstruction = AAND else
@@ -289,27 +303,28 @@ begin
               regPC + regA when currentInstruction = JUMP_R else
               regPC + (JMPD_DESLOC(9)&JMPD_DESLOC(9)&JMPD_DESLOC(9)&JMPD_DESLOC(9)&JMPD_DESLOC(9)&JMPD_DESLOC(9)&JMPD_DESLOC) when currentInstruction = JUMP_D else
               regPC + (JSRD_DESLOC(11) & JSRD_DESLOC(11) & JSRD_DESLOC(11) & JSRD_DESLOC(11) & JSRD_DESLOC) when currentInstruction = JSRD else
-              regPC + regA when currentInstruction = JSR else
+              regA when currentInstruction = JSR or currentInstruction = JSRR else
               regA; -- JMP_A, JSR, LDSP
-            
-                          
-    flagC <= ALUaux(16) when (currentInstruction = ADD or currentInstruction = ADDI or currentInstruction = SUB or currentInstruction = SUBI) else '0';--carry
-    flagV <= '1' when (regA(15) = regB(15) and regA(15) /= outALU(15)) and (currentInstruction = ADD or currentInstruction = ADDI or currentInstruction = SUB or currentInstruction = SUBI) else '0' ; -- overflow
-    flagN <= outALU(15) when (instType = tipo1 or currentInstruction = ADDI or currentInstruction = SUBI) else '0'; -- negativo
-    flagZ <= '1' when outALU = 0 and (instType = tipo1 or currentInstruction = ADDI or currentInstruction = SUBI) else '0';  -- zero
+              
+    -- Flags para a ULA
+       
+    flagC <= ALUaux(16); --carry
+    flagV <= '1' when ((regA(15) = regB(15)) and (regA(15) /= outALU(15))) else '0'; -- overflow
+    flagN <= outALU(15); -- negativo
+    flagZ <= '1' when outALU = 0 else '0';  -- zero
       
     address <= regPC when currentState = Sfetch else
                --outALU when currentState = Sld or currentState = Sst or currentState = Spop or currentState = Srts else
                regALU when currentState = Sld or currentState = Sst or currentState = Spop or currentState = Srts else
                regSP; -- Pra dar salto em uma subrotina e o PUSH
                     
-    data_out <= regBank(to_integer(unsigned(REGTARGET))) when currentState = Sst else --Pmem(RS1 + Rs2) <= RT
-                regPC when currentState = Ssbrt else
-                regB when currentState = Spush else
-                (others => '0');              
+    data_out <= regBank(to_integer(unsigned(REGTARGET))) when currentState = Sst and rst = '0' else
+                regB when currentState = Spush and rst = '0' else
+                regPC when currentState = Ssbrt and rst = '0' else
+                (others=>'0');
     
     -- SINAIS MEMORIA
     ce <= '1' when rst = '0' and (currentState = Sld or currentState = Ssbrt or currentState = Spush or currentState = Sst or currentState = Sfetch or currentState = Srts or currentState = Spop) else '0';
     rw <= '1' when (currentState = Sfetch or currentState = Spop or currentState = Srts or currentState = Sld) else '0';
+    
 end Behavioural;
-
