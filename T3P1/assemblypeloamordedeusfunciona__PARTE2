@@ -1,0 +1,571 @@
+.org #000h
+; Carlos Gewehr e Emilio Ferreira
+; Tabela de Registradores:
+; ------------------------ r00 = 0
+; ------------------------ r01 = Valor de retorno de subrotina
+; ------------------------ r02 = &PortData
+; ------------------------ r03 = &PortConfig
+; ------------------------ r04 = &PortEnable
+; ------------------------ r05 = Dado a ser lido/escrito
+; ------------------------ r06 = Contador de 2ms
+; ------------------------ r07 = Valor do contador continuo de 1 seg
+; ------------------------ r08 = Valor do contador manual
+; ------------------------ r09 = Dezena
+; ------------------------ r10 = Unidade
+; ------------------------ r11 = Temporario
+; ------------------------ r12 = Temporario
+; ------------------------ r13 = 500
+; ------------------------ r14 = Temporario
+; ------------------------ r15 = Contador do Display (0, 1, 2, 3)
+
+; PortConfig : 0 = Read, 1 = Write
+
+; ///////////////////////////     BASIC    ///////////////////////////
+;net "rst" loc = T10;          // SW0 (Right-most)
+;net "clk" loc = V10;          // 100MHz board clock
+
+;///////////////////////////     INPUT    ///////////////////////////
+;net "port_io[14]" loc = A8;    // BUTTON UP
+;net "port_io[15]" loc = C9;    // BUTTON DOWN
+
+;///////////////////////////     OUTPUT   ///////////////////////////
+;net "port_io[7]" loc = T17;   // Segment A
+;net "port_io[6]" loc = T18;   // Segment B
+;net "port_io[5]" loc = U17;   // Segment C
+;net "port_io[4]" loc = U18;   // Segment D
+;net "port_io[3]" loc = M14;   // Segment E
+;net "port_io[2]" loc = N14;   // Segment F
+;net "port_io[1]" loc = L14;   // Segment G
+;net "port_io[0]" loc = M13;   // Segment P
+
+;net "port_io[12]" loc = P17;  // Display 3 (Left-most) 
+;net "port_io[11]" loc = P18;  // Display 2
+;net "port_io[10]" loc = N15;  // Display 1
+;net "port_io[9]"  loc = N16;  // Display 0 (Right-most)
+;////////////////////////////////////////////////////////////////////
+; ID da porta = 0
+
+.code
+
+;---------------------------------------Ponto de Entrada-----------------------------------------------------
+;Seta o SP;
+;Seta r0 em ZERO
+;Seta o endereço de Port DATA
+;Seta o endereço de Port CONFIG
+;Seta o endereço de Port Enable
+;Retorna NADA
+
+main:
+;   Seta SP para ultimo endereço no espaço de endereçamento da memória
+    ldh r15, #7fh
+    ldl r15, #FFh           
+    ldsp r15 
+	xor r15, r15, r15
+    
+;   r0 <= 0
+	xor r0, r0, r0
+	
+;	r1 <= 0
+	xor r1, r1, r1
+	
+;	r2 <= &PortData
+	ldh r2, #80h
+	ldl r2, #00h
+	
+;	r3 <= &PortConfig
+	ldh r3, #80h
+	ldl r3, #01h
+	
+;	r4 <= &PortEnable
+	ldh r4, #80h
+	ldl r4, #02h
+	
+;	r6 <= 0 (inicializa contador de 2ms)
+	xor r6, r6, r6
+	
+;	r7 <= 0 (inicializa contador do display continuo)
+	xor r7, r7, r7
+	
+;	r8 <= 0 (inicializa contador do display manual)
+	xor r8, r8, r8
+	
+;	r9 <= 0 (inicializa Decimal do contador do display continuo)
+	xor r9, r9, r9
+
+;	r10 <= 0 (inicializa Unidade do contador do display continuo)
+	xor r10, r10, r10
+
+;	r11 <= 0 (inicializa Decimal do contador do display manual)
+	xor r11, r11, r11
+	
+;	r12 <= 0 (inicializa Unidade do contador do display manual)
+	xor r12, r12, r12
+	
+;	r13 <= 500 
+	xor r13, r13, r13
+	addi r13, #FFh
+	addi r13, #F5h
+    
+;	PortConfig <= "11000000_00000000", bit 15 e 14 = entrada, outros = saida
+	ldh r5, #C0h
+	ldl r5, #00h
+	st r5, r0, r3
+
+;	PortEnable <= "11011110_11111111", habilita acesso a todos os bits da porta de I/O, menos bit 13 e bit 8
+	ldh r5, #DEh
+	ldl r5, #FFh
+	st r5, r0, r4
+
+;-----------------------------------------Loop do Programa Principal-----------------------------------------	
+; Verifica o estado dos botoes e displays de 2 em 2 ms
+
+pollingLoop:
+
+; 	Gasta 2ms de processador	                                                             4 ciclos + delay
+	jsrd #delay                                                                   
+	
+; 	Le porta ( Verificar estado dos botoes )                                              4 ciclos + lerPorta
+	jsrd #lePorta     
+
+;	Define valor a ser exibido no contador manual                                        4 ciclos + incManual
+ 	jsrd #incrementaManual    
+
+;	Define valor do contador automatico
+    jsrd #incrementaContinuo
+	
+;;;;;;;;;;
+    jsrd #findDisplay
+
+;;;;;;;;;;
+    jsrd #escrevePorta
+
+;	Retorna para loop de polling                                                                     4 ciclos
+	jmpd #pollingLoop
+	
+;----------------------------------- Fim do Programa Principal-----------------------------------------------
+; Abaixo estão as subrotinas:
+    
+; compensaTempo, incrementaContinuo, incrementaManual devem ter o mesmo tempo de execução
+
+; --- delay              :      DONE                                                         1 000 001 ciclos
+; --- lePorta            :      DONE                                                                 8 ciclos
+; --- compensaTempo      :      DONE                                                                72 ciclos
+; --- incrementaManual   :      DONE                                                                72 ciclos
+; --- incrementaContinuo :      DONE                                                                72 ciclos
+; --- HEXtoDEC           :      DONE                                                               125 ciclos
+; --- escreveSSD         :      DONE                                                               130 ciclos
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+lePorta:
+; Retorna Estado do botao 
+
+;	r1 <= Dado da porta
+	ld r1, r0, r2
+	
+;	Retorna para pollingLoop
+	rts
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+incrementaManual:
+;net "port_io[14]" loc = A8;    // BUTTON UP
+;net "port_io[15]" loc = C9;    // BUTTON DOWN
+	
+;	4PUSH/POP + 10ARITIMETICAS + 2 JUMPS + RTS
+;	4x4 + 10x3 + 2x11 + 4 (Assume jumps sempre not taken)
+;	16 + 30 + 22 + 4
+;	72 ciclos de execução
+	
+;	Pilha <= Valor lido da porta
+	push r1
+	
+;	r14 <= 1
+	xor r14, r14, r14
+	addi r14, #01h
+
+;	r12 <= Mascara de comparação para BTN DOWN (10000000_00000000)
+	ldh r12, #80h
+	ldl r12, #00h
+
+;	Se BTN DOWN foi pressionado, r1 <= 0, decrenenta contador
+	and r1, r1, r12
+	sub r1, r1, r12
+	jmpzd #manual--
+	
+;	Manter tempo de execução constante, independente da tomada de branch (11 ciclos)
+	xor r0, r0, r0
+    xor r0, r0, r0
+
+  returnManual--:
+  
+;	Restaura valor lido da porta, salva novamente	
+	pop r1
+	push r1
+	
+;	r12 <= Mascara de comparação para BTN UP (01000000_00000000)
+	ldh r12, #40h
+	ldl r12, #00h	
+
+;	Se BTN UP foi pressionado, r1 <= 0, incrementa contador
+	and r1, r1, r12
+	sub r1, r1, r12
+	jmpzd #manual++
+	
+;	Manter tempo de execução constante, independente da tomada de branch (11 ciclos)
+	xor r0, r0, r0
+	xor r0, r0, r0
+
+  returnManual++:
+
+;	Restaura valor lido da porta
+	pop r1
+	
+;	Retorna para pollingLoop
+	rts
+	
+;------------------------------------ AUXILIARES incrementaManual -------------------------------------------
+
+manual--:
+	
+;	Contador display manual --
+	subi r8, #01h
+	jmpd #returnManual--
+	
+manual++:
+	
+;	Contador display manual ++
+	addi r8, #01h
+	jmpd #returnManual++
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+incrementaContinuo:
+	
+;	Incrementa contador continuo se passou 1 seg, demorando 72 ciclos
+
+;	Se r5 = 0, 1 segundo se passou
+	sub r5, r13, r6       ; 4 ciclos
+
+;	Se 1 segundo se passou, incrementa contador
+	jmpzd #returnContinuo ;7/8 ciclos 
+
+;	Gasta 72 ciclos	
+	xor r0, r0, r0        ;11 ciclos
+	xor r0, r0, r0        ;15 ciclos
+	nop                   ;18 ciclos
+	nop                   ;21 ciclos
+	nop                   ;24 ciclos
+	nop                   ;27 ciclos
+	nop                   ;30 ciclos
+	nop                   ;33 ciclos
+	nop                   ;36 ciclos
+	nop                   ;39 ciclos
+	nop                   ;42 ciclos
+	nop                   ;45 ciclos
+	nop                   ;48 ciclos
+	nop                   ;51 ciclos
+	nop                   ;54 ciclos
+	nop                   ;57 ciclos
+	nop                   ;60 ciclos
+	xor r0, r0, r0        ;64 ciclos
+	xor r0, r0, r0        ;68 ciclos
+
+;	Retorna para pollingLoop
+	rts                   ;72 ciclos
+	
+  returnContinuo:
+  
+;	Gasta 72 ciclos
+    addi r7, #01h         ;12  ciclos	
+    nop                   ;15 ciclos
+	nop                   ;18 ciclos
+	nop                   ;21 ciclos
+	nop                   ;24 ciclos
+	nop                   ;27 ciclos
+	nop                   ;30 ciclos
+	nop                   ;33 ciclos
+	nop                   ;36 ciclos
+	nop                   ;39 ciclos
+	nop                   ;42 ciclos
+	nop                   ;45 ciclos
+	nop                   ;48 ciclos
+	nop                   ;51 ciclos
+	nop                   ;54 ciclos
+	nop                   ;57 ciclos
+	nop                   ;60 ciclos
+	xor r0, r0, r0        ;64 ciclos
+	xor r0, r0, r0        ;68 ciclos
+	
+;	Retorna para pollingLoop
+	rts                   ;72 ciclos
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;HEXtoDEC;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Recebe um valore (HEX) se separas ele  em decimal(DEC) e Unidade(DEC)                                      ;
+;                                                                                                            ;
+;   REGISTRADORES - (r1) NumeroOriginal - ENTRADA                                                            ;
+;                   (r9)  DECIMAL        - SAIDA                                                             ;
+;                   (r10) UNIDADE        - SAIDA                                                             ;
+;                                                                                                            ;
+;   RETORNO - Ao final da subrotina os valores de r9, r10, irao representar a dezena e unidade do numero     ;
+;             respectivamente                                                                                ;
+;                                                                                                            ;
+;   FUNCIONAMENTO - Primeiramente carrega os valores a serem traduzidos de HEX para DEC nos registradores    ;
+;                   de dezena, apois isso é iniciado um loop de subtrações sucessivas onde a cada iteração   ;
+;                   é diminuido 10(decimal)/A(HEX) do valor total, quando o valor se apresentar zero,        ;
+;                   finalizao loop e quando se apresentar negativo (ex -3, soma-se 10, -3+10 = 7) e          ;
+;                   finaliza o loop                                                                          ;
+
+;------------------------------------------------------------------------------------------------------------;
+; ciclos = (multiplos de 10) = 22*(decimal) + 16 | MULTIPLOS DE 10 (0, 10, 20, 30, 40, ..., 90) 
+; ciclos =     (resto)       = 22*(decimal) + 27 | QUALQUER OUTRO NUMERO(1, 22, 33, 44, ..., 99)
+
+HEXtoDEC:   
+    xor r9, r9, r9        ; Zera r9(dezena)
+	xor r10, r10, r10     ; Zera r9(unidade)
+    add r10, r0, r1       ; Carrega o r1(Numero original) no r10(parte da unidade do contador)     8 ciclos             
+
+dezena:                    ; Loop que por subtrações sucessivas calcula a dezena                             
+    jmpzd #fimHEXtoDEC     ; Caso o numero for igual a zero
+    subi r10, #0Ah         ; Subtrai 10 do numero orignal                                                            
+    jmpnd #menor_de_dez    ; Numero menor que 10   
+    addi r9, #01h          ; Incrementa a dezena do numero;
+    add r10, r0, r10       ; Carrega novamente r10 para gerar as flags para comparação    
+    jmpd #dezena           ; Retorna para o loop de calculo de dezena                                        
+
+menor_de_dez:
+    addi r10, #0Ah         ; Como valor é menor que 10, soma-se 10 na unidade para recuperar o valor                                                   
+    ;jmpd #fimHEXtoDEC     ; Nao executa a instrução mas passa pro label igual
+    
+fimHEXtoDEC:                                                                                             
+ ;;;;;   st r9, r0, r9          ; Salva o valor da dezena em r9                                                   
+ ;;;;;   st r10, r0, r10        ; Salva o valor da unidade em r10   
+    rts                    ; Retorno da Subrotina                                                            
+
+    
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;DELAY;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+delay:
+	push r1
+	push r6
+delay_fino:
+	ldh r1, #00h
+	ldl r1, #0Ah
+	subi r1, #01h
+	jmpzd #fim_delay
+	;jmpd #delay_grosso
+delay_grosso:
+; com uma freqencia de 50Mhz, temos que 2 ms = 1 000 000 ciclos de processador
+; um loop com 10 ciclos executado 100 000 vezes = 1 000 000 
+    ldh r6, #27h
+    ldl r6, #0Eh    ; r6 <= 9998
+delay_loop:
+    subi r6, #01h      ; decrementa contador                                4 ciclos
+    jmpzd #delay_fino  ; casp seja zero, finaliza o delay                   3 ciclos -- era jmpzd
+    jmpd  #delay_loop  ; pula para gastar tempo de processador              4 ciclos
+;                                                                ;Total =~ 10 ciclos
+fim_delay:    
+    pop r6
+    pop r1
+    nop           ; Adiciona 3 ciclos
+    rts           ; retorna subrotina
+    
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+    
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;escreveSSD;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; PRECISA DO NUMERO A SER ESSCRITO ANTES DE SER CHAMDA 
+; r1 <- NUMERO A SER ESCRITO
+escreveSSD: 
+	push r1   ; numero
+	push r5   ; DADO QUE SERA ESCRITO
+	push r11  ; &arrayDisp
+    push r12  ; &arraySSD            
+	push r13  ; mascara de comparação para display                                                                                             
+    push r15  ; display (0, 1, 2, 3)                                                                20 ciclos                         
+         
+	ldh r11, #arrayDisp     ; r11 <= &arrayDisp (Display que sera selecionado)
+	ldl r11, #arrayDisp
+
+	ldh r12, #arraySSD
+	ldl r12, #arraySSD     ; r12 <= &arraySSD (Valores a serem mostrados no display)
+
+;	r11 <= arrayDisp[Display (da iteração atual)]                                                   28 ciclos
+	ld r11, r11, r15
+	
+;	r5 <= display                                                                                   32 ciclos
+	xor r5, r5, r5
+	;r5 <= conteudo de arrayDisp[numero_do_display_atual]
+	add r5, r0, r11
+	
+;	Desloca bits do display até sua posição                                               40 ciclos
+	sl0 r5, r5 ; MSB @ 4
+	sl0 r5, r5 ; MSB @ 5
+	sl0 r5, r5 ; MSB @ 6
+	sl0 r5, r5 ; MSB @ 7
+	sl0 r5, r5 ; MSB @ 8
+	sl0 r5, r5 ; MSB @ 9
+	sl0 r5, r5 ; MSB @ 10
+	sl0 r5, r5 ; MSB @ 11
+	sl0 r5, r5 ; MSB @ 12
+
+;;;;add r1, r0, r1
+; PRECISA SETAR O R1 Com o valor a ser passado antes de chamar a função
+	jsrd #HEXtoDEC
+;	r9 <= Dezena, r10 <= unidade                                                                    76 ciclos
+;	r13 <= mascara de comparação (00000000_00000001) para determinar se numero é par                80 ciclos
+	ldh r13, #00h
+	ldl r13, #01h
+	
+;	Se numero for par, usa unidade, se for impar, usa dezena	                                    84 ciclos
+	and r13, r13, r15
+	jmpzd #dispPar
+	jmpd #dispImpar
+;																	  94 ciclos ( em media 6 ciclos p/ jumps)
+dispPar:
+;	Dado a ser escrito é a unidade do numero passado como argumento para HEXtoDEC
+;	r10 <= arraySSD(r10)
+	ld r10, r12, r10 ; r10<= arraySSD[r10(unidade)]
+	add r5, r5, r10 ; r5 <= valor_disp & valor_numero
+	jmpd #return_escreveSSD
+	
+dispImpar:
+;	Dado a ser escrito é a dezena do numero passado como argumento para HEXtoDEC
+;	;r10 <= arraySSD(r9)	
+	ld r9, r12, r9 ; r10<= arraySSD[r10(dezena)]
+	add r5, r5, r9 ; r5 <= valor_disp & valor_numero
+	jmpd #return_escreveSSD
+	
+return_escreveSSD:
+;                    |     15 14    |13|  12 11 10 9  |8| 7 6 5 4 3 2 1 0 |
+;	Escreve na porta (entrada_botoes)x(display_enable) x  (dados_display)	
+	st r5, r0, r2
+	
+;	Restaura registradores                                                                          98 ciclos
+	pop r15
+	pop r13
+	pop r12
+	pop r11
+	pop r5
+	pop r1
+;   Volta para pollingLoop                                                                         118 ciclos
+	rts
+;                                                                                           FINAL: 130 ciclos
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+findDisplay: ; seta o valor de r1 para o numero a ser escrito no display(continuo ou incremento)
+    push r15 ; salva valor de r15                                                                                	
+;	Gera flag de zero, se display = 0, pula para displayContinuo                           4 ciclos + jmp (3)
+	add r15, r0, r15                                                                                 
+	jmpzd #displayContinuo ; display = 0
+	subi r15, #01h ; display -1
+	jmpzd #displayContinuo ; display = 0
+	
+	;;jmpd #displayManual   ; senao, display manual
+displayManual:
+;	Argumento para HEXtoDEC = contador manual                                                4 ciclos + jmp(4)
+	add r1, r0, r8
+	jmpd #return_findDisplay	
+	
+displayContinuo:
+;	Argumento para HEXtoDEC = contador Continuo de 1 seg                                     4 ciclos + jmp(4)
+	add r1, r0, r7
+	;;jmpd #return_findDisplay 
+return_findDisplay:
+;	Restaura r15 ( valor do display)	                                                                                 4 ciclos
+	pop r15 ; recupera o valor de r15
+	rts
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;	
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+incrementaDisplay:
+
+;	Incrementa contador do display	                                                                 4 ciclos
+	addi r15, #01h                                                                                   
+
+;   Salva r13	                                                                                     4 ciclos
+	push r13
+
+;	r13 <= mascara de comparação (00000000_00000100)                                                 8 ciclos
+	ldh r13, #00h
+	ldl r13, #04h
+
+;	Se contador de display == 4, contador de display <= 0                                    8 ciclos + jmp(3)
+	and r13, r13, r15
+	sub r13, r13, r15
+	jmpzd #setaDisplayZero
+	
+returnDisplayZero:
+;	Restaura r13                                                                                     4 ciclos
+	pop r13
+
+;	Retorna para main
+	rts
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+setaDisplayZero:     
+                                                                                 
+;   display <= 0                                                                             4 ciclos + jmp(4)
+	xor r15, r15, r15 
+	jmpd #returnDisplayZero
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	
+;;-----------------------------------Copiado do trabalho anterior--------------------------------------------
+;pollingLoop: ; Repete esse loop infinitamente	
+	nop
+
+;   r5 <= PortData
+	ld r5, r0, r2
+	
+;   8 Shifts para a esquerda (Desloca dados dos Switches para seus respectivos LEDs)
+	sl0 r4, r4 ;1
+	sl0 r4, r4 ;2
+	sl0 r4, r4 ;3
+	sl0 r4, r4 ;4
+	sl0 r4, r4 ;5
+	sl0 r4, r4 ;6
+	sl0 r4, r4 ;7
+	sl0 r4, r4 ;8
+	
+;	PortData <= r5
+	st r5, r0, r2
+
+	jsrd #pollingLoop
+
+
+;;-----------------------------------Copiado do trabalho anterior-------------------------------------------	
+return: ; Esse trecho de código nunca executa
+
+	pop r14
+	pop r13
+	pop r12
+	pop r11
+	pop r10
+	pop r9
+	pop r8
+	pop r7
+	pop r6
+	pop r5
+	pop r4
+	pop r3
+	pop r2
+	pop r1
+	pop r0
+	
+	rts
+ 
+.endcode	
+
+.data
+    ; array SSD representa o array de valores a serem postos nos displays de sete seg
+                   ; 0 ,    1,    2,    3,    4,    5,    6,    7,    8,    9
+    arraySSD:   db #03h, #9fh, #25h, #0dh, #99h, #49h, #21h, #1fh, #01h, #09h
+    ; Array que escolhe qual disp sera utilizado
+                   ; Mais da direita -> Mais da esquerda
+    arrayDisp:  db #01h, #02h, #04h, #08h
+.enddata
