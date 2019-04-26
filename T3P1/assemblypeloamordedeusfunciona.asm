@@ -103,26 +103,23 @@ main:
 	
 ;	r13 <= 500 
 	xor r13, r13, r13
-	addi r13, #255Dh
-	addi r13, #245Dh
+	addi r13, #FFh
+	addi r13, #F5h
     
-;	PortConfig <= "00111111_11111111", bit 15 e 14 = entrada, outros = saida
-	ldh r5, #3Fh
-	ldl r5, #FFh
-	st r5, r0, r2
+;	PortConfig <= "11000000_00000000", bit 15 e 14 = entrada, outros = saida
+	ldh r5, #C0h
+	ldl r5, #00h
+	st r5, r0, r3
 
 ;	PortEnable <= "11011110_11111111", habilita acesso a todos os bits da porta de I/O, menos bit 13 e bit 8
-	ldh r5, #CEh
+	ldh r5, #DEh
 	ldl r5, #FFh
-	st r5, r0, r3
+	st r5, r0, r4
 
 ;-----------------------------------------Loop do Programa Principal-----------------------------------------	
 ; Verifica o estado dos botoes e displays de 2 em 2 ms
 
 pollingLoop:
-
-; 	Gasta 2ms de processador	                                                             4 ciclos + delay
-	jsrd #delay 
 	
 ;	Incrementa contador de 2ms                                                                       4 ciclos
 	addi r6, #01h
@@ -132,12 +129,13 @@ pollingLoop:
 
 ;	Define valor a ser exibido no contador manual                                        4 ciclos + incManual
  	jsrd #incrementaManual                                                                            
-	
-;	Incrementa contador de 2 ms                                                                      4 ciclos
-	addi r6, #01h         
+
+;Incrementa somente uma vez o contador de 2 ms	
+;	Incrementa contador de 2 ms                                                                      
+;	addi r6, #01h 
 
 ; 	Se contador de 2 ms = 500, incrementa contador continuo (1 seg)                    8 ciclos + incContinuo
-	sub r5, r13, r6
+;	sub r5, r13, r6
 	jsrd #incrementaContinuo
 	
 ;	Determina qual numero sera escrito no display	
@@ -186,6 +184,9 @@ returnDisplayContinuoManual:
 returnDisplayZero:
 ;	Restaura r13                                                                                     4 ciclos
 	pop r13
+
+; 	Gasta 2ms de processador	                                                             4 ciclos + delay
+	jsrd #delay 
 	
 ;	Retorna para loop de polling                                                                     4 ciclos
 	jmpd #pollingLoop
@@ -262,8 +263,8 @@ menor_de_dez:
     ;jmpd #fimHEXtoDEC     ; Nao executa a instrução mas passa pro label igual
     
 fimHEXtoDEC:                                                                                             
-    st r9, r0, r9          ; Salva o valor da dezena em r9                                                   
-    st r10, r0, r10        ; Salva o valor da unidade em r10   
+ ;;;;;   st r9, r0, r9          ; Salva o valor da dezena em r9                                                   
+ ;;;;;   st r10, r0, r10        ; Salva o valor da unidade em r10   
     
     rts                    ; Retorno da Subrotina                                                            
 
@@ -275,11 +276,11 @@ delay:
 ; um loop com 10 ciclos executado 10 000 vezes
     push r6
     ldh r6, #27h
-    ldh r6, #0Eh    ; r6 <= 9998
+    ldl r6, #0Eh    ; r6 <= 9998
 
 delay_loop:
     subi r6, #01h      ; decrementa contador                                4 ciclos
-    jmpzd #fim_delay   ; casp seja zero, finaliza o delay                   3 ciclos
+    jmpzd #fim_delay   ; casp seja zero, finaliza o delay                   3 ciclos -- era jmpzd
     jmpd  #delay_loop  ; pula para gastar tempo de processador              4 ciclos
 ;                                                                ;Total =~ 10 ciclos
 fim_delay:    
@@ -350,12 +351,16 @@ returnJumpParImpar:
 dispPar:
 
 ;	Dado a ser escrito é a unidade do numero passado como argumento para HEXtoDEC
+
+	ld r10, r12, r10
 	add r5, r5, r10
 	jmpd #returnJumpParImpar
 	
 dispImpar:
 
 ;	Dado a ser escrito é a dezena do numero passado como argumento para HEXtoDEC
+	
+	ld r9, r12, r9
 	add r5, r5, r9
 	jmpd #returnJumpParImpar
 	
@@ -393,8 +398,8 @@ compensaTempo:
 	nop 			;54 ciclos
 	nop 			;57 ciclos
 	nop 			;60 ciclos
-	ld r15, r0, r0  ;64 ciclos
-	ld r15, r0, r0  ;68 ciclos
+	xor r0, r0, r0  ;64 ciclos
+	xor r0, r0, r0  ;68 ciclos
 	
 	rts             ;72 ciclos
 
@@ -474,11 +479,13 @@ incrementaContinuo:
 	
 ;	Incrementa contador continuo se passou 1 seg, demorando 72 ciclos
 
-;	Se 1 segundo se passou, nao incrementa contador
-	jmpzd #returnContinuo ;3 ciclos 
+;	Se r5 = 0, 1 segundo se passou
+	sub r5, r13, r6       ; 4 ciclos
+
+;	Se 1 segundo se passou, incrementa contador
+	jmpzd #returnContinuo ;7/8 ciclos 
 
 ;	Gasta 72 ciclos	
-	addi r7, #01h         ;7  ciclos
 	xor r0, r0, r0        ;11 ciclos
 	xor r0, r0, r0        ;15 ciclos
 	nop                   ;18 ciclos
@@ -497,6 +504,7 @@ incrementaContinuo:
 	nop                   ;57 ciclos
 	nop                   ;60 ciclos
 	xor r0, r0, r0        ;64 ciclos
+	xor r0, r0, r0        ;68 ciclos
 
 ;	Retorna para pollingLoop
 	rts                   ;72 ciclos
@@ -504,26 +512,24 @@ incrementaContinuo:
   returnContinuo:
   
 ;	Gasta 72 ciclos
-	nop                   ;7 ciclos
-	nop                   ;10 ciclos
-	nop                   ;13 ciclos
-	nop                   ;16 ciclos
-	nop                   ;19 ciclos
-	nop                   ;22 ciclos
-	nop                   ;25 ciclos
-	nop                   ;28 ciclos
-	nop                   ;31 ciclos
-	nop                   ;34 ciclos
-	nop                   ;37 ciclos
-	nop                   ;40 ciclos
-	nop                   ;43 ciclos
-	nop                   ;46 ciclos
-	nop                   ;49 ciclos
-	nop                   ;52 ciclos
-	nop                   ;55 ciclos
-	nop                   ;58 ciclos
-	nop                   ;61 ciclos
-	nop                   ;64 ciclos
+    addi r7, #01h         ;12  ciclos	
+    nop                   ;15 ciclos
+	nop                   ;18 ciclos
+	nop                   ;21 ciclos
+	nop                   ;24 ciclos
+	nop                   ;27 ciclos
+	nop                   ;30 ciclos
+	nop                   ;33 ciclos
+	nop                   ;36 ciclos
+	nop                   ;39 ciclos
+	nop                   ;42 ciclos
+	nop                   ;45 ciclos
+	nop                   ;48 ciclos
+	nop                   ;51 ciclos
+	nop                   ;54 ciclos
+	nop                   ;57 ciclos
+	nop                   ;60 ciclos
+	xor r0, r0, r0        ;64 ciclos
 	xor r0, r0, r0        ;68 ciclos
 	
 ;	Retorna para pollingLoop
