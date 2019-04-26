@@ -57,7 +57,7 @@
 
 main:
 ;   Seta SP para ultimo endereço no espaço de endereçamento da memória
-	ldh r15, #7fh
+    ldh r15, #7fh
     ldl r15, #FFh           
     ldsp r15 
 	xor r15, r15, r15
@@ -103,8 +103,8 @@ main:
 	
 ;	r13 <= 500 
 	xor r13, r13, r13
-	addi r13, #255d
-	addi r13, #245d
+	addi r13, #255Dh
+	addi r13, #245Dh
     
 ;	PortConfig <= "00111111_11111111", bit 15 e 14 = entrada, outros = saida
 	ldh r5, #3Fh
@@ -122,23 +122,23 @@ main:
 pollingLoop:
 
 ; 	Gasta 2ms de processador	                                                             4 ciclos + delay
-	jsr #delay 
+	jsrd #delay 
 	
 ;	Incrementa contador de 2ms                                                                       4 ciclos
-	addi r6, r0, #01h
+	addi r6, #01h
 	
 ; 	Le porta ( Verificar estado dos botoes )                                              4 ciclos + lerPorta
-	jsr #lerPorta                                                                                    
+	jsrd #lePorta                                                                                    
 
 ;	Define valor a ser exibido no contador manual                                        4 ciclos + incManual
- 	jsr #incrementaManual                                                                            
+ 	jsrd #incrementaManual                                                                            
 	
 ;	Incrementa contador de 2 ms                                                                      4 ciclos
-	addi r6, r6, #01h         
+	addi r6, #01h         
 
 ; 	Se contador de 2 ms = 500, incrementa contador continuo (1 seg)                    8 ciclos + incContinuo
 	sub r5, r13, r6
-	jsr #incrementaContinuo
+	jsrd #incrementaContinuo
 	
 ;	Determina qual numero sera escrito no display	
 ;	if display = 0 ou 1, numero a ser convertido = continuo, se display = 2 ou 3, numero a ser convertido = manual	
@@ -166,7 +166,7 @@ returnDisplayContinuoManual:
 	pop r13 
 	
 ;	Escreve na porta os valores determinados
-	jsr #escreveSSD
+	jsrd #escreveSSD
 	
 ;	Incrementa contador do display	                                                                 4 ciclos
 	addi r15, #01h                                                                                   
@@ -216,12 +216,12 @@ displayManual:
     
 ; compensaTempo, incrementaContinuo, incrementaManual devem ter o mesmo tempo de execução
 
-; --- delay              : TODO                                                                      
+; --- delay              :      DONE                                                           100 001 ciclos
 ; --- lePorta            :      DONE                                                                 8 ciclos
 ; --- compensaTempo      :      DONE                                                                72 ciclos
 ; --- incrementaManual   :      DONE                                                                72 ciclos
 ; --- incrementaContinuo :      DONE                                                                72 ciclos
-; --- HEXtoDEC           :      DONE
+; --- HEXtoDEC           :      DONE                                                               125 ciclos
 ; --- escreveSSD         :      DONE                                                               130 ciclos
 
 
@@ -240,34 +240,56 @@ displayManual:
 ;                   é diminuido 10(decimal)/A(HEX) do valor total, quando o valor se apresentar zero,        ;
 ;                   finalizao loop e quando se apresentar negativo (ex -3, soma-se 10, -3+10 = 7) e          ;
 ;                   finaliza o loop                                                                          ;
-;                                                                                                            ;
-;   EXEMPLO  - r7 = 1A(hex) = 26(dec)                                                                        ;
-;                     Inicio     ->  r10(Unidade) = 1A | r9(Dezena) = 0                                      ;
-;                     1 iteração ->  r10(Unidade) = 10 | r9(Dezena) = 1                                      ;
-;                     2 iteração ->  r10(Unidade) = 6  | r9(Dezena) = 2                                      ;
-;                     3 iteração ->  r10(Unidade) = 6  | r9(Dezena) = 2                                      ;
+
 ;------------------------------------------------------------------------------------------------------------;
-HEXtoDEC:                                                                                                    ;
-    add r10, r0, r14       ; Carrega o r14(Numero original) no r10(parte da dezena do contador)              ;
-    xor r9, r9, r9         ; Zera r9(dezena)                                                                 ;
-                                                                                                             ;
-dezena:                    ; Loop que por subtrações sucessivas calcula a dezena                             ;
-    subi r10, #0Ah;                                                                                          ;
-    jmpzd #fimHEXtoDECzero ; Caso o a Unidade for igual a zero, não é necessario realizar mais uma soma      ;
-    jmpnd #fimHEXtoDEC     ; Acabou de calcular a dezena e unidade do numero                                 ;
-    addi r9, #01h          ; Incrementa a dezena do numero;                                                  ;
-    jmpd #dezenaAUTO       ; Retorna para o loop de calculo de dezena                                        ;
-                                                                                                             ;
-fimHEXtoDEC:                                                                                                 ;
-    addi r10, #0Ah;                                                                                          ;
-                                                                                                             ;
-fimHEXtoDECzero;                                                                                             ;
-    st r9, r0, r9;         ; Salva o valor da dezena em r9                                                   ;
-    st r10, r0, r10        ; Salva o valor da unidade em r10                                                 ;
-    rts                    ; Retorno da Subrotina                                                            ;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; ciclos = (multiplos de 10) = 22*(decimal) + 16 | MULTIPLOS DE 10 (0, 10, 20, 30, 40, ..., 90) 
+; ciclos =     (resto)       = 22*(decimal) + 27 | QUALQUER OUTRO NUMERO(1, 22, 33, 44, ..., 99)
+HEXtoDEC:   
+           
+    xor r9, r9, r9         ; Zera r9(dezena)                                                         
+    add r10, r0, r14       ; Carrega o r14(Numero original) no r10(parte da unidade do contador)     8 ciclos             
 
+dezena:                    ; Loop que por subtrações sucessivas calcula a dezena                             
+    jmpzd #fimHEXtoDEC     ; Caso o numero for igual a zero
+    subi r10, #0Ah         ; Subtrai 10 do numero orignal                                                            
+    jmpnd #menor_de_dez    ; Numero menor que 10   
+    addi r9, #01h          ; Incrementa a dezena do numero;
+    add r10, r0, r10       ; Carrega novamente r10 para gerar as flags para comparação    
+    jmpd #dezena           ; Retorna para o loop de calculo de dezena                                        
 
+menor_de_dez:
+    addi r10, #0Ah         ; Como valor é menor que 10, soma-se 10 na unidade para recuperar o valor                                                   
+    ;jmpd #fimHEXtoDEC     ; Nao executa a instrução mas passa pro label igual
+    
+fimHEXtoDEC:                                                                                             
+    st r9, r0, r9          ; Salva o valor da dezena em r9                                                   
+    st r10, r0, r10        ; Salva o valor da unidade em r10   
+    
+    rts                    ; Retorno da Subrotina                                                            
+
+    
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;DELAY;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; gasta tempo do processador
+delay:
+; com uma freqencia de 50Mhz, temos que 2 ms = 100 000 ciclos de processador
+; um loop com 10 ciclos executado 10 000 vezes
+    push r6
+    ldh r6, #27h
+    ldh r6, #0Eh    ; r6 <= 9998
+
+delay_loop:
+    subi r3, #01h      ; decrementa contador                                4 ciclos
+    jmpzd #fim_delay   ; casp seja zero, finaliza o delay                   3 ciclos
+    jmpd  #delay_loop  ; pula para gastar tempo de processador              4 ciclos
+;                                                                ;Total =~ 10 ciclos
+fim_delay:    
+    pop r6
+    nop           ; Adiciona 3 ciclos
+    rts           ; retorna subrotina
+    
+;Ideal = 100 000 ciclos
+;Atual = 100 001 ciclos
+    
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;escreveSSD;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 escreveSSD: 
@@ -299,7 +321,7 @@ escreveSSD:
 	sl0 r5, r5 ; MSB @ 12
 
 ;	r9 <= Dezena, r10 <= unidade                                                                    76 ciclos
-	jsr #HEXtoDEC
+	jsrd #HEXtoDEC
 
 ;	r13 <= mascara de comparação (00000000_00000001) para determinar se numero é par                80 ciclos
 	ldh r13, #00h
@@ -390,7 +412,7 @@ incrementaManual:
 	
 ;	r14 <= 1
 	xor r14, r14, r14
-	addi r14, r0, #01h
+	addi r14, #01h
 
 ;	r12 <= Mascara de comparação para BTN DOWN (10000000_00000000)
 	ldh r12, #80h
@@ -438,13 +460,13 @@ manual--:
 	
 ;	Contador display manual --
 	subi r8, #01h
-	jmp #returnManual--
+	jmpd #returnManual--
 	
 manual++:
 	
 ;	Contador display manual ++
 	addi r8, #01h
-	jmp #returnManual++
+	jmpd #returnManual++
 
 ;------------------------------------ AUXILIARES incrementaManual -------------------------------------------
 
@@ -529,118 +551,6 @@ incrementaContinuo:
 
 	jsrd #pollingLoop
 
-delay:
-	nop                   ;7 ciclos
-	nop                   ;10 ciclos
-	nop                   ;13 ciclos
-	nop                   ;16 ciclos
-	nop                   ;19 ciclos
-	nop                   ;22 ciclos
-	nop                   ;25 ciclos
-	nop                   ;28 ciclos
-	nop                   ;31 ciclos
-	nop                   ;34 ciclos
-	nop                   ;37 ciclos
-	nop                   ;40 ciclos
-	nop                   ;43 ciclos
-	nop                   ;46 ciclos
-	nop                   ;49 ciclos
-	nop                   ;52 ciclos
-	nop                   ;55 ciclos
-	nop                   ;58 ciclos
-	nop                   ;61 ciclos
-	nop                   ;64 ciclos
-	xor r0, r0, r0        ;68 ciclos
-	
-	nop                   ;7 ciclos
-	nop                   ;10 ciclos
-	nop                   ;13 ciclos
-	nop                   ;16 ciclos
-	nop                   ;19 ciclos
-	nop                   ;22 ciclos
-	nop                   ;25 ciclos
-	nop                   ;28 ciclos
-	nop                   ;31 ciclos
-	nop                   ;34 ciclos
-	nop                   ;37 ciclos
-	nop                   ;40 ciclos
-	nop                   ;43 ciclos
-	nop                   ;46 ciclos
-	nop                   ;49 ciclos
-	nop                   ;52 ciclos
-	nop                   ;55 ciclos
-	nop                   ;58 ciclos
-	nop                   ;61 ciclos
-	nop                   ;64 ciclos
-	xor r0, r0, r0        ;68 ciclos
-
-	nop                   ;7 ciclos
-	nop                   ;10 ciclos
-	nop                   ;13 ciclos
-	nop                   ;16 ciclos
-	nop                   ;19 ciclos
-	nop                   ;22 ciclos
-	nop                   ;25 ciclos
-	nop                   ;28 ciclos
-	nop                   ;31 ciclos
-	nop                   ;34 ciclos
-	nop                   ;37 ciclos
-	nop                   ;40 ciclos
-	nop                   ;43 ciclos
-	nop                   ;46 ciclos
-	nop                   ;49 ciclos
-	nop                   ;52 ciclos
-	nop                   ;55 ciclos
-	nop                   ;58 ciclos
-	nop                   ;61 ciclos
-	nop                   ;64 ciclos
-	xor r0, r0, r0        ;68 ciclos
-
-	nop                   ;7 ciclos
-	nop                   ;10 ciclos
-	nop                   ;13 ciclos
-	nop                   ;16 ciclos
-	nop                   ;19 ciclos
-	nop                   ;22 ciclos
-	nop                   ;25 ciclos
-	nop                   ;28 ciclos
-	nop                   ;31 ciclos
-	nop                   ;34 ciclos
-	nop                   ;37 ciclos
-	nop                   ;40 ciclos
-	nop                   ;43 ciclos
-	nop                   ;46 ciclos
-	nop                   ;49 ciclos
-	nop                   ;52 ciclos
-	nop                   ;55 ciclos
-	nop                   ;58 ciclos
-	nop                   ;61 ciclos
-	nop                   ;64 ciclos
-	xor r0, r0, r0        ;68 ciclos
-	
-	nop                   ;7 ciclos
-	nop                   ;10 ciclos
-	nop                   ;13 ciclos
-	nop                   ;16 ciclos
-	nop                   ;19 ciclos
-	nop                   ;22 ciclos
-	nop                   ;25 ciclos
-	nop                   ;28 ciclos
-	nop                   ;31 ciclos
-	nop                   ;34 ciclos
-	nop                   ;37 ciclos
-	nop                   ;40 ciclos
-	nop                   ;43 ciclos
-	nop                   ;46 ciclos
-	nop                   ;49 ciclos
-	nop                   ;52 ciclos
-	nop                   ;55 ciclos
-	nop                   ;58 ciclos
-	nop                   ;61 ciclos
-	nop                   ;64 ciclos
-	xor r0, r0, r0        ;68 ciclos	
-;	Retorna para pollingLoop
-	rts                   ;72 ciclos
 
 ;;-----------------------------------Copiado do trabalho anterior-------------------------------------------	
 return: ; Esse trecho de código nunca executa
