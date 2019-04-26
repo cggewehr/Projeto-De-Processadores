@@ -101,8 +101,10 @@ main:
 ;	r12 <= 0 (inicializa Unidade do contador do display manual)
 	xor r12, r12, r12
 	
-;	r13 <= 500
-	addi r13, #500d
+;	r13 <= 500 
+	xor r13, r13, r13
+	addi r13, #255d
+	addi r13, #245d
     
 ;	PortConfig <= "00111111_11111111", bit 15 e 14 = entrada, outros = saida
 	ldh r5, #3Fh
@@ -119,40 +121,40 @@ main:
 
 pollingLoop:
 
-; 	Gasta 2ms de processador	
+; 	Gasta 2ms de processador	                                                             4 ciclos + delay
 	jsr #delay 
 	
-;	Incrementa contador de 2ms
+;	Incrementa contador de 2ms                                                                       4 ciclos
 	addi r6, r0, #01h
 	
-; 	Le porta ( Verificar estado dos botoes ) 
-	jsr #lerPorta
+; 	Le porta ( Verificar estado dos botoes )                                              4 ciclos + lerPorta
+	jsr #lerPorta                                                                                    
 
-;	Define valor a ser exibido no contador manual
-	jsr #incrementaManual
+;	Define valor a ser exibido no contador manual                                        4 ciclos + incManual
+ 	jsr #incrementaManual                                                                            
 	
-;	Incrementa contador de 2 ms
-	addi r6, r6, #01h
+;	Incrementa contador de 2 ms                                                                      4 ciclos
+	addi r6, r6, #01h         
 
-; 	Se contador de 2 ms = 500, incrementa contador continuo (1 seg)
+; 	Se contador de 2 ms = 500, incrementa contador continuo (1 seg)                    8 ciclos + incContinuo
 	sub r5, r13, r6
 	jsr #incrementaContinuo
 	
 ;	Determina qual numero sera escrito no display	
 ;	if display = 0 ou 1, numero a ser convertido = continuo, se display = 2 ou 3, numero a ser convertido = manual	
 	
-;	Salva r13
-	push r13
+;	Salva r13                                                                                        4 ciclos
+	push r13                                                                                        
 	
-;	Gera flag de zero, se display = 0, pula para displayContinuo
-	add r15, r0, r15
+;	Gera flag de zero, se display = 0, pula para displayContinuo                           4 ciclos + jmp (3)
+	add r15, r0, r15                                                                                 
 	jmpzd #displayContinuo
 	
-;	Mascara para comparação com numero 1
+;	Mascara para comparação com numero 1                                                             8 ciclos
 	ldh r13, #00h
 	ldl r13, #01h
 	
-;	Se display = 1, pula para displayContinuo
+;	Se display = 1, pula para displayContinuo                                                  8 ciclos + (8)
 	and r13, r13, r15
 	sub r13, r13, r15
 	jmpzd #displayContinuo
@@ -160,52 +162,52 @@ pollingLoop:
 	
 returnDisplayContinuoManual:
 
-;	Restaura r13	
-	pop r13
+;	Restaura r13	                                                                                 4 ciclos
+	pop r13 
 	
 ;	Escreve na porta os valores determinados
 	jsr #escreveSSD
 	
-;	Incrementa contador do display	
-	addi r15, #01h
+;	Incrementa contador do display	                                                                 4 ciclos
+	addi r15, #01h                                                                                   
 	
-;   Salva r13	
+;   Salva r13	                                                                                     4 ciclos
 	push r13
 
-;	r13 <= mascara de comparação (00000000_00000100)
+;	r13 <= mascara de comparação (00000000_00000100)                                                 8 ciclos
 	ldh r13, #00h
 	ldl r13, #04h
 
-;	Se contador de display == 4, contador de display <= 0
+;	Se contador de display == 4, contador de display <= 0                                    8 ciclos + jmp(3)
 	and r13, r13, r15
 	sub r13, r13, r15
 	jmpzd #setaDisplayZero
 	
 returnDisplayZero:
-;	Restaura r13
+;	Restaura r13                                                                                     4 ciclos
 	pop r13
 	
-;	Retorna para loop de polling
+;	Retorna para loop de polling                                                                     4 ciclos
 	jmpd #pollingLoop
 	
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;	
 
 	
-	
-setaDisplayZero:
-	
-	xor r15, r15, r15
+setaDisplayZero:     
+                                                                                 
+;   display <= 0                                                                             4 ciclos + jmp(4)
+	xor r15, r15, r15 
 	jmpd #returnDisplayZero
 	
 displayContinuo:
 	
-;	Argumento para HEXtoDEC = contador Continuo de 1 seg
+;	Argumento para HEXtoDEC = contador Continuo de 1 seg                                     4 ciclos + jmp(4)
 	add r14, r0, r7
 	jmpd #returnDisplayContinuoManual
 	
 displayManual:
 
-;	Argumento para HEXtoDEC = contador manual
+;	Argumento para HEXtoDEC = contador manual                                                4 ciclos + jmp(4)
 	add r14, r0, r8
 	jmpd #returnDisplayContinuoManual
 	
@@ -214,13 +216,13 @@ displayManual:
     
 ; compensaTempo, incrementaContinuo, incrementaManual devem ter o mesmo tempo de execução
 
-; --- delay              : TODO
-; --- lePorta            :      DONE
-; --- compensaTempo      :      DONE
-; --- incrementaManual   :      DONE
-; --- incrementaContinuo :      DONE
+; --- delay              : TODO                                                                      
+; --- lePorta            :      DONE                                                                 8 ciclos
+; --- compensaTempo      :      DONE                                                                72 ciclos
+; --- incrementaManual   :      DONE                                                                72 ciclos
+; --- incrementaContinuo :      DONE                                                                72 ciclos
 ; --- HEXtoDEC           :      DONE
-; --- escreveSSD         : TODO
+; --- escreveSSD         :      DONE                                                               130 ciclos
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;HEXtoDEC;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -273,19 +275,19 @@ escreveSSD:
     push r12  ; &arraySSD            
 	push r13  ; mascara de comparação para display
     push r14  ; numero                                                                                             
-    push r15  ; display (0, 1, 2, 3)                                         
+    push r15  ; display (0, 1, 2, 3)                                                                20 ciclos                         
          
 	ldh r11, #arrayDisp
 	ldl r11, #arrayDisp
 
-;	r11 <= arrayDisp[Display (da iteração atual)]
+;	r11 <= arrayDisp[Display (da iteração atual)]                                                   28 ciclos
 	ld r11, r11, r15
 	
-;	r5 <= display
+;	r5 <= display                                                                                   32 ciclos
 	xor r5, r5, r5
 	add r5, r0, r11
 	
-;	Desloca bits de enable do display até sua posição
+;	Desloca bits de enable do display até sua posição                                               40 ciclos
 	sl0 r5, r5 ; MSB @ 4
 	sl0 r5, r5 ; MSB @ 5
 	sl0 r5, r5 ; MSB @ 6
@@ -296,26 +298,33 @@ escreveSSD:
 	sl0 r5, r5 ; MSB @ 11
 	sl0 r5, r5 ; MSB @ 12
 
-;	r9 <= Dezena, r10 <= unidade
+;	r9 <= Dezena, r10 <= unidade                                                                    76 ciclos
 	jsr #HEXtoDEC
 
-;	r13 <= mascara de comparação (00000000_00000001) para determinar se numero é par
+;	r13 <= mascara de comparação (00000000_00000001) para determinar se numero é par                80 ciclos
 	ldh r13, #00h
 	ldl r13, #01h
 	
-;	Se numero for par, usa unidade, se for impar, usa dezena	
+;	Se numero for par, usa unidade, se for impar, usa dezena	                                    84 ciclos
 	and r13, r13, r15
 	jmpzd #dispPar
 	jmpd #dispImpar
-	
+;																	  94 ciclos ( em media 6 ciclos p/ jumps)
 returnJumpParImpar:
 ;                    |     15 14    |13|  12 11 10 9  |8| 7 6 5 4 3 2 1 0 |
 ;	Escreve na porta (entrada_botoes)x(display_enable) x  (dados_display)	
 	st r5, r0, r2
 	
-;   Volta para pollingLoop
-	rts
+;	Restaura registradores                                                                          98 ciclos
+	pop r15
+	pop r14
+	pop r13
+	pop r12
+	pop r11
 
+;   Volta para pollingLoop                                                                         118 ciclos
+	rts
+;                                                                                           FINAL: 130 ciclos
 dispPar:
 
 ;	Dado a ser escrito é a unidade do numero passado como argumento para HEXtoDEC
@@ -383,18 +392,18 @@ incrementaManual:
 	xor r14, r14, r14
 	addi r14, r0, #01h
 
-;	r15 <= Mascara de comparação para BTN DOWN (10000000_00000000)
-	ldh r15, #80h
-	ldl r15, #00h
+;	r12 <= Mascara de comparação para BTN DOWN (10000000_00000000)
+	ldh r12, #80h
+	ldl r12, #00h
 
 ;	Se BTN DOWN foi pressionado, r1 <= 0, decrenenta contador
-	and r1, r1, r15
-	sub r1, r1, r15
+	and r1, r1, r12
+	sub r1, r1, r12
 	jmpzd #manual--
 	
-;	Carrega lixo em r15 para manter tempo de execução constante, independente da tomada de branch (11 ciclos)
-	ld r15, r0, r0
-	ld r15, r0, r0
+;	Manter tempo de execução constante, independente da tomada de branch (11 ciclos)
+	xor r0, r0, r0
+    xor r0, r0, r0
 
   returnManual--:
   
@@ -402,18 +411,18 @@ incrementaManual:
 	pop r1
 	push r1
 	
-;	r15 <= Mascara de comparação para BTN UP (01000000_00000000)
-	ldh r15, #04h
-	ldl r15, #00h	
+;	r12 <= Mascara de comparação para BTN UP (01000000_00000000)
+	ldh r12, #04h
+	ldl r12, #00h	
 
 ;	Se BTN UP foi pressionado, r1 <= 0, incrementa contador
-	and r1, r1, r15
-	sub r1, r1, r15
+	and r1, r1, r12
+	sub r1, r1, r12
 	jmpzd #manual++
 	
-;	Carrega lixo em r15 para manter tempo de execução constante, independente da tomada de branch (11 ciclos)
-	ld r15, r0, r0
-	ld r15, r0, r0
+;	Manter tempo de execução constante, independente da tomada de branch (11 ciclos)
+	xor r0, r0, r0
+	xor r0, r0, r0
 
   returnManual++:
 
