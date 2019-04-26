@@ -278,7 +278,7 @@ delay:
     ldh r6, #0Eh    ; r6 <= 9998
 
 delay_loop:
-    subi r3, #01h      ; decrementa contador                                4 ciclos
+    subi r6, #01h      ; decrementa contador                                4 ciclos
     jmpzd #fim_delay   ; casp seja zero, finaliza o delay                   3 ciclos
     jmpd  #delay_loop  ; pula para gastar tempo de processador              4 ciclos
 ;                                                                ;Total =~ 10 ciclos
