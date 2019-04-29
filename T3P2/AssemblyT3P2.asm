@@ -58,90 +58,106 @@ init: ; Inicialização dos registradores
     xor r0, r0, r0 ; Zera o registrador r0
 
     jmpd #main
-; ;=============================================================================================================
-; ;_________________________________________INTERRUPT_REQUEST___________________________________________________
-; InterruptionServiceRoutine:
-; ;InterruptionServiceRoutine:
-; ;    1. Salvamento de contexto
-; ;    2. Verificação da origem da interrupção (polling) e salto para o handler correspondente (jsr)
-; ;    3. Recuperação de contexto
-; ;    4. Retorno (rti)
-;
-;     push r0  ; Salvamento de contexto da interrupção
-;     push r1
-;     push r2
-;     push r3
-;     push r4
-;     push r5
-;     push r6
-;     push r7
-;     push r8
-;     push r9
-;     push r10
-;     push r11
-;     push r12
-;     push r13
-;     push r14
-;     push r15
-;     pushf     ; Salvamento das flags
-;
-;     xor r0, r0, r0       ; Zera o resgistrador
-;     ldh r1, #arrayPorta  ; Pega o endereço da porta
-;     ldl r1, #arrayPorta  ; [ r1 <= &PortData ]
-;     ld r1, r0, r1        ; Le o valor da porta e salva em r1 [ r1 <= valor lido da porta ]
-;
-;     ldh r2, #80h ; Carrega mascara para comparação para o botao de Decremento
-;     ldl r2, #00h ; [ r2 <= "10000000_00000000" ]
-;
-;     and r3, r1, r2 ; Verificação do botão pressionado, [ Incremento-> r3 <= '0', Decremento-> r3 <= '1' ]
-;     jmpzd #PushButtonInc_Handler ; Se for zero significa que o botao pressionado foi de incremento
-;     jmpd #PushButtonDec_Handler  ; Senão o botão pressionado foi o de decremento
-;
-; ;_________________________________________DECREMENTO__________________________________________________________
-; PushButtonDec_Handler:
-;     add r12, r0, r0 ; R12 + 0 para gerar flags
-;     jmpzd #decrementa_Manual_unidade_zero ; Unidade é igual a zero, logo precisamos decrementar a dezena
-;     subi r12, #01h ; Decrementa unidadeManual em uma unidade
-;     jmpd #return_InterruptionServiceRoutine ; Retorna
-; decrementa_Manual_unidade_zero:
-;     subi r13, #01h ; Decrementa a dezenaManual em 1 [r13 --]
-;     addi r12, #09h ; Seta a unidadeManual para 9 [r12 <= 9]
-;     jmpd #return_InterruptionServiceRoutine ; retorna
-;
-; ;_________________________________________INCREMENTO__________________________________________________________
-; PushButtonInc_Handler:
-;     ldh r4, #00h  ; Mascara de comparação com o numero 10
-;     ldh r4, #0Ah  ; [r7 <= '00000000_00001010']
-;     and r5, r12, r4 ; Comparação da unidadeManual com o numero 10
-;     jmpzd #incrementa_Manual_unidade ; Caso o numero seja diferente de 10, pula para incrementar unidade
-;     xor r12, r12, r12 ; Zera a unidadeManual
-;     addi r13, #01h  ; Incrementa a dezenaManual
-;     jmpd #return_InterruptionServiceRoutine ; Retorna
-; incrementa_Manual_unidade:
-;     addi r12, #01h ; Incrementa a unidadeManual em 1 [r10 ++]
-;     jmpd #return_InterruptionServiceRoutine ; Retorna
-;
-;
-; return_InterruptionServiceRoutine:
-;     popf    ; Recuperação das flags
-;     pop r15
-;     pop r14
-;     pop r13
-;     pop r12
-;     pop r11
-;     pop r10
-;     pop r9
-;     pop r8
-;     pop r7
-;     pop r6
-;     pop r5
-;     pop r4
-;     pop r3
-;     pop r2
-;     pop r1
-;     pop r0  ; Recuperação de contexto
-;     rti     ; Retorna para execução normal
-; ;_____________________________________________________________________________________________________________
+;=============================================================================================================
+;_________________________________________INTERRUPT_REQUEST___________________________________________________
+InterruptionServiceRoutine:
+;InterruptionServiceRoutine:
+;    1. Salvamento de contexto
+;    2. Verificação da origem da interrupção (polling) e salto para o handler correspondente (jsr)
+;    3. Recuperação de contexto
+;    4. Retorno (rti)
+
+    push r0  ; Salvamento de contexto da interrupção
+    push r1
+    push r2
+    push r3
+    push r4
+    push r5
+    push r6
+    push r7
+    push r8
+    push r9
+    push r10
+    push r11
+    push r12
+    push r13
+    push r14
+    push r15
+    pushf     ; Salvamento das flags
+
+    xor r0, r0, r0       ; Zera o resgistrador
+    ldh r1, #arrayPorta  ; Pega o endereço da porta
+    ldl r1, #arrayPorta  ; [ r1 <= &PortData ]
+    ld r1, r0, r1        ; Le o valor da porta e salva em r1 [ r1 <= valor lido da porta ]
+
+    ldh r2, #80h ; Carrega mascara para comparação para o botao de Decremento
+    ldl r2, #00h ; [ r2 <= "10000000_00000000" ]
+
+    and r3, r1, r2 ; Verificação do botão pressionado, [ Incremento-> r3 <= '0', Decremento-> r3 <= '1' ]
+    jmpzd #PushButtonInc_Handler ; Se for zero significa que o botao pressionado foi de incremento
+    jmpd #PushButtonDec_Handler  ; Senão o botão pressionado foi o de decremento
+	
+PushButtonDec: ; Interrupção de botão de decremento
+	jsr #PushButtonDec_Handler ; Chama subrotina de tratamento de interrupção
+	jmpd #return_InterruptionServiceRoutine  ; Acaba a interrupção
+
+PushButtonInc: ; Interrupção de botão de incremneto
+	jsr #PushButtonInc_Handler ; Chama subrotina de tratamento de interrupção
+	jmpd #return_InterruptionServiceRoutine  ; Acaba a interrupção
+	
+;_________________________________________DECREMENTO__________________________________________________________
+; Subrotina de tratamento de interrupção, decrementa o contador manual
+; Não recebe parametros e não retorna nada
+PushButtonDec_Handler:
+    add r12, r0, r0 ; R12 + 0 para gerar flags
+    jmpzd #decrementa_Manual_unidade_zero ; Unidade é igual a zero, logo precisamos decrementar a dezena
+    subi r12, #01h ; Decrementa unidadeManual em uma unidade
+    jmpd #return_PushButtonDec_Handler ; Retorna
+decrementa_Manual_unidade_zero: ; Decrementa a dezenaManual e seta a unidadeManual em 9
+    subi r13, #01h ; Decrementa a dezenaManual em 1 [r13 --]
+    addi r12, #09h ; Seta a unidadeManual para 9 [r12 <= 9]
+    jmpd #return_PushButtonDec_Handler ; retorna
+return_PushButtonDec_Handler:
+	rts ; Retorna da subrotina
+
+;_________________________________________INCREMENTO__________________________________________________________
+; Subrotina de tratamento de interrupção, incrementa o contador manual
+; Não recebe parametros e não retorna nada
+PushButtonInc_Handler:
+    ldh r4, #00h  ; Mascara de comparação com o numero 10
+    ldh r4, #0Ah  ; [r7 <= '00000000_00001010']
+    and r5, r12, r4 ; Comparação da unidadeManual com o numero 10
+    jmpzd #incrementa_Manual_unidade ; Caso o numero seja diferente de 10, pula para incrementar unidade
+    xor r12, r12, r12 ; Zera a unidadeManual
+    addi r13, #01h  ; Incrementa a dezenaManual
+    jmpd #return_PushButtonInc_Handler ; Retorna
+incrementa_Manual_unidade:  ; Incrementa a unidadeManual
+    addi r12, #01h ; Incrementa a unidadeManual em 1 [r10 ++]
+    jmpd #return_PushButtonInc_Handler ; Retorna
+return_PushButtonInc_Handler:
+	rts ; Retorna da subrotina
+
+
+return_InterruptionServiceRoutine:
+    popf    ; Recuperação das flags
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop r11
+    pop r10
+    pop r9
+    pop r8
+    pop r7
+    pop r6
+    pop r5
+    pop r4
+    pop r3
+    pop r2
+    pop r1
+    pop r0  ; Recuperação de contexto
+    rti     ; Retorna para execução normal
+;_____________________________________________________________________________________________________________
 ;=============================================================================================================
 
 ;_________________________________________MAIN [LOOP INFINITO]________________________________________________
