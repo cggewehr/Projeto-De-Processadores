@@ -43,19 +43,19 @@ end R8;
 
 architecture Behavioural of R8 is
 
-	type State is (Sfetch, Sreg, Shalt, Sula, Swbk, Sld, Sst, Sjmp, Ssbrt, Spush, Srts, Spop, Sldsp, Spushf, Spopf, Srti);
+        type State is (Sfetch, Sreg, Shalt, Sula, Swbk, Sld, Sst, Sjmp, Ssbrt, Spush, Srts, Spop, Sldsp, Spushf, Spopf, Srti);
 	type R8Instruction is (
-        ADD, SUB, AAND, OOR, XXOR, ADDI, SUBI, NOT_A, 
-        SL0, SL1, SR0, SR1,
-        LDL, LDH, LD, ST, LDSP, POP, PUSH,
-        JUMP_R, JUMP_A, JUMP_D, JSRR, JSR, JSRD,
-        NOP, HALT,  RTS, 
-		-- Novas instruções
-		PUSHF, POPF, RTI
+            ADD, SUB, AAND, OOR, XXOR, ADDI, SUBI, NOT_A, 
+            SL0, SL1, SR0, SR1,
+            LDL, LDH, LD, ST, LDSP, POP, PUSH,
+            JUMP_R, JUMP_A, JUMP_D, JSRR, JSR, JSRD,
+            NOP, HALT,  RTS, 
+	    -- Novas instruções
+	    PUSHF, POPF, RTI
     ); 
 
 	type RegisterArray is array (natural range <>) of std_logic_vector(15 downto 0); 
-    type instrucionType is (tipo1, tipo2, outras);
+        type instrucionType is (tipo1, tipo2, outras);
 	
 	signal currentInstruction          : R8Instruction;
 	signal currentState                : State;
@@ -63,30 +63,30 @@ architecture Behavioural of R8 is
 	
 	-- Registradores do Processador
 	signal regBank                     : RegisterArray(0 to 15);        -- Banco de registradores	 
-    signal regPC                       : std_logic_vector(15 downto 0); -- Program Counter
-    signal regIR                       : std_logic_vector(15 downto 0); -- Registrador de Instruçoes
-    signal regSP                       : std_logic_vector(15 downto 0); -- Stack Pointer
-    signal regA                        : std_logic_vector(15 downto 0); -- Primeiro reg lido do REGBANK
+        signal regPC                       : std_logic_vector(15 downto 0); -- Program Counter
+        signal regIR                       : std_logic_vector(15 downto 0); -- Registrador de Instruçoes
+        signal regSP                       : std_logic_vector(15 downto 0); -- Stack Pointer
+        signal regA                        : std_logic_vector(15 downto 0); -- Primeiro reg lido do REGBANK
 	signal regB                        : std_logic_vector(15 downto 0); -- Segundo reg lido do REGBANK
 	signal regALU                      : std_logic_vector(15 downto 0); -- Registrador ALU
 	signal regITR_PC                   : std_logic_vector(15 downto 0): -- Registrador para recuperação do PC atual quando há interrupção
 	
 	-- Sinais combinacionais pra ALU
 	signal ALUaux                      : std_logic_vector(16 downto 0); -- Sinal com 17 bits pra lidar com overflow 
-    signal outALU                      : std_logic_vector(15 downto 0); -- 
-    --signal aluout16                    : std_logic_vector(16 downto 0); -- Sinal com 16 bits pra lidar com overflow
-    --signal ALU_op1                     : std_logic_vector(15 downto 0); -- Primeiro operador da ula
-    --signal ALU_op2                     : std_logic_vector(15 downto 0); -- Segundo de saida da ULA
+        signal outALU                      : std_logic_vector(15 downto 0); -- 
+        --signal aluout16                    : std_logic_vector(16 downto 0); -- Sinal com 16 bits pra lidar com overflow
+        --signal ALU_op1                     : std_logic_vector(15 downto 0); -- Primeiro operador da ula
+        --signal ALU_op2                     : std_logic_vector(15 downto 0); -- Segundo de saida da ULA
     
 	-- Registrador de Flags
-    signal regFLAGS : std_logic_vector(3 downto 0);
-    alias n :std_logic is regFLAGS(3);
-    alias z :std_logic is regFLAGS(2);
-    alias c :std_logic is regFLAGS(1);
-    alias v :std_logic is regFLAGS(0);
+        signal regFLAGS : std_logic_vector(3 downto 0);
+        alias n :std_logic is regFLAGS(3);
+        alias z :std_logic is regFLAGS(2);
+        alias c :std_logic is regFLAGS(1);
+        alias v :std_logic is regFLAGS(0);
 	
-    -- Sinais auxiliares para geração de flags, atualizados combinacionalmente na ALU
-    signal flagN, flagZ, flagC, flagV  : std_logic; -- Flags ALU| negativo, zero, carry, OVFLW
+        -- Sinais auxiliares para geração de flags, atualizados combinacionalmente na ALU
+        signal flagN, flagZ, flagC, flagV  : std_logic; -- Flags ALU| negativo, zero, carry, OVFLW
     
 	-- Campos do registrador de instrução
 	alias OPCODE      : std_logic_vector( 3 downto 0) is regIR(15 downto 12);
@@ -131,22 +131,22 @@ begin
                           LDH    when OPCODE = x"8" else
                           LD     when OPCODE = x"9" else
                           ST     when OPCODE = x"A" else      
-					      SL0    when OPCODE = x"B"  and  REGSOURCE2 = x"0" else
-				          SL1    when OPCODE = x"B"  and  REGSOURCE2 = x"1" else
+			  SL0    when OPCODE = x"B"  and  REGSOURCE2 = x"0" else
+			  SL1    when OPCODE = x"B"  and  REGSOURCE2 = x"1" else
                           SR0    when OPCODE = x"B"  and  REGSOURCE2 = x"2" else
-				          SR1    when OPCODE = x"B"  and  REGSOURCE2 = x"3" else
+			  SR1    when OPCODE = x"B"  and  REGSOURCE2 = x"3" else
                           NOT_A  when OPCODE = x"B"  and  REGSOURCE2 = x"4" else
                           NOP    when OPCODE = x"B"  and  REGSOURCE2 = x"5" else
                           HALT   when OPCODE = x"B"  and  REGSOURCE2 = x"6" else
-				          LDSP   when OPCODE = x"B"  and  REGSOURCE2 = x"7" else
-				          RTS    when OPCODE = x"B"  and  REGSOURCE2 = x"8" else
-				          POP    when OPCODE = x"B"  and  REGSOURCE2 = x"9" else
+		          LDSP   when OPCODE = x"B"  and  REGSOURCE2 = x"7" else
+			  RTS    when OPCODE = x"B"  and  REGSOURCE2 = x"8" else
+			  POP    when OPCODE = x"B"  and  REGSOURCE2 = x"9" else
                           PUSH   when OPCODE = x"B"  and  REGSOURCE2 = x"A" else
 						  
-						  -- NOVAS INSTRUÇOES
-						  PUSHF  when OPCODE = x"B"  and  REGSOURCE2 = x"B" else
-						  POPF   when OPCODE = x"B"  and  REGSOURCE2 = x"C" else
-						  RTI    when OPCODE = x"B"  and  REGSOURCE2 = x"D" else
+			 -- NOVAS INSTRUÇOES
+			  PUSHF  when OPCODE = x"B"  and  REGSOURCE2 = x"B" else
+			  POPF   when OPCODE = x"B"  and  REGSOURCE2 = x"C" else
+			  RTI    when OPCODE = x"B"  and  REGSOURCE2 = x"D" else
                           
                           JUMP_R when OPCODE = x"C" and (
                                       ( REGSOURCE2 = x"0") or             -- JMPR
@@ -251,7 +251,6 @@ begin
                     n <= flagN; -- Flag de negativo
                     z <= flagZ; -- Flag de zero
                 end if;
-                
 				--Defines next state
 				if (instType = tipo1) or (instType = tipo2) then
 					currentState <= Swbk;   
@@ -385,12 +384,23 @@ begin
     data_out <= regBank(to_integer(unsigned(REGTARGET))) when currentState = Sst and rst = '0' else
                 regB when currentState = Spush and rst = '0' else
                 regPC when currentState = Ssbrt and rst = '0' else
-				0x"000"&regFLAGS(3 downto 0) when currentState = Spushf and rst = '0' else
+		0x"000"&regFLAGS(3 downto 0) when currentState = Spushf and rst = '0' else
                 (others=>'0');
 
-    ce <= '1' when rst = '0' and (currentState = Sld or currentState = Ssbrt or currentState = Spush or currentState = Sst or currentState = Sfetch or currentState = Srts or currentState = Spop or
-								  currentState = Spopf or currentState = Spushf) else '0';
+    ce <= '1' when rst = '0' and (currentState = Sld or 
+				  currentState = Ssbrt  or 
+				  currentState = Spush  or 
+				  currentState = Sst    or 
+				  currentState = Sfetch or 
+				  currentState = Srts   or 
+				  currentState = Spop   or
+			          currentState = Spopf  or 
+				  currentState = Spushf) else '0';
 								  
-    rw <= '1' when (currentState = Sfetch or currentState = Spop or currentState = Srts or currentState = Sld or currentState = Spopf) else '0';
+    rw <= '1' when (currentState = Sfetch or 
+		    currentState = Spop   or 
+		    currentState = Srts   or 
+		    currentState = Sld    or 
+		    currentState = Spopf) else '0';
     
 end Behavioural;
