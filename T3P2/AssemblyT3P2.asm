@@ -1,0 +1,246 @@
+.org #0000h
+; --------------------- r0  = 0
+; --------------------- r1  = &arrayPorta
+; --------------------- r2  = PARAMETRO para subrotina
+; --------------------- r3  = PARAMETRO para subrotina
+; --------------------- r10 = Valor do display 0 | unidadeContinuo
+; --------------------- r11 = Valor do display 1 | dezenaContinuo
+; --------------------- r12 = Valor do display 2 | unidadeManual
+; --------------------- r13 = Valor do display 3 | dezenaManual
+; --------------------- r14 = Retorno de subrotina
+; --------------------- r15 = Retorno de subrotina
+.code
+
+init: ; Inicialização dos registradores
+    ldh r0, #7Fh  ;Carrega o novo valor do SP
+    ldl r0, #FFh  ;Carrega o novo valor do SP
+    ldsp r0       ;Carrega o novo valor do SP
+
+    ldh r1, #arrayPorta ; Carrega &Porta
+    ldl r1, #arrayPorta ; Carrega &Porta
+
+    add r4, r0, r1 ; Carrega indexador de arrayPorta  [ arrayPorta[r4] -> &PortData ]
+
+    ; Seta PortConfig
+    addi r4, #01h  ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &PortConfig ]
+    ldh r5, #C0h   ; r5 <= "11000000_00000000"
+    ldl r5, #00h   ; bit 15 e 14 = entrada, outros = saida
+    st r5, r1, r4  ; PortConfig <= "11000000_00000000"
+
+    ; Seta PortEnable
+    addi r4, #01h  ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &PortEnable ]
+    ldh r5, #DEh   ; r5 <= "11011110_11111111"
+	ldl r5, #FFh   ; Habilita acesso a todos os bits da porta de I/O, menos bit 13 e bit 8
+	st r5, r1, r4  ; PortEnable <= "11011110_11111111"
+
+    ; Seta irqtEnable
+    addi r4, #01h  ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &irqtEnable ]
+    ldh r5, #C0h   ; r5 <= "11000000_00000000"
+    ldl r5, #00h   ; Habilita a interrupção nos bits 15 e 14
+    st r5, r1, r4  ; irqtEnable <= "11000000_00000000"
+
+    xor r10, r10, r10 ; Zera o registrador r10 [ valorDisplay[0] = 0 ]
+    xor r11, r11, r11 ; Zera o registrador r11 [ valorDisplay[1] = 0 ]
+    xor r12, r12, r12 ; Zera o registrador r12 [ valorDisplay[2] = 0 ]
+    xor r13, r13, r13 ; Zera o registrador r13 [ valorDisplay[3] = 0 ]
+
+    xor r0, r0, r0 ; Zera o registrador r0
+
+;_________________________________________INTERRUPT_REQUEST___________________________________________________
+InterruptionServiceRoutine:
+;InterruptionServiceRoutine:
+;    1. Salvamento de contexto
+;    2. Verifica��o da origem da interrup��o (polling) e
+;       salto para o handler correspondente (jsr)
+;    3. Recupera��o de contexto
+;    4. Retorno (rti)
+
+;Tabela de Registradores:
+;r0 = 0
+;r10 = 1
+;	Pushes context
+	push r0
+	push r1
+	push r2
+	push r3
+	push r4
+	push r5
+	push r6
+	push r7
+	push r8
+	push r9
+	push r10
+	push r11
+	push r12
+	push r13
+	push r14
+	push r15
+	pushf
+
+;	Register Initialization
+
+	xor r0, r0, r0
+	xor r10, r10, r10
+	addi r10, #01h
+
+;	Returns on r4 if button UP was pressed, r4 = 1 if button was pressed, else r4 = 0
+	jsrd #findButtonUPStatus
+
+;	If r4 == 1 calls driver for button UP action
+    and r4, r4, r10
+    sub r4, r4, r10
+    jmpzd #callDriverButtonUp
+
+returnDriverButtonUp:
+
+;	Returns on r4 if button DOWN was pressed, r4 = 1 if button was pressed, else r4 = 0
+    jsrd #findButtonDOWNStatus
+
+    ;   If r4 == 1 calls driver for button UP action
+	and r4, r4, r10
+	sub r4, r4, r10
+
+    jmpzd #callDriverButtonDown
+returnDriverButtonDown:
+
+;	Retrieves context
+	popf
+	pop r15
+	pop r14
+	pop r13
+	pop r12
+	pop r11
+	pop r10
+	pop r9
+	pop r8
+	pop r7
+	pop r6
+	pop r5
+	pop r4
+	pop r3
+	pop r2
+	pop r1
+    pop r0
+    rti ;	Returns to normal execution flow
+
+callDriverButtonUp:
+    jsrd #driverButtonUp
+    jmpd #returnDriverButtonUp
+
+callDriverButtonDown:
+	jsrd #driverButtonDown
+	jmpd #returnDriverButtonDown
+
+;_________________________________________MAIN [LOOP INFINITO]________________________________________________
+main:
+    jsrd #contador_1_seg ; Conta 1 seg utilizando tempo de display
+    jsrd #incrementa_Continuo ; Incrementa o contador continuo
+    jmpd #main ; Loop infinito
+
+;_________________________________________CONTADOR_1_SEG______________________________________________________
+contador_1_seg: ; Executa a função de display 100 vezes, totalizando 100s
+    push r8  ; Iterador do loop
+    ldh r8, #00h
+    ldl r8, #65h ; Carrega valor de iteração do loop [r8 <= 101]
+loop_1_s: ; Realiza 100 iterações de 10 ms cada, totalizando 1 seg
+    subi r8, #01h   ; Decrementa a variavel de comparação  [r8 --]
+    jmpzd #contador_1_seg ; Caso for igual a zero volta para contador_1_seg
+    jsrd #display_loop ; Chama a subrotina que escreve no display
+    jmpd #loop_1_s     ; A cada iteração 10 ms se passaram
+return_contador_1_seg:
+    pop r8
+    rts
+
+;_________________________________________INCREMENTA_CONTINUO_________________________________________________
+; Realiza o incremento do contador continuo
+; Não recebe parametros e não retorna nada
+incrementa_Continuo:
+    push r7 ; Mascara de comparação com o numero 10
+    ldh r7 #00h ;
+    ldl r7 #0Ah ; [r7 <= '00000000_00001010]
+    and r7, r10, r7 ; Comparação do contador unidadeContinuo com o numero 10
+    jmpzd #incrementa_Continuo_unidade ; caso o valor da unidadeContinuo não seja igual a 10 [r7 == 0Ah]
+    xor r10, r10, r10 ; Numero é igual a 10, zera a unidade [unidadeContinuo = 0, r10 <= '0']
+    addi r11, #01h    ; incrementa a dezenaContinuo, dezenaContinuo += 1 [r11 ++]
+    jmpd #return_incrementa_Continuo ; Finaliza a função
+incrementa_Continuo_unidade:
+    addi r10, #01h ; Incrementa a unidadeContinuo em 1 [r10 ++]
+return_incrementa_Continuo:
+    pop r7
+    rts
+;
+
+;_______________________________________________DISPLAY_LOOP__________________________________________________
+; Realiza a alternancia e escreve na porta para mostrar os valores respectivos nos respectivos displays
+; Não recebe parametros e não retorna nada
+display_loop: ; loop principal que executa a leitura e a atualização dos displays| 10 ms
+    push r4 ; &arrayDisp
+    push r5 ; indexador
+    push r9 ; Valor escrito na porta [ "000" & "(12 downto 9)[disp]" & '0' & "(8 downto 0)[Numero]" ]
+
+    ldh r4, #arrayDisp ; Carrega &arrayDisp
+    ldl r4, #arrayDisp ; Carrega &arrayDisp
+
+    ; Unidade Continua
+    xor r5, r5, r5  ; zera o indexador
+    ld r9, r4, r5   ; r9 <= arrayDisp[r5] [r9 <= "00000010_00000000"]
+    add r9, r9, r10 ; r9 <= "00000010_00000000" + unidadeContinuo
+    st r9, r0, r1   ; PortData <= arrayDisp & unidadeContinuo
+    jsrd #display_show_delay ; Fica mostrando o valor por 2.5 ms ~~
+
+    ; Dezena Continuo
+    addi r5, #01h   ; Incrementa o indexador
+    ld r9, r4, r5   ; r9 <= arrayDisp[r5] [r9 <= "00000100_00000000"]
+    add r9, r9, r11 ; r9 <= "00000100_00000000" + dezenaContinuo
+    st r9, r0, r1   ; PortData <= arrayDisp & dezenaContinuo
+    jsrd #display_show_delay ; Fica mostrando o valor por 2.5 ms ~~
+
+    ; Unidade Manual
+    addi r5, #01h   ; Incrementa o indexador
+    ld r9, r4, r5   ; r9 <= arrayDisp[r5] [r9 <= "00001000_00000000"]
+    add r9, r9, r12 ; r9 <= "00001000_00000000" + unidadeManual
+    st r9, r0, r1   ; PortData <= arrayDisp & unidadeManual
+    jsrd #display_show_delay ; Fica mostrando o valor por 2.5 ms ~~
+
+    ; Dezena Manual
+    addi r5, #01h   ; Incrementa o indexador
+    ld r9, r4, r5   ; r9 <= arrayDisp[r5] [r9 <= "00000100_00000000"]
+    add r9, r9, r13 ; r9 <= "00010000_00000000" + dezenaManual
+    st r9, r0, r1   ; PortData <= arrayDisp & dezenaManual
+    jsrd #display_show_delay ; Fica mostrando o valor por 2.5 ms ~~
+
+    pop r9   ; Restaura os valores anteriores dos registradores utilizados
+    pop r5
+    pop r4
+    rts      ; Volta para a função na qual foi chamada
+;
+
+;_________________________________________ DISPLAY_SHOW_DELAY_________________________________________________
+; Gasta 2.5 ms de processamento para o digito poder ficar aparecendo no display
+; Não recebe parametros não retorna nada
+display_show_delay: ; Gasta tempo do processador para que o display fique ativo | 2.5 ms
+    push r6 ; Contador para delay
+    ldh r6, #30h
+    ldl r6, #D4h  ; r6 <= 12 500
+display_show_delay_loop: ; ~10 ciclos cada intereção
+    subi r6, #01h  ; Decrementa o contador para o delay [r6 --]
+    jmpzd #return_display_show_delay_loop ; Caso seja zero, acabou o delay [r6 == 0 entao sair]
+    jmpd #display_show_delay_loop ; Caso diferente de zero volta para o loop [r6 != 0 entao loop]
+return_display_show_delay_loop: ;  Executados ~~ 125 000 ciclos
+    pop r6  ; Restaura valor anterior
+    rts     ; Volta para a função na qual foi chamada
+;_____________________________________________________________________________________________________________
+.endcode
+
+.data
+; array de regs da Porta Bidirecional
+            ;PortData, PortConfig, PortEnable, irqtEnable
+arrayPorta: db #8000h, #8001h, #8002h, #8003h
+
+; array SSD representa o array de valores a serem postos nos displays de sete seg
+               ; 0 ,       2,    3,    4,    5,    6,    7,    8,    9
+arraySSD:   db #03h, #9fh, #25h, #0dh, #99h, #49h, #21h, #1fh, #01h, #09h
+
+; Array que escolhe qual disp sera utilizado  Mais da direita -> Mais da esquerda
+arrayDisp:  db #0200h, #0400h, #0800h, #1000h
+.enddata
