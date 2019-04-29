@@ -69,6 +69,7 @@ architecture Behavioural of R8 is
     signal regA                        : std_logic_vector(15 downto 0); -- Primeiro reg lido do REGBANK
 	signal regB                        : std_logic_vector(15 downto 0); -- Segundo reg lido do REGBANK
 	signal regALU                      : std_logic_vector(15 downto 0); -- Registrador ALU
+	signal regITR_PC                   : std_logic_vector(15 downto 0): -- Registrador para recuperação do PC atual quando há interrupção
 	
 	-- Sinais combinacionais pra ALU
 	signal ALUaux                      : std_logic_vector(16 downto 0); -- Sinal com 17 bits pra lidar com overflow 
@@ -203,6 +204,7 @@ begin
 				if irq = '1' and interruptFlag = '0'; then
 					-- Writes next instruction to memory
 					regIR <= ISR_ADDR;
+					regITR_PC <= regPC;
 					interruptFlag <= '1';
 			    else
 					regIR <= data_in;
@@ -331,8 +333,9 @@ begin
 				currentState <= Sfetch;
 				
 			elsif currentState = Srti then
-				regSP <= regSP + 1;
-				regPC <= data_in;
+				--regSP <= regSP + 1;
+				--regPC <= data_in;
+				regPC <= regITR_PC;
 				interruptFlag <= 0;
 				currentState <= Sfetch;
 				
@@ -386,7 +389,7 @@ begin
                 (others=>'0');
 
     ce <= '1' when rst = '0' and (currentState = Sld or currentState = Ssbrt or currentState = Spush or currentState = Sst or currentState = Sfetch or currentState = Srts or currentState = Spop or
-								  currentState = Spopf or currentState = Spushf or currentState = Srti) else '0';
+								  currentState = Spopf or currentState = Spushf) else '0';
 								  
     rw <= '1' when (currentState = Sfetch or currentState = Spop or currentState = Srts or currentState = Sld or currentState = Spopf) else '0';
     
