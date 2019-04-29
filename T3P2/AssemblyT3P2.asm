@@ -152,16 +152,15 @@ main:
     jmpd #main ; Loop infinito
 
 ;_________________________________________CONTADOR_1_SEG______________________________________________________
-contador_1_seg: ; Executa a função de display 100 vezes, totalizando 100s
+contador_1_seg: ; Executa a função de display 84 vezes, totalizando 100ms
     push r8  ; Iterador do loop
     ldh r8, #00h
-    ldl r8, #65h ; Carrega valor de iteração do loop [r8 <= 101]
+    ldl r8, #55h ; Carrega valor de iteração do loop [r8 <= 85]
 loop_1_s: ; Realiza 100 iterações de 10 ms cada, totalizando 1 seg
     subi r8, #01h   ; Decrementa a variavel de comparação  [r8 --]
     jmpzd #return_contador_1_seg ; Caso for igual a zero finaliza a função
     jsrd #display_loop ; Chama a subrotina que escreve no display
     jmpd #loop_1_s     ; A cada iteração 10 ms se passaram
-
 return_contador_1_seg: ; Retorna a função para aonde foi chamada
     pop r8        ; Restaura o contexto
     rts           ; Retorna da subrotina
