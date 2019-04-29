@@ -361,7 +361,7 @@ begin
               regA(14 downto 0) & '1' when  currentInstruction = SL1 else
               '0' & regA(15 downto 1) when currentInstruction = SR0 else
               '1' & regA(15 downto 1) when currentInstruction = SR1 else
-              not(regA) when currentInstruction = NOT_A else
+              not(regA) when currentInstruction = NOT_A else   
               regSP + 1 when currentInstruction = RTS or currentInstruction = POP else
               regPC + regA when currentInstruction = JUMP_R else
               regPC + (JMPD_DESLOC(9)&JMPD_DESLOC(9)&JMPD_DESLOC(9)&JMPD_DESLOC(9)&JMPD_DESLOC(9)&JMPD_DESLOC(9)&JMPD_DESLOC) when currentInstruction = JUMP_D else
