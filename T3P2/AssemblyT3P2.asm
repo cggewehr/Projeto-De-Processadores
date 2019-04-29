@@ -41,8 +41,8 @@ init: ; Inicialização dos registradores
     ; Seta PortEnable
     addi r4, #01h  ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &PortEnable ]
     ldh r5, #DEh   ; r5 <= "11011110_11111111"
-	ldl r5, #FFh   ; Habilita acesso a todos os bits da porta de I/O, menos bit 13 e bit 8
-	st r5, r1, r4  ; PortEnable <= "11011110_11111111"
+    ldl r5, #FFh   ; Habilita acesso a todos os bits da porta de I/O, menos bit 13 e bit 8
+    st r5, r1, r4  ; PortEnable <= "11011110_11111111"
 
     ; Seta irqtEnable
     addi r4, #01h  ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &irqtEnable ]
