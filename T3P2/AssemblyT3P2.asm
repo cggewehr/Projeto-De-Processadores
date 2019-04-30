@@ -98,11 +98,11 @@ InterruptionServiceRoutine:
     jmpd #PushButtonDec_Handler  ; Senão o botão pressionado foi o de decremento
 	
 PushButtonDec: ; Interrupção de botão de decremento
-	jsr #PushButtonDec_Handler ; Chama subrotina de tratamento de interrupção
+	jsrd #PushButtonDec_Handler ; Chama subrotina de tratamento de interrupção
 	jmpd #return_InterruptionServiceRoutine  ; Acaba a interrupção
 
 PushButtonInc: ; Interrupção de botão de incremneto
-	jsr #PushButtonInc_Handler ; Chama subrotina de tratamento de interrupção
+	jsrd #PushButtonInc_Handler ; Chama subrotina de tratamento de interrupção
 	jmpd #return_InterruptionServiceRoutine  ; Acaba a interrupção
 	
 ;_________________________________________DECREMENTO__________________________________________________________
