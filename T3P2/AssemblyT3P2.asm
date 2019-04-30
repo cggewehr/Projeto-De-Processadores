@@ -164,7 +164,7 @@ return_InterruptionServiceRoutine:
 main:
     jsrd #contador_1_seg ; Conta 1 seg utilizando tempo de display
     jsrd #incrementa_Continuo ; Incrementa o contador continuo
-    halt ; debug
+    ;halt ; debug
     jmpd #main ; Loop infinito
 
 ;_________________________________________CONTADOR_1_SEG______________________________________________________
@@ -251,7 +251,8 @@ display_loop: ; loop principal que executa a leitura e a atualização dos displ
 ; Não recebe parametros não retorna nada
 display_show_delay: ; Gasta tempo do processador para que o display fique ativo | 2.5 ms
     push r6 ; Contador para delay
-    ldh r6, #30h
+    ;ldh r6, #30h
+	ldl r6, #00h
     ldl r6, #D4h  ; r6 <= 12 500
 display_show_delay_loop: ; ~10 ciclos cada intereção
     subi r6, #01h  ; Decrementa o contador para o delay [r6 --]
