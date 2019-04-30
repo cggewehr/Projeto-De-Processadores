@@ -141,7 +141,7 @@ begin
 	
 	-- FLAGS DE INTERRUPÇÃO
 	IRQ_GEN: for i in 0 to DATA_WIDTH-1 generate
-		irq(i) <= '1' when REG_PORT_CONFIG(i) = '1' and REG_PORT_ENABLE(i) = '1' and REG_PORT_DATA(i) = '1' and REG_PORT_IRQ = '1' else '0';
+		irq(i) <= '1' when REG_PORT_CONFIG(i) = '1' and REG_PORT_ENABLE(i) = '1' and REG_PORT_DATA(i) = '1' and REG_PORT_IRQ(i) = '1' else '0';
 	end generate;
     
     -- MULTIPLEXADOR PARA TRISTATE_DATA

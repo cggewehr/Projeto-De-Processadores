@@ -43,7 +43,7 @@ end R8;
 
 architecture Behavioural of R8 is
 
-	type State is (Sfetch, Sreg, Shalt, Sula, Swbk, Sld, Sst, Sjmp, Ssbrt, Spush, Srts, Spop, Sldsp, Spushf, Spopf, Srti);
+	type State is (Sfetch, Sreg, Shalt, Sula, Swbk, Sld, Sst, Sjmp, Ssbrt, Spush, Srts, Spop, Sldsp, Spushf, Spopf, Srti, Sitr);
 	type R8Instruction is (
         ADD, SUB, AAND, OOR, XXOR, ADDI, SUBI, NOT_A, 
         SL0, SL1, SR0, SR1,
@@ -201,7 +201,7 @@ begin
 		elsif rising_edge(clk) then
 			if currentState = Sfetch then  -- Requests next instruction from memory
 			
-				if irq = '1' and interruptFlag = '0'; then
+				if irq = '1' and interruptFlag = '0' then
                     -- Defines next state
 					currentState <= Sitr;
 			    else
@@ -395,7 +395,7 @@ begin
     data_out <= regBank(to_integer(unsigned(REGTARGET))) when currentState = Sst and rst = '0' else
                 regB when currentState = Spush and rst = '0' else
                 regPC when currentState = Ssbrt and rst = '0' else
-				0x"000"&regFLAGS(3 downto 0) when currentState = Spushf and rst = '0' else
+				( "000000000000" & regFLAGS ) when currentState = Spushf and rst = '0' else
 				regPC when currentState = Sitr and rst = '0' else
                 (others=>'0');
 
