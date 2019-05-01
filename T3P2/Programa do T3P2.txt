@@ -14,7 +14,6 @@
     xor r5, r5, r5
     
     -- r5 <= codigo do display 0
-    -- Shifta r5 até posição do display (SL0)
 
     -- tempDezena, tempUnidade = HEXtoDEC(CONTADOR_AUTOMATICO)
     -- temp = DECtoSSD(tempUnidade)
@@ -33,7 +32,6 @@
     xor r5, r5, r5
     
     -- r5 <= codigo do display 1
-    -- Shifta r5 até posição do display (SL0)
 
     -- tempDezena, tempUnidade = HEXtoDEC(CONTADOR_AUTOMATICO)
     -- temp = DECtoSSD(tempDezena)
@@ -52,7 +50,6 @@
     xor r5, r5, r5
     
     -- r5 <= codigo do display 2
-    -- Shifta r5 até posição do display (SL0)
 
     -- tempDezena, tempUnidade = HEXtoDEC(CONTADOR_MANUAL)
     -- temp = DECtoSSD(tempUnidade)
@@ -72,7 +69,6 @@
     xor r5, r5, r5
     
     -- r5 <= codigo do display 3
-    -- Shifta r5 até posição do display (SL0)
 
     -- tempDezena, tempUnidade = HEXtoDEC(CONTADOR_MANUAL)
     -- temp = DECtoSSD(tempDezena)
@@ -117,18 +113,5 @@ main:
     
     
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
     
