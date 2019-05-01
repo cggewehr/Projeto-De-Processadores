@@ -1,0 +1,134 @@
+
+
+
+-- SETUP -- (Seta Registradores da porta, Configura Porta)
+
+
+
+
+-- MAIN --
+
+// Controla Display 0 (Unidade do contador automatico) 
+    
+    push r5
+    xor r5, r5, r5
+    
+    -- r5 <= codigo do display 0
+    -- Shifta r5 até posição do display (SL0)
+
+    -- tempDezena, tempUnidade = HEXtoDEC(CONTADOR_AUTOMATICO)
+    -- temp = DECtoSSD(tempUnidade)
+    
+    add r5, r5, temp
+    -- Grava na porta
+    
+    pop r5
+    rts
+       
+// Delay de 2MS
+    
+// Controla Display 1 (Dezena do contador automatico) 
+    
+    push r5
+    xor r5, r5, r5
+    
+    -- r5 <= codigo do display 1
+    -- Shifta r5 até posição do display (SL0)
+
+    -- tempDezena, tempUnidade = HEXtoDEC(CONTADOR_AUTOMATICO)
+    -- temp = DECtoSSD(tempDezena)
+    
+    add r5, r5, temp
+    -- Grava na porta
+    
+    pop r5
+    rts
+    
+// Delay de 2MS  
+    
+// Controla Display 2 (Unidade do contador manual) 
+
+    push r5
+    xor r5, r5, r5
+    
+    -- r5 <= codigo do display 2
+    -- Shifta r5 até posição do display (SL0)
+
+    -- tempDezena, tempUnidade = HEXtoDEC(CONTADOR_MANUAL)
+    -- temp = DECtoSSD(tempUnidade)
+    
+    add r5, r5, temp
+    -- Grava na porta
+    
+    pop r5
+    rts
+    
+    
+// Delay de 2MS  
+    
+// Controla Display 3 (Dezena do contador manual) 
+
+    push r5
+    xor r5, r5, r5
+    
+    -- r5 <= codigo do display 3
+    -- Shifta r5 até posição do display (SL0)
+
+    -- tempDezena, tempUnidade = HEXtoDEC(CONTADOR_MANUAL)
+    -- temp = DECtoSSD(tempDezena)
+    
+    add r5, r5, temp
+    -- Grava na porta
+    
+    pop r5
+    rts
+    
+// Delay de 2MS
+    
+// Incrementa contador de 8ms
+    
+    -- Se contador de 8 == 125, incrementa contador automatico de 1 seg
+    
+    jmpd #main
+    
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+;   main ficaria assim:
+
+main:
+
+    jsrd #Display0
+    jsrd #Delay2ms
+    
+    jsrd #Display1
+    jsrd #Delay2ms
+    
+    jsrd #Display2
+    jsrd #Delay2ms
+    
+    jsrd #Display3
+    jsrd #Delay2ms
+    
+    jsrd #IncrementaContinuo
+    
+    jmpd #main
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
