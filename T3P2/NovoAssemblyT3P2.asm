@@ -44,19 +44,19 @@
 
 ;-----------------------------------------------------BOOT---------------------------------------------------
 
-jmpd #setup                               ;Sempre primeira instrução do programa
-jmpd #InterruptionServiceRoutine          ;Sempre segunda instrução do programa
+    jmpd #setup                               ;Sempre primeira instrução do programa
+    jmpd #InterruptionServiceRoutine          ;Sempre segunda instrução do programa
 
 ;---------------------------------------------CONFIGURAÇÃO INICIAL-------------------------------------------
 
 setup:
 
-    ; Inicializa ponteiro da pilha para 0x"7FFF" (ultimo endereço no espaço de endereçamento da memoria
+;   Inicializa ponteiro da pilha para 0x"7FFF" (ultimo endereço no espaço de endereçamento da memoria
     ldh r0, #7Fh
     ldl r0, #FFh
     ldsp r0
     
-    ; Inicialização dos registradores
+;   Inicialização dos registradores
     xor r0, r0, r0
     xor r1, r1, r1
     xor r2, r2, r2
@@ -81,19 +81,19 @@ setup:
 
     add r4, r0, r1 ; Carrega indexador de arrayPorta  [ arrayPorta[r4] -> &PortData ]
     
-    ; Seta PortConfig
+;   Seta PortConfig
     addi r4, #01h  ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &PortConfig ]
     ldh r5, #C0h   ; r5 <= "11000000_00000000"
     ldl r5, #00h   ; bit 15 e 14 = entrada, outros = saida
     st r5, r1, r4  ; PortConfig <= "11000000_00000000"
 
-    ; Seta irqtEnable
+;   Seta irqtEnable
     ldl r4, #03h   ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &irqtEnable ]
     ldh r5, #C0h   ; r5 <= "11000000_00000000"
     ldl r5, #00h   ; Habilita a interrupção nos bits 15 e 14
     st r5, r1, r4  ; irqtEnable <= "11000000_00000000"
     
-    ; Seta PortEnable
+;   Seta PortEnable
     ldl r4, #02h   ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &PortEnable ]
     ldh r5, #DEh   ; r5 <= "11011110_11111111"
     ldl r5, #FFh   ; Habilita acesso a todos os bits da porta de I/O, menos bit 13 e bit 8
@@ -133,22 +133,26 @@ main:
 ; Display1:                DONE   
 ; Display2:                DONE   
 ; Display3:                DONE   
-; Delay2ms:           TODO
-; HEXtoDEC:           TODO
+; Delay2ms:                DONE
+; HEXtoDEC:                DONE
 ; DECtoSSD:                DONE
 ; IncrementaContinuo:      DONE
     
 Display0:
+ 
+;REGISTRADORES:
+; - r1: &arrayDisp
+; - r2: &contadorContinuo, contadorContinuo
+; - r5: Dado a ser escrito
+; - r6: Endereço do registrador de dados da porta
 
     push r1
     push r2
-    push r3
     push r5
     push r6
     
     xor r1, r1, r1
     xor r2, r2, r2
-    xor r3, r3, r3
     xor r5, r5, r5
     xor r6, r6, r6
     
@@ -156,7 +160,7 @@ Display0:
     ldh r1, #arrayDisp
     ldl r1, #arrayDisp
     
-;   r5 <= Codigo do Display 0 ( arrayPorta[0] )
+;   r5 <= Codigo do Display 0 ( arrayDisp[0] )
     ld r5, r0, r1
     
 ;   r2 <= &contadorContinuo  (ponteiro)
@@ -188,23 +192,26 @@ Display0:
     
     pop r6
     pop r5
-    pop r3
     pop r2
     pop r1
     
     rts
     
 Display1:
+
+;REGISTRADORES:
+; - r1: &arrayDisp
+; - r2: &contadorContinuo, contadorContinuo
+; - r5: Dado a ser escrito
+; - r6: Endereço do registrador de dados da porta
     
     push r1
     push r2
-    push r3
     push r5
     push r6
     
     xor r1, r1, r1
     xor r2, r2, r2
-    xor r3, r3, r3
     xor r5, r5, r5
     xor r6, r6, r6
     
@@ -212,7 +219,7 @@ Display1:
     ldh r1, #arrayDisp
     ldl r1, #arrayDisp
     
-;   r5 <= Codigo do Display 1 ( arrayPorta[1] )
+;   r5 <= Codigo do Display 1 ( arrayDisp[1] )
     addi r1, #01h
     ld r5, r0, r1
     
@@ -245,23 +252,26 @@ Display1:
     
     pop r6
     pop r5
-    pop r3
     pop r2
     pop r1
     
     rts
     
 Display2:
+
+;REGISTRADORES:
+; - r1: &arrayDisp
+; - r2: &contadorManual, contadorManual
+; - r5: Dado a ser escrito
+; - r6: Endereço do registrador de dados da porta
     
     push r1
     push r2
-    push r3
     push r5
     push r6
     
     xor r1, r1, r1
     xor r2, r2, r2
-    xor r3, r3, r3
     xor r5, r5, r5
     xor r6, r6, r6
     
@@ -269,7 +279,7 @@ Display2:
     ldh r1, #arrayDisp
     ldl r1, #arrayDisp
     
-;   r5 <= Codigo do Display 2 ( arrayPorta[2] )
+;   r5 <= Codigo do Display 2 ( arrayDisp[2] )
     addi r1, #02h
     ld r5, r0, r1
     
@@ -302,23 +312,26 @@ Display2:
     
     pop r6
     pop r5
-    pop r3
     pop r2
     pop r1
     
     rts
     
 Display3:
+
+;REGISTRADORES:
+; - r1: &arrayDisp
+; - r2: &contadorManual, contadorManual
+; - r5: Dado a ser escrito
+; - r6: Endereço do registrador de dados da porta
     
     push r1
     push r2
-    push r3
     push r5
     push r6
     
     xor r1, r1, r1
     xor r2, r2, r2
-    xor r3, r3, r3
     xor r5, r5, r5
     xor r6, r6, r6
     
@@ -326,7 +339,7 @@ Display3:
     ldh r1, #arrayDisp
     ldl r1, #arrayDisp
     
-;   r5 <= Codigo do Display 3 ( arrayPorta[3] )
+;   r5 <= Codigo do Display 3 ( arrayDisp[3] )
     addi r1, #03h
     ld r5, r0, r1
     
@@ -359,17 +372,87 @@ Display3:
     
     pop r6
     pop r5
-    pop r3
     pop r2
     pop r1
     
     rts
     
-Delay2ms: ; TODO
-    
-HEXtoDEC: ; TODO
+Delay2ms: 
 
-DECtoSSD: ;Recebe numero a ser convertido em r2, retorna numero convertido em r14
+; Tclk = 20 ns, deve iterar por 50 000 000 = 50x10^6 ciclos
+
+; 50 * 1x10^6 = 10^3 * (20 * 2500) = (40 * 25) * (20 * 2500)
+
+    push r4
+    push r5
+    
+    xor r4, r4, r4
+    xor r5, r5, r5
+    
+;   iterador do loop de dentro <= 2500
+    ldh r4, #09h
+    ldl r4, #C4h
+    
+;   iterador do loop de fora <= 25
+    ldl r5, #25
+    
+  loopFora:          ; Repete 25 vezes, 40 ciclos
+    nop              ;  3 ciclos
+    nop              ;  6 ciclos
+    nop              ;  9 ciclos
+    nop              ; 12 ciclos
+    nop              ; 15 ciclos
+    nop              ; 18 ciclos
+    nop              ; 21 ciclos
+    ldh r4, #09h     ; 25 ciclos
+    ldl r4, #C4h     ; 29 ciclos
+    subi r5, #1      ; 33 ciclos 
+    jmpzd #loopExit  ; 36 ciclos
+    jmpd #loopDentro ; 40 ciclos
+  
+  loopDentro:        ; Repete 2500 vezes, 20 ciclos
+    subi r4, #1      ;  4 ciclos
+    nop              ;  7 ciclos
+    nop              ; 10 ciclos
+    nop              ; 13 ciclos
+    jmpzd #loopFora  ; 16 ciclos
+    jmpd #loopDentro ; 20 ciclos
+
+  loopExit:
+    
+    pop r5
+    pop r4
+    
+    rts
+    
+HEXtoDEC: ; Divide em parte decimal e parte unitaria o numero passado como parametro (em r2)
+
+; REGISTRADORES: 
+; - r2: Numero a ser convertido
+; - r14: Dezena do numero convertido  (arrayDEC[Numero a ser convertido])
+; - r15: Unidade do numero convertido  (arrayDEC[Numero a ser convertido])
+
+;   r14 <= &arrayDEC    
+    ldh r14, #arrayDEC
+    ldl r14, #arrayDEC
+    
+;   r14 <= arrayDEC[r2]
+    ld r14, r14, r2
+    
+;   r15 <= &arrayUNI
+    ldh r15, #arrayUNI
+    ldl r15, #arrayUNI
+    
+;   r15 <= arrayUNI[r2]
+    ld r15, r15, r2
+    
+    rts                    
+
+DECtoSSD: ; Recebe numero a ser convertido em r2, retorna numero convertido em r14
+
+;REGISTRADORES:
+; - r1: &arraySSD
+; - r14: Codigo do display de 7 segmentos do numero passado como argumento
 
     push r1
     
@@ -388,6 +471,11 @@ DECtoSSD: ;Recebe numero a ser convertido em r2, retorna numero convertido em r1
     rts
 
 IncrementaContinuo:
+
+;REGISTRADORES:
+; - r1: &contador8ms, &contadorContinuo
+; - r4: contador8ms, contadorContinuo         (Registrador que afetua escrita em memoria)
+; - r5: Constante 126 (Mascara de comparação)
     
     push r1
     push r4
@@ -642,11 +730,33 @@ arraySSD:   db #03h, #9fh, #25h, #0dh, #99h, #49h, #21h, #1fh, #01h, #09h
 ; Array que escolhe qual disp sera utilizado  Mais da direita -> Mais da esquerda
 arrayDisp:  db #0200h, #0400h, #0800h, #1000h
 
+; Array que retorna dezena do numero indexador
+arrayDEC:   db #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, ; 0-9
+               #0001h, #0001h, #0001h, #0001h, #0001h, #0001h, #0001h, #0001h, #0001h, #0001h, ; 10-19
+               #0002h, #0002h, #0002h, #0002h, #0002h, #0002h, #0002h, #0002h, #0002h, #0002h, ; 20-29
+               #0003h, #0003h, #0003h, #0003h, #0003h, #0003h, #0003h, #0003h, #0003h, #0003h, ; 30-39
+               #0004h, #0004h, #0004h, #0004h, #0004h, #0004h, #0004h, #0004h, #0004h, #0004h, ; 40-49
+               #0005h, #0005h, #0005h, #0005h, #0005h, #0005h, #0005h, #0005h, #0005h, #0005h, ; 50-59
+               #0006h, #0006h, #0006h, #0006h, #0006h, #0006h, #0006h, #0006h, #0006h, #0006h, ; 60-69
+               #0007h, #0007h, #0007h, #0007h, #0007h, #0007h, #0007h, #0007h, #0007h, #0007h, ; 70-79
+               #0008h, #0008h, #0008h, #0008h, #0008h, #0008h, #0008h, #0008h, #0008h, #0008h, ; 80-89
+               #0009h, #0009h, #0009h, #0009h, #0009h, #0009h, #0009h, #0009h, #0009h, #0009h  ; 90-99
+
+; Array que retorna unidade do numero indexador               
+arrayUNI:   db #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, ; 0-9
+               #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, ; 10-19
+               #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, ; 20-29
+               #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, ; 30-39
+               #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, ; 40-49
+               #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, ; 50-59
+               #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, ; 60-69
+               #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, ; 70-79
+               #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, ; 80-89
+               #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h  ; 90-99
+
 ; Contadores
 contadorContinuo : db #0000h
 contadorManual   : db #0000h
 contador8ms      : db #0000h
 
 .enddata
-
-
