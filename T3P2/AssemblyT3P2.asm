@@ -18,47 +18,25 @@
 ; --------------------- r13 = Valor do display 3 | dezenaManual
 ; --------------------- r14 = Retorno de subrotina
 ; --------------------- r15 = Retorno de subrotina
-;============================================================================================================;
+;==========================================================Q==================================================;
 .org #0000h
 
 .code
-init: ; Inicialização dos registradores
-    ldh r0, #7Fh  ;Carrega o novo valor do SP
-    ldl r0, #FFh  ;Carrega o novo valor do SP
-    ldsp r0       ;Carrega o novo valor do SP
-
-    ldh r1, #arrayPorta ; Carrega &Porta
-    ldl r1, #arrayPorta ; Carrega &Porta
-
-    add r4, r0, r1 ; Carrega indexador de arrayPorta  [ arrayPorta[r4] -> &PortData ]
-
-    ; Seta PortConfig
-    addi r4, #01h  ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &PortConfig ]
-    ldh r5, #C0h   ; r5 <= "11000000_00000000"
-    ldl r5, #00h   ; bit 15 e 14 = entrada, outros = saida
-    st r5, r1, r4  ; PortConfig <= "11000000_00000000"
-
-    ; Seta PortEnable
-    addi r4, #01h  ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &PortEnable ]
-    ldh r5, #DEh   ; r5 <= "11011110_11111111"
-    ldl r5, #FFh   ; Habilita acesso a todos os bits da porta de I/O, menos bit 13 e bit 8
-    st r5, r1, r4  ; PortEnable <= "11011110_11111111"
-
-    ; Seta irqtEnable
-    addi r4, #01h  ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &irqtEnable ]
-    ldh r5, #C0h   ; r5 <= "11000000_00000000"
-    ldl r5, #00h   ; Habilita a interrupção nos bits 15 e 14
-    st r5, r1, r4  ; irqtEnable <= "11000000_00000000"
-
-    xor r10, r10, r10 ; Zera o registrador r10 [ valorDisplay[0] = 0 ]
-    xor r11, r11, r11 ; Zera o registrador r11 [ valorDisplay[1] = 0 ]
-    xor r12, r12, r12 ; Zera o registrador r12 [ valorDisplay[2] = 0 ]
-    xor r13, r13, r13 ; Zera o registrador r13 [ valorDisplay[3] = 0 ]
-
-    xor r0, r0, r0 ; Zera o registrador r0
-
-    jmpd #main
+    jmpd #init ; Pula pra Inicialização dos registradores
 ;=============================================================================================================
+
+
+
+
+
+
+
+
+
+
+
+
+
 ;_________________________________________INTERRUPT_REQUEST___________________________________________________
 InterruptionServiceRoutine:
 ;InterruptionServiceRoutine:
@@ -96,7 +74,7 @@ InterruptionServiceRoutine:
     and r3, r1, r2 ; Verificação do botão pressionado, [ Incremento-> r3 <= '0', Decremento-> r3 <= '1' ]
     jmpzd #PushButtonInc_Handler ; Se for zero significa que o botao pressionado foi de incremento
     jmpd #PushButtonDec_Handler  ; Senão o botão pressionado foi o de decremento
-	
+
 PushButtonDec: ; Interrupção de botão de decremento
 	jsrd #PushButtonDec_Handler ; Chama subrotina de tratamento de interrupção
 	jmpd #return_InterruptionServiceRoutine  ; Acaba a interrupção
@@ -104,7 +82,7 @@ PushButtonDec: ; Interrupção de botão de decremento
 PushButtonInc: ; Interrupção de botão de incremneto
 	jsrd #PushButtonInc_Handler ; Chama subrotina de tratamento de interrupção
 	jmpd #return_InterruptionServiceRoutine  ; Acaba a interrupção
-	
+
 ;_________________________________________DECREMENTO__________________________________________________________
 ; Subrotina de tratamento de interrupção, decrementa o contador manual
 ; Não recebe parametros e não retorna nada
@@ -158,8 +136,52 @@ return_InterruptionServiceRoutine:
     pop r0  ; Recuperação de contexto
     rti     ; Retorna para execução normal
 ;_____________________________________________________________________________________________________________
-;=============================================================================================================
 
+
+
+
+
+
+;=============================================================================================================
+init: ; Inicialização dos registradores
+    ldh r0, #7Fh  ;Carrega o novo valor do SP
+    ldl r0, #FFh  ;Carrega o novo valor do SP
+    ldsp r0       ;Carrega o novo valor do SP
+
+    xor r0, r0, r0 ; Zera o registrador r0
+
+    ldh r1, #arrayPorta ; Carrega &Porta
+    ldl r1, #arrayPorta ; Carrega &Porta
+    ld r1, r1, r0       ; Carrega &Porta
+
+    xor r4, r4, r4 ; Carrega indexador de arrayPorta  [ arrayPorta[r4] -> &PortData ]
+
+    ; Seta PortConfig
+    addi r4, #01h  ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &PortConfig ]
+    ldh r5, #C0h   ; r5 <= "11000000_00000000"
+    ldl r5, #00h   ; bit 15 e 14 = entrada, outros = saida
+    st r5, r1, r4  ; PortConfig <= "11000000_00000000"
+
+    ; Seta PortEnable
+    addi r4, #01h  ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &PortEnable ]
+    ldh r5, #DEh   ; r5 <= "11011110_11111111"
+    ldl r5, #FFh   ; Habilita acesso a todos os bits da porta de I/O, menos bit 13 e bit 8
+    st r5, r1, r4  ; PortEnable <= "11011110_11111111"
+
+    ; Seta irqtEnable
+    addi r4, #01h  ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &irqtEnable ]
+    ldh r5, #C0h   ; r5 <= "11000000_00000000"
+    ldl r5, #00h   ; Habilita a interrupção nos bits 15 e 14
+    st r5, r1, r4  ; irqtEnable <= "11000000_00000000"
+
+    xor r10, r10, r10 ; Zera o registrador r10 [ valorDisplay[0] = 0 ]
+    xor r11, r11, r11 ; Zera o registrador r11 [ valorDisplay[1] = 0 ]
+    xor r12, r12, r12 ; Zera o registrador r12 [ valorDisplay[2] = 0 ]
+    xor r13, r13, r13 ; Zera o registrador r13 [ valorDisplay[3] = 0 ]
+
+
+
+    jmpd #main
 ;_________________________________________MAIN [LOOP INFINITO]________________________________________________
 main:
     jsrd #contador_1_seg ; Conta 1 seg utilizando tempo de display
@@ -251,8 +273,8 @@ display_loop: ; loop principal que executa a leitura e a atualização dos displ
 ; Não recebe parametros não retorna nada
 display_show_delay: ; Gasta tempo do processador para que o display fique ativo | 2.5 ms
     push r6 ; Contador para delay
-    ;ldh r6, #30h
-	ldl r6, #00h
+    ldh r6, #30h
+	;ldl r6, #00h
     ldl r6, #D4h  ; r6 <= 12 500
 display_show_delay_loop: ; ~10 ciclos cada intereção
     subi r6, #01h  ; Decrementa o contador para o delay [r6 --]
