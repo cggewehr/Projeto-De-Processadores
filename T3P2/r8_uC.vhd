@@ -66,7 +66,7 @@ begin
     -- Processador
     R8Processor: entity work.R8 
 		generic map(
-			ISR_ADDR => "0000000000000000" -- Endereço de ISR
+			ISR_ADDR => "0000000000000001" -- Endereço de ISR
 		)
         port map(
             clk      => clk_2,
@@ -103,8 +103,11 @@ begin
     -- Sinais da Porta
     en_PORTA <= '1' when (ce = '1' and ENABLE_PERIFERICO = '1') else '0';   
 	
-	irq_R8 <= and irq_PORT; -- So funciona com VHDL-2008
-        
+	irq_R8 <= (irq_PORT(15) or irq_PORT(14) or irq_PORT(13) or irq_PORT(12) or 
+				  irq_PORT(11) or irq_PORT(10) or irq_PORT(9)  or irq_PORT(8)  or 
+				  irq_PORT(7)  or irq_PORT(6)  or irq_PORT(5)  or irq_PORT(4)  or 
+				  irq_PORT(3)  or irq_PORT(2)  or irq_PORT(1)  or irq_PORT(0) );
+				  
     -- Porta de entrada e saida    
     PORTA: entity work.BidirectionalPort
         generic map(
