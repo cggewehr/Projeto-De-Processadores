@@ -142,6 +142,11 @@ begin
 				          RTS    when OPCODE = x"B"  and  REGSOURCE2 = x"8" else
 				          POP    when OPCODE = x"B"  and  REGSOURCE2 = x"9" else
                           PUSH   when OPCODE = x"B"  and  REGSOURCE2 = x"A" else
+						  
+						  -- NOVAS INSTRUÇOES
+						  PUSHF  when OPCODE = x"B"  and  REGSOURCE2 = x"B" else
+						  POPF   when OPCODE = x"B"  and  REGSOURCE2 = x"C" else
+						  RTI    when OPCODE = x"B"  and  REGSOURCE2 = x"D" else
                           
                           JUMP_R when OPCODE = x"C" and (
                                       ( REGSOURCE2 = x"0") or             -- JMPR
@@ -169,12 +174,6 @@ begin
                             
                           JSRR  when OPCODE = x"C"  and  REGSOURCE2 = x"A" else
                           JSR   when OPCODE = x"C"  and  REGSOURCE2 = x"B" else
-                          
-                           -- NOVAS INSTRUÇOES
-						  PUSHF  when OPCODE = x"C"  and  REGSOURCE2 = x"C" else
-						  POPF   when OPCODE = x"C"  and  REGSOURCE2 = x"D" else
-						  RTI    when OPCODE = x"C"  and  REGSOURCE2 = x"E" else
-                          
                           JSRD  when OPCODE = x"F" else
                           NOP; -- Jumps condicionais com flag = 0
                           
@@ -205,9 +204,6 @@ begin
 				if irq = '1' and interruptFlag = '0' then
                     -- Defines next state
 					currentState <= Sitr;
-                    
-                    -- InterruptFlag says on until RTI instruction is executed
-                    interruptFlag <= '1';
 			    else
 			    	-- Defines next state
 					currentState <= Sreg;
@@ -220,6 +216,9 @@ begin
             elsif currentState = Sitr then
                 -- Saves PC on stack
                 regSP <= regSP - 1;
+
+                -- InterruptFlag says on until RTI instruction is executed
+                interruptFlag <= '1';
 
                 -- Next instruction is the first instruction on the ISR subroutine
                 regPC <= ISR_ADDR;
