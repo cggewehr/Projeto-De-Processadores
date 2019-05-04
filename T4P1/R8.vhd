@@ -43,15 +43,17 @@ end R8;
 
 architecture Behavioural of R8 is
 
-	type State is (Sfetch, Sreg, Shalt, Sula, Swbk, Sld, Sst, Sjmp, Ssbrt, Spush, Srts, Spop, Sldsp, Spushf, Spopf, Srti, Sitr);
+	type State is (Sfetch, Sreg, Shalt, Sula, Swbk, Sld, Sst, Sjmp, Ssbrt, Spush, Srts, Spop, Sldsp, Spushf, Spopf, Srti, Sitr, Smul, Sdiv, Smfh, Smfl);
 	type R8Instruction is (
         ADD, SUB, AAND, OOR, XXOR, ADDI, SUBI, NOT_A, 
         SL0, SL1, SR0, SR1,
         LDL, LDH, LD, ST, LDSP, POP, PUSH,
         JUMP_R, JUMP_A, JUMP_D, JSRR, JSR, JSRD,
         NOP, HALT,  RTS, 
-		-- Novas instruções
-		PUSHF, POPF, RTI
+		-- Novas instruções T3P2
+		PUSHF, POPF, RTI,
+		-- Novas instruções T4P1
+		MUL, DIV, MFH, MFL
     ); 
 
 	type RegisterArray is array (natural range <>) of std_logic_vector(15 downto 0); 
@@ -69,14 +71,14 @@ architecture Behavioural of R8 is
     signal regA                        : std_logic_vector(15 downto 0); -- Primeiro reg lido do REGBANK
 	signal regB                        : std_logic_vector(15 downto 0); -- Segundo reg lido do REGBANK
 	signal regALU                      : std_logic_vector(15 downto 0); -- Registrador ALU
-	--signal regITR_PC                   : std_logic_vector(15 downto 0): -- Registrador para recuperação do PC atual quando há interrupção
-	
+	signal regHIGH                     : std_logic_vector(15 downto 0); -- Registrador HIGH para MUL/DIV
+	signal regLOW                      : std_logic_vector(15 downto 0); -- Registrador LOW para MUL/DIV
+
 	-- Sinais combinacionais pra ALU
 	signal ALUaux                      : std_logic_vector(16 downto 0); -- Sinal com 17 bits pra lidar com overflow 
-    signal outALU                      : std_logic_vector(15 downto 0); -- 
-    --signal aluout16                    : std_logic_vector(16 downto 0); -- Sinal com 16 bits pra lidar com overflow
-    --signal ALU_op1                     : std_logic_vector(15 downto 0); -- Primeiro operador da ula
-    --signal ALU_op2                     : std_logic_vector(15 downto 0); -- Segundo de saida da ULA
+    signal outALU                      : std_logic_vector(15 downto 0);  
+    signal multiplicador               : std_logic_vector(31 downto 0);
+    signal divisor                     : std_logic_vector(31 downto 0);
     
 	-- Registrador de Flags
     signal regFLAGS : std_logic_vector(3 downto 0);
@@ -143,10 +145,11 @@ begin
 				          POP    when OPCODE = x"B"  and  REGSOURCE2 = x"9" else
                           PUSH   when OPCODE = x"B"  and  REGSOURCE2 = x"A" else
 						  
-						  -- NOVAS INSTRUÇOES
-						  PUSHF  when OPCODE = x"B"  and  REGSOURCE2 = x"B" else
-						  POPF   when OPCODE = x"B"  and  REGSOURCE2 = x"C" else
-						  RTI    when OPCODE = x"B"  and  REGSOURCE2 = x"D" else
+						  -- Novas Instruções T4P1
+						  MUL     when OPCODE = x"B" and REGSOURCE2 = x"B" else -- MULTIPLICAÇÃO
+                          DIV     when OPCODE = x"B" and REGSOURCE2 = x"C" else -- DIVISÃO
+                          MFH     when OPCODE = x"B" and REGSOURCE2 = x"D" else -- MOVE FROM HIGH
+                          MFL     when OPCODE = x"B" and REGSOURCE2 = x"E" else -- MOVE FROM LOW
                           
                           JUMP_R when OPCODE = x"C" and (
                                       ( REGSOURCE2 = x"0") or             -- JMPR
@@ -171,10 +174,17 @@ begin
                                       ( JMPD_AUX = "11" and v = '1')          -- JMPVD
                                     )
                           )else 
-                            
+
                           JSRR  when OPCODE = x"C"  and  REGSOURCE2 = x"A" else
                           JSR   when OPCODE = x"C"  and  REGSOURCE2 = x"B" else
                           JSRD  when OPCODE = x"F" else
+
+                          -- Novas Instruções T3P2
+                          PUSHF when OPCODE = x"C" and REGSOURCE2 = x"C" else -- PUSH FLAGS
+			              POPF  when OPCODE = x"C" and REGSOURCE2 = x"D" else -- POP FLAGS
+			              RTI   when OPCODE = x"C" and REGSOURCE2 = x"E" else -- RETORNO DE INTERRUPCAO
+                            
+                          
                           NOP; -- Jumps condicionais com flag = 0
                           
 	process(clk, rst)
@@ -188,6 +198,8 @@ begin
             regA     <= (others=>'0');
             regB     <= (others=>'0');
 			regFLAGS <= (others=>'0');
+			regHIGH  <= (others=>'0');
+			regLOW   <= (others=>'0');
             --data_out <= (others=>'0');
             
             for i in 0 to 15 loop
@@ -230,7 +242,7 @@ begin
 				-- Reads register bank
 				regA <= regBank(to_integer(unsigned(REGSOURCE1)));
                 
-				if (instType = tipo2 or currentInstruction = PUSH)then
+				if (instType = tipo2 or currentInstruction = PUSH or currentInstruction = MUL or currentInstruction = DIV) then
                     regB <= regBank(to_integer(unsigned(REGTARGET)));
 				else
 					regB <= regBank(to_integer(unsigned(REGSOURCE2)));
@@ -282,14 +294,24 @@ begin
 				elsif currentInstruction = LDSP then
 					currentState <= Sldsp;
 					
-				-- NOVAS INSTRUÇOES
+				-- NOVAS INSTRUÇOES T3P2
 				elsif currentInstruction = PUSHF then
 					currentState <= Spushf;
 				elsif currentInstruction = POPF then
 					currentState <= Spopf;
 				elsif currentInstruction = RTI then
 					currentState <= Srti;
-					
+
+				-- NOVAS INSTRUÇÔES T4P1
+				elsif currentInstruction = MUL then
+					currentState <= Smul;
+				elsif currentInstruction = DIV then
+					currentState <= Sdiv;
+				elsif currentInstruction = MFH then
+					currentState <= Smfh;
+				elsif currentinstruction = MFL then
+					currentState <= Smfl;
+
 				else
 					currentState <= Sfetch;
 				end if;
@@ -332,7 +354,7 @@ begin
                 regSP <= regALU;
 				currentState <= Sfetch;
 				
-			-- NOVAS INSTRUÇOES
+			-- NOVAS INSTRUÇOES T3P2
 			elsif currentState = Spushf then
 				regSP <= regSP - 1;
 				currentState <= Sfetch;
@@ -345,15 +367,38 @@ begin
 			elsif currentState = Srti then
 				regSP <= regSP + 1;
 				regPC <= data_in;
-				--regPC <= regITR_PC;
 				interruptFlag <= '0';
 				currentState <= Sfetch;
-				
+
+			-- NOVAS INSTRUÇÔES T4P1
+			elsif currentState = Smul then
+				regHIGH <= multiplicador(31 downto 16);
+				regLOW <= multiplicador(15 downto 0);
+				currentState <= Sfetch;
+
+			elsif currentState = Sdiv then
+				regHIGH <= divisor(31 downto 16);
+				regLOW <= divisor(15 downto 0);
+				currentState <= Sfetch;
+
+			elsif currentState = Smfh then
+				regBank(to_integer(unsigned(REGTARGET))) <= regHIGH;
+				currentState <= Sfetch;
+
+			elsif currentState = Smfl then
+				regBank(to_integer(unsigned(REGTARGET))) <= regLOW;
+				currentState <= Sfetch;
+
             else
                 currentState <= Shalt;
 			end if;			
 		end if;
 	end process;
+
+	multiplicador <= regA * regB;
+
+	divisor(31 downto 16) <= regA mod regB;
+	divisor(15 downto 0) <= regA / regB;
 	
 	ALUaux <= ('0' & regA) + ('0' & regB) when currentInstruction = ADD else
 			  ('0' & regA) + ('0' & ((not(regB))+1)) when currentInstruction = SUB else

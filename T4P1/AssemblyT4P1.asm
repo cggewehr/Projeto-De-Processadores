@@ -104,282 +104,10 @@ setup:
 
 main:
 
-;   Exibe no Display 0 (mais à direita) a unidade do contador de 1 seg durante 2 ms
-    jsrd #Display0
-    jsrd #Delay2ms
-    
-;   Exibe no Display 1 a dezena do contador de 1 seg durante 2 ms
-    jsrd #Display1
-    jsrd #Delay2ms
-    
-;   Exibe no Display 2 a unidade do contador manual durante 2 ms
-    jsrd #Display2
-    jsrd #Delay2ms
-    
-;   Exibe no Display 3 (mais à esquerda) a dezena do contador manual durante 2 ms
-    jsrd #Display3
-    jsrd #Delay2ms
-    
-;   Se passado 1 seg, incrementa contador de 1 seg
-    jsrd #IncrementaContinuo
-    
-;   Volta ao inicio
-    jmpd #main
+
     
 ;------------------------------------------------SUBROTINAS--------------------------------------------------
-    
-; Display0:                DONE   
-; Display1:                DONE   
-; Display2:                DONE   
-; Display3:                DONE   
-; Delay2ms:                DONE
-; HEXtoDEC:                DONE
-; DECtoSSD:                DONE
-; IncrementaContinuo:      DONE
-    
-Display0:
- 
-;REGISTRADORES:
-; - r1: &arrayDisp
-; - r2: &contadorContinuo, contadorContinuo
-; - r5: Dado a ser escrito
-; - r6: Endereço do registrador de dados da porta
 
-    push r1
-    push r2
-    push r5
-    push r6
-    
-    xor r1, r1, r1
-    xor r2, r2, r2
-    xor r5, r5, r5
-    xor r6, r6, r6
-    
-;   r1 <= &arrayDisp
-    ldh r1, #arrayDisp
-    ldl r1, #arrayDisp
-    
-;   r5 <= Codigo do Display 0 ( arrayDisp[0] )
-    ld r5, r0, r1
-    
-;   r2 <= &contadorContinuo  (ponteiro)
-    ldh r2, #contadorContinuo
-    ldl r2, #contadorContinuo
-    
-;   r2 <= contadorContinuo   (valor)
-    ld r2, r0, r2
-    
-;   passa contadorContinuo como argumento para HEXtoDEC
-    jsrd #HEXtoDEC
-    
-;   r2 <= valor da unidade da conversão decimal de contadorContinuo(r14 contem dezena, r15 contem unidade)
-    xor r2, r2, r2
-    add r2, r0, r15
-    
-;   Converte decimal para codigo do display de 7 segmentos (r14 contem numero convertido)
-    jsrd #DECtoSSD
-    
-;   r5 <= Dado pronto para ser escrito na porta
-    add r5, r5, r14
-    
-;   r6 <= &arrayPorta
-    ldh r6, #arrayPorta
-    ldh r6, #arrayPorta
-    ld r6, r0, r6
-    
-;   PortData <= Display0 + Numero
-    st r5, r0, r6
-    
-    pop r6
-    pop r5
-    pop r2
-    pop r1
-    
-    rts
-    
-Display1:
-
-;REGISTRADORES:
-; - r1: &arrayDisp
-; - r2: &contadorContinuo, contadorContinuo
-; - r5: Dado a ser escrito
-; - r6: Endereço do registrador de dados da porta
-    
-    push r1
-    push r2
-    push r5
-    push r6
-    
-    xor r1, r1, r1
-    xor r2, r2, r2
-    xor r5, r5, r5
-    xor r6, r6, r6
-    
-;   r1 <= &arrayDisp
-    ldh r1, #arrayDisp
-    ldl r1, #arrayDisp
-    
-;   r5 <= Codigo do Display 1 ( arrayDisp[1] )
-    addi r1, #01h
-    ld r5, r0, r1
-    
-;   r2 <= &contadorContinuo  (ponteiro)
-    ldh r2, #contadorContinuo
-    ldl r2, #contadorContinuo
-    
-;   r2 <= contadorContinuo   (valor)
-    ld r2, r0, r2
-    
-;   passa contadorContinuo como argumento para HEXtoDEC
-    jsrd #HEXtoDEC
-    
-;   r2 <= valor da dezena da conversão decimal de contadorContinuo (r14 contem dezena, r15 contem unidade)
-    xor r2, r2, r2
-    add r2, r0, r14
-    
-;   Converte decimal para codigo do display de 7 segmentos (r14 contem numero convertido)
-    jsrd #DECtoSSD
-    
-;   r5 <= Dado pronto para ser escrito na porta
-    add r5, r5, r14
-    
-;   r6 <= &arrayPorta
-    ldh r6, #arrayPorta
-    ldh r6, #arrayPorta
-    ld r6, r0, r6
-    
-;   PortData (arrayDisp[0]) <= Display0 + Numero
-    st r5, r0, r6
-    
-    pop r6
-    pop r5
-    pop r2
-    pop r1
-    
-    rts
-    
-Display2:
-
-;REGISTRADORES:
-; - r1: &arrayDisp
-; - r2: &contadorManual, contadorManual
-; - r5: Dado a ser escrito
-; - r6: Endereço do registrador de dados da porta
-    
-    push r1
-    push r2
-    push r5
-    push r6
-    
-    xor r1, r1, r1
-    xor r2, r2, r2
-    xor r5, r5, r5
-    xor r6, r6, r6
-    
-;   r1 <= &arrayDisp
-    ldh r1, #arrayDisp
-    ldl r1, #arrayDisp
-    
-;   r5 <= Codigo do Display 2 ( arrayDisp[2] )
-    addi r1, #02h
-    ld r5, r0, r1
-    
-;   r2 <= &contadorManual  (ponteiro)
-    ldh r2, #contadorManual
-    ldl r2, #contadorManual
-    
-;   r2 <= contadorManual   (valor)
-    ld r2, r0, r2
-    
-;   passa contadorManual como argumento para HEXtoDEC
-    jsrd #HEXtoDEC
-    
-;   r2 <= valor da unidade da conversão decimal de contadorContinuo (r14 contem dezena, r15 contem unidade)
-    xor r2, r2, r2
-    add r2, r0, r15
-    
-;   Converte decimal para codigo do display de 7 segmentos (r14 contem numero convertido)
-    jsrd #DECtoSSD
-    
-;   r5 <= Dado pronto para ser escrito na porta
-    add r5, r5, r14
-    
-;   r6 <= &arrayPorta
-    ldh r6, #arrayPorta
-    ldh r6, #arrayPorta
-    ld r6, r0, r6
-    
-;   PortData (arrayDisp[0]) <= Display0 + Numero
-    st r5, r0, r6
-    
-    pop r6
-    pop r5
-    pop r2
-    pop r1
-    
-    rts
-    
-Display3:
-
-;REGISTRADORES:
-; - r1: &arrayDisp
-; - r2: &contadorManual, contadorManual
-; - r5: Dado a ser escrito
-; - r6: Endereço do registrador de dados da porta
-    
-    push r1
-    push r2
-    push r5
-    push r6
-    
-    xor r1, r1, r1
-    xor r2, r2, r2
-    xor r5, r5, r5
-    xor r6, r6, r6
-    
-;   r1 <= &arrayDisp
-    ldh r1, #arrayDisp
-    ldl r1, #arrayDisp
-    
-;   r5 <= Codigo do Display 3 ( arrayDisp[3] )
-    addi r1, #03h
-    ld r5, r0, r1
-    
-;   r2 <= &contadorManual  (ponteiro)
-    ldh r2, #contadorManual
-    ldl r2, #contadorManual
-    
-;   r2 <= contadorManual   (valor)
-    ld r2, r0, r2
-    
-;   passa contadorManual como argumento para HEXtoDEC
-    jsrd #HEXtoDEC
-    
-;   r2 <= valor da dezena da conversão decimal de contadorContinuo (r14 contem dezena, r15 contem unidade)
-    xor r2, r2, r2
-    add r2, r0, r14
-    
-;   Converte decimal para codigo do display de 7 segmentos (r14 contem numero convertido)
-    jsrd #DECtoSSD
-    
-;   r5 <= Dado pronto para ser escrito na porta
-    add r5, r5, r14
-    
-;   r6 <= &arrayPorta
-    ldh r6, #arrayPorta
-    ldh r6, #arrayPorta
-    ld r6, r0, r6
-    
-;   PortData (arrayDisp[0]) <= Display0 + Numero
-    st r5, r0, r6
-    
-    pop r6
-    pop r5
-    pop r2
-    pop r1
-    
-    rts
-    
 Delay2ms: 
 
     push r4
@@ -403,139 +131,8 @@ Delay2ms:
     pop r4
     
     rts
-    
-HEXtoDEC: ; Divide em parte decimal e parte unitaria o numero passado como parametro (em r2)
 
-; REGISTRADORES: 
-; - r2: Numero a ser convertido
-; - r14: Dezena do numero convertido  (arrayDEC[Numero a ser convertido])
-; - r15: Unidade do numero convertido  (arrayDEC[Numero a ser convertido])
 
-;   r14 <= &arrayDEC    
-    ldh r14, #arrayDEC
-    ldl r14, #arrayDEC
-    
-;   r14 <= arrayDEC[r2]
-    ld r14, r14, r2
-    
-;   r15 <= &arrayUNI
-    ldh r15, #arrayUNI
-    ldl r15, #arrayUNI
-    
-;   r15 <= arrayUNI[r2]
-    ld r15, r15, r2
-    
-    rts                    
-
-DECtoSSD: ; Recebe numero a ser convertido em r2, retorna numero convertido em r14
-
-;REGISTRADORES:
-; - r1: &arraySSD
-; - r14: Codigo do display de 7 segmentos do numero passado como argumento
-
-    push r1
-    
-    xor r1, r1, r1
-    xor r14, r14, r14
-    
-;   r1 <= &arraySSD
-    ldh r1, #arraySSD
-    ldl r1, #arraySSD
-    
-;   r14 <= arraySSD[r2]
-    ld r14, r1, r2
-
-    pop r1
-    
-    rts
-
-IncrementaContinuo:
-
-;REGISTRADORES:
-; - r1: &contador8ms, &contadorContinuo
-; - r4: contador8ms, contadorContinuo         (Registrador que afetua escrita em memoria)
-; - r5: Constante 126 (Mascara de comparação)
-    
-    push r1
-    push r4
-    push r5
-    
-    xor r1, r1, r1
-    xor r4, r4, r4
-    xor r5, r5, r5
-    
-;   r1 <= &contador8ms
-    ldh r1, #contador8ms
-    ldl r1, #contador8ms
-    
-;   r4 <= contador8ms
-    ld r4, r0, r1
-
-;   contador8ms++
-    addi r4, #01h
-    
-;   Salva novo valor de contador8ms
-    st r4, r0, r1
-
-;   Se novo valor = 126, zera contador de 8 ms e incrementa contador de 1 seg
-    
-;   r5 <= 126
-    ldl r5, #126
-
-;   Se contador8ms == 126
-    and r4, r4, r5
-    sub r4, r4, r5
-    jmpzd #incrementa1seg
-
-  returnIncrementa1seg:    
- 
-    pop r5
-    pop r4
-    pop r1
-    
-    rts
-    
-  incrementa1seg: 
-    
-;   r1 <= &contadorContinuo
-    ldh r1, #contadorContinuo
-    ldl r1, #contadorContinuo
-    
-;   r4 <= contadorContinuo
-    ld r4, r0, r1
- 
-;   
-    ldh r5, #0
-    ldh r5, #99
-    sub r5, r4, r5
-    jmpzd #incrementa1segld0
-    
-;   contadorContinuo++
-    addi r4, #01h
-    
-  returnincrementa1segld0:
-  
-;   Salva novo valor de contadorContinuo
-    st r4, r0, r1
-    
-;   r1 <= &contador8ms
-    ldh r1, #contador8ms
-    ldl r1, #contador8ms 
-
-;   r4 <= contador8ms
-    ld r4, r0, r1
-
-;   contador8ms = 0
-    xor r4, r4, r4
-    
-;   Salva novo valor de contador8ms
-    st r4, r0, r1
-    
-    jmpd #returnIncrementa1seg
-    
-  incrementa1segld0:
-    xor r4, r4, r4
-    jmpd #returnincrementa1segld0
     
 ;-----------------------------------------TRATAMENTO DE INTERRUPÇÃO------------------------------------------
 
@@ -545,10 +142,6 @@ InterruptionServiceRoutine:
 ;    2. Verificação da origem da interrupção (polling) e salto para o driver correspondente (jsr)
 ;    3. Recuperação de contexto
 ;    4. Retorno (rti)
-
-;///////////////////////////     INPUT    ///////////////////////////
-;net "port_io[14]" loc = A8;    // BUTTON UP
-;net "port_io[15]" loc = C9;    // BUTTON DOWN
 
 ; Interrupção pode ser gerada por bit 15 e bit 14
 
@@ -576,7 +169,7 @@ InterruptionServiceRoutine:
     xor r5, r5, r5
     xor r6, r6, r6
     
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; LEITURA DO DADO DA PORTA, NAO MUDAR;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;   
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; LEITURA DO DADO DA PORTA, NAO MUDAR ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;   
    
 ;   r1 <= &PortData
     ldh r1, #arrayPorta
@@ -586,7 +179,7 @@ InterruptionServiceRoutine:
 ;   r5 <= PortData
     ld r5, r0, r1
     
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; LEITURA DO DADO DA PORTA, NAO MUDAR;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;     
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; LEITURA DO DADO DA PORTA, NAO MUDAR ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;     
 
 ;   Carrega mascara de comparação para BTN DOWN (bit 15)
     ldh r1, #80h
@@ -614,22 +207,6 @@ InterruptionServiceRoutine:
     
     
     
-    
-;   Atualiza Displays
-
-    jsrd #display0
-    jsrd #delay2ms
-    
-    jsrd #display1
-    jsrd #delay2ms
-
-    jsrd #display2
-    jsrd #delay2ms
-    
-    jsrd #display3
-    jsrd #delay2ms
-    
-    jsrd #incrementaContinuo
 
 ;   Recupera contexto
     popf    
