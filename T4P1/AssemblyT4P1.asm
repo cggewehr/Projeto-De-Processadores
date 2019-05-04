@@ -9,19 +9,13 @@
 ; PROCESSADOR R8 COM SUPORTE A INTERRUPÇÕES DE I/O
 
 ; APLICAÇÃO ATUAL:
-; CONTADORES MANUAL E AUTOMATICO ( 1 SEG ) EXIBIDOS EM 4 DISPLAYS DE 7 SEGMENTOS 
+; COMUNICAÇAO COM PERIFERICO "CRYPTOMESSAGE"
 
 ; CHANGELOG:
-; v0.1 (Gewehr) 01/05/2019 : Versão Inicial 
-;   - Define campos de código para: Boot (1ª instrução aponta para main, 2ª para ISR)
-;                                   Setup (configuração da porta de I/O e etc)
-;                                   Programa Principal
-;                                   Subrotinas
-;                                   Tratamento de Interrupção
-;                                   Drivers
+; 
 
 ; TODO: (as of v0.1)
-;   - Implementar subrotinas HEXtoDEC e Delay2ms
+;  
 
 ; OBSERVAÇÕES:
 ;   - O parametro ISR_ADDR deve ser setado para 0x"0001" na instanciação do processador
