@@ -9,16 +9,16 @@
 ; PROCESSADOR R8 COM SUPORTE A INTERRUPÇÕES DE I/O
 
 ; APLICAÇÃO ATUAL:
-; COMUNICAÇAO COM PERIFERICO "CRYPTOMESSAGE"
+; COMUNICAÇAO COM PERIFERICO "CRYPTOMESSAGE" VIA INTERRUPÇÃO
 
 ; CHANGELOG:
-; 
+; v0.1 (Gewehr) - 06/05/2019 : Implementada logica de tratamento de interrupção 
 
 ; TODO: (as of v0.1)
-;  
+;  - Implementar subrotinas :  CalculaMagicNumberR8, CalculaCryptoKey, GeraACK, LeCaracter
 
 ; OBSERVAÇÕES:
-;   - O parametro ISR_ADDR deve ser setado para 0x"0001" na instanciação do processador
+;   - O parametro ISR_ADDR deve ser setado para 0x"0001" na instanciação do processador na entity top level
 ;   - Respeitar o padrão de registradores estabelecidos
 ;   - Novas adições ao código deve ser o mais modular possível
 ;   - Subrotinas importantes devem começar com letra maiuscula
@@ -31,6 +31,27 @@
 ; --------------------- r3  = PARAMETRO para subrotina
 ; --------------------- r14 = Retorno de subrotina
 ; --------------------- r15 = Retorno de subrotina
+
+;////////////////////////////////////////////////////////////////////////////////////////////////////////////
+; port_io[15] = data[7] (in/out)
+; port_io[14] = data[6] (in/out)
+; port_io[13] = data[5] (in/out)
+; port_io[12] = data[4] (in/out)
+; port_io[11] = data[3] (in/out)
+; port_io[10] = data[2] (in/out)
+; port_io[9]  = data[1] (in/out)
+; port_io[8]  = data[0] (in/out)
+
+; port_io[7] = Direção dos bits de dados (dataDD) (15 a 8) , 1 = entrada, 0 = saida (out)
+
+; port_io[6] = Não utilizado (x)
+; port_io[5] = Não utilizado (x)
+; port_io[4] = Não utilizado (x)
+
+; port_io[3] = data_av     (in)
+; port_io[2] = keyExchange (in)
+; port_io[1] = ack         (out)
+; port_io[0] = eom         (in)
 
 .org #0000h
 
@@ -75,67 +96,154 @@ setup:
     ld r1, r0, r1
     
 ;   Seta PortConfig
-    addi r4, #01h  ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &PortConfig ]
-    ldh r5, #C0h   ; r5 <= "11000000_00000000"
-    ldl r5, #00h   ; bit 15 e 14 = entrada, outros = saida
-    st r5, r1, r4  ; PortConfig <= "11000000_00000000"
+    ldl r4, #01h   ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &PortConfig ]
+    ldh r5, #FFh   ; r5 <= "11111111_00001101"
+    ldl r5, #0Dh   ; bits 15 a 8 inicialmente são entrada, espera keyExchange
+    st r5, r1, r4  ; PortConfig <= "11111111_0xxx1101"
 
 ;   Seta irqtEnable
     ldl r4, #03h   ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &irqtEnable ]
-    ldh r5, #C0h   ; r5 <= "11000000_00000000"
-    ldl r5, #00h   ; Habilita a interrupção nos bits 15 e 14
-    st r5, r1, r4  ; irqtEnable <= "11000000_00000000"
+    ldh r5, #00h   ; r5 <= "00000000_00000100"
+    ldl r5, #04h   ; Habilita a interrupção no bit 2 (keyExchange)
+    st r5, r1, r4  ; irqtEnable <= "00000000_0xxx0100"
+    
+;   Seta dataDD como '1', ack como '0'
+    ldl r4, #0     ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &PortData ]
+    ldh r5, #00h   ; r5 <= "00000000_00000100"
+    ldl r5, #80h   ; dataDD = '1', ack = '0'
+    st r5, r1, r4  ; portData <= "xxxxxxxx_1xxxxx0x"   
     
 ;   Seta PortEnable
     ldl r4, #02h   ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &PortEnable ]
-    ldh r5, #DEh   ; r5 <= "11011110_11111111"
-    ldl r5, #FFh   ; Habilita acesso a todos os bits da porta de I/O, menos bit 13 e bit 8
-    st r5, r1, r4  ; PortEnable <= "11011110_11111111"
+    ldh r5, #FFh   ; r5 <= "11111111_10001111"
+    ldl r5, #8Fh   ; Habilita acesso a todos os bits da porta de I/O, menos bits 6 a 4
+    st r5, r1, r4  ; PortEnable <= "11111111_10001111"
 
     jmpd #main
     
-;----------------------------------------------LOOP PRINCIPAL------------------------------------------------
+;------------------------------------------- PROGRAMA PRINCIPAL ---------------------------------------------
 
 main:
 
+;; BUBBLE SORT DO CARARA
+
+;* Bubble sort
+
+;*      Sort array in ascending order
+;*
+;*      Used registers:
+;*          r1: points the first element of array
+;*          r2: temporary register
+;*          r3: points the end of array (right after the last element)
+;*          r4: indicates elements swaping (r4 = 1)
+;*          r5: array index
+;*          r6: array index
+;*          r7: element array[r5]
+;*          r8: element array[r8]
+;*
+;*********************************************************************
+
+BubbleSort:
+   
+    ; Initialization code
+    xor r0, r0, r0          ; r0 <- 0
+    
+    ldh r1, #arraySort      ;
+    ldl r1, #arraySort      ; r1 <- &array
+    
+    ldh r2, #arraySortSize  ;
+    ldl r2, #arraySortSize  ; r2 <- &size
+    ld r2, r2, r0           ; r2 <- size
+    
+    add r3, r2, r1          ; r3 points the end of array (right after the last element)
+    
+    ldl r4, #0              ;
+    ldh r4, #1              ; r4 <- 1
+   
+; Main code
+scan:
+    addi r4, #0             ; Verifies if there was element swapping
+    jmpzd #end              ; If r4 = 0 then no element swapping
+    
+    xor r4, r4, r4          ; r4 <- 0 before each pass
+    
+    add r5, r1, r0          ; r5 points the first array element
+    
+    add r6, r1, r0          ;
+    addi r6, #1             ; r6 points the second array element
+    
+; Read two consecutive elements and compares them    
+loop:
+    ld r7, r5, r0           ; r7 <- array[r5]
+    ld r8, r6, r0           ; r8 <- array[r6]
+    sub r2, r8, r7          ; If r8 > r7, negative flag is set
+    jmpnd #swap             ; (if array[r5] > array[r6] jump)
+    
+; Increments the index registers and verifies if the pass is concluded
+continue:
+    addi r5, #1             ; r5++
+    addi r6, #1             ; r6++
+    
+    sub r2, r6, r3          ; Verifies if the end of array was reached (r6 = r3)
+    jmpzd #scan             ; If r6 = r3 jump
+    jmpd #loop              ; else, the next two elements are compared
+    
+; Swaps two array elements (memory)
+swap:
+    st r7, r6, r0           ; array[r6] <- r7
+    st r8, r5, r0           ; array[r5] <- r8
+    ldl r4, #1              ; Set the element swapping (r4 <- 1)
+    jmpd #continue
+    
+end:    
+    halt                    ; Suspend the execution
 
     
 ;------------------------------------------------SUBROTINAS--------------------------------------------------
 
-Delay2ms: 
+; CalculaMagicNumberR8:  TODO
+; CalculaCryptoKey:      TODO
+; GeraACK:               TODO
+; LeCaracter:            TODO
 
-    push r4
-    
-    xor r4, r4, r4
-    
-;   iterador do loop <= 5000
-    ldh r4, #13h
-    ldl r4, #88h
-  
-  loopDentro:        ; Repete 2500 vezes, 20 ciclos
-    subi r4, #1      ;  4 ciclos
-    nop              ;  7 ciclos
-    nop              ; 10 ciclos
-    nop              ; 13 ciclos
-    jmpzd #loopExit  ; 16 ciclos
-    jmpd #loop       ; 20 ciclos
+CalculaMagicNumberR8: ; Retorna em r14 o magicNumber do processador
 
-  loopExit:
-    
-    pop r4
-    
-    rts
+CalculaCryptoKey:     ; Retorna em r14 chave criptografica, recebe em r2 magic number do periferico
 
+GeraACK:              ; Seta porta como saída, envia ack, Seta porta novamente como entrada 
 
-    
+LeCaracter:           ; Le caracter atual da porta, salva nos respectivos arrays, incrementa ponteiro p/ arrays
+       
 ;-----------------------------------------TRATAMENTO DE INTERRUPÇÃO------------------------------------------
 
 InterruptionServiceRoutine: 
 
-;    1. Salvamento de contexto
-;    2. Verificação da origem da interrupção (polling) e salto para o driver correspondente (jsr)
-;    3. Recuperação de contexto
-;    4. Retorno (rti)
+; 1. Salvamento de contexto
+; 2. Verificação da origem da interrupção (polling) e salto para o driver correspondente (jsr)
+; 3. Recuperação de contexto
+; 4. Retorno (rti)
+
+;////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+; port_io[15] = data[7] (in/out)
+; port_io[14] = data[6] (in/out)
+; port_io[13] = data[5] (in/out)
+; port_io[12] = data[4] (in/out)
+; port_io[11] = data[3] (in/out)
+; port_io[10] = data[2] (in/out)
+; port_io[9]  = data[1] (in/out)
+; port_io[8]  = data[0] (in/out)
+
+; port_io[7] = Direção dos bits de dados (dataDD) (15 a 8) , 1 = entrada, 0 = saida (out)
+
+; port_io[6] = Não utilizado (x)
+; port_io[5] = Não utilizado (x)
+; port_io[4] = Não utilizado (x)
+
+; port_io[3] = data_av (in)
+; port_io[2] = keyExchange (in)
+; port_io[1] = ack (out)
+; port_io[0] = eom (in)
 
 ; Interrupção pode ser gerada por bit 15 e bit 14
 
@@ -175,27 +283,17 @@ InterruptionServiceRoutine:
     
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; LEITURA DO DADO DA PORTA, NAO MUDAR ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;     
 
-;   Carrega mascara de comparação para BTN DOWN (bit 15)
-    ldh r1, #80h
-    ldl r1, #00h
+;   Carrega mascara de comparação para bit 2
+    ldh r1, #00h
+    ldl r1, #04h
     
-;   Se operação com mascara resultar em 0, botao foi pressionado
+;   Se operação com mascara resultar em 0, interrupção for gerada por bit 2
     and r6, r1, r5
     sub r6, r6, r1
-    jmpzd #callDriverBit15
+    jmpzd #callDriverBit2
 
-  returnCallDriverBit15:
+  returnCallDriverBit2:
   
-;   Carrega mascara de comparação para BTN DOWN (bit 14)
-    ldh r1, #40h
-    ldl r1, #00h    
-
-;   Se operação com mascara resultar em 0, botao foi pressionado
-    and r6, r1, r5
-    sub r6, r6, r1
-    jmpzd #callDriverBit14   
-    
-  returnCallDriverBit14:
     
 ;   ADICIONAR AQUI TRATAMENTO PARA NOVOS GERADORES DE INTERRUPÇÃO
     
@@ -227,19 +325,20 @@ InterruptionServiceRoutine:
 
 ;;;;;;;; CHAMADAS P/ DRIVERS
 
-callDriverBit15:
-    jsrd #driverButtonDown
-    jmpd #returnCallDriverBit15
-    
-callDriverBit14:
-    jsrd #driverButtonUp
-    jmpd #returnCallDriverBit14
+callDriverBit2:
+;   bit 2 = keyExchange
+    jsrd #driverKeyExchange
+    jmpd #returnCallDriverBit2
     
 ;;;;;;;;; DRIVERS
 
-driverButtonUp:
+driverKeyExchange:
 
-;   Driver incrementa contador manual
+; 1. CryptoMessage ativa keyExchange e coloca no barramento data_out seu magicNumber
+; 2. R8 lê o magicNumber e calcula o seu magicNumber
+; 3. R8 coloca o seu magicNumber no barramento data_in do CryptoMessage e gera um pulso em ack. Feito isso, ambos calculam a chave criptografica.
+; 4. CryptoMessage coloca um caracter da mensagem criptografado no barramento data_out e ativa data_av
+; 5. R8 lê o caracter e gera um pulso em ack
 
     push r1
     push r5
@@ -249,101 +348,207 @@ driverButtonUp:
     xor r1, r1, r1
     xor r5, r5, r5
     xor r6, r6, r6
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; ESTADO 2 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     
-;   r1 <= &contadorManual
-    ldh r1, #contadorManual
-    ldl r1, #contadorManual
+;   r1 <= &PortData
+    ldh r1, #arrayPorta
+    ldl r1, #arrayPorta
+    ld r1, r0, r1
     
-;   r5 <= contadorManual
-    ld r5, r1, r0
+;   r5 <= PortData
+    ld r5, r0, r1
     
-;   se contadorManual for == 99, volta para 0
-    ldl r6, #99
-    sub r6, r5, r6
-    jmpzd #driverbuttonupld0
+;   Shifta até LSB do dado estar no bit 0
+    sr0 r5, r5 ; LSB @ 7
+    sr0 r5, r5 ; LSB @ 6
+    sr0 r5, r5 ; LSB @ 5
+    sr0 r5, r5 ; LSB @ 4
+    sr0 r5, r5 ; LSB @ 3
+    sr0 r5, r5 ; LSB @ 2
+    sr0 r5, r5 ; LSB @ 1
+    sr0 r5, r5 ; LSB @ 0
     
-;   Incrementa valor de contadorManual
-    addi r5, #01h
+;   Carrega endereço da variavel magicNumberCryptoMessage
+    ldh r1, #magicNumberCryptoMessage
+    ldl r1, #magicNumberCryptoMessage
     
-  returndriverbuttonupld0:  
+;   Salva magicNumber do periférico na variavel magicNumberCryptoMessage
+    st r5, r0, r1
+
+;   Calcula magicNumber do processador (dado disponivel em r14)
+    jsrd #CalculaMagicNumberR8
     
-;   Atualiza valor de contadorManual
-    st r5, r1, r0
+;   Salva magicNumber do processador
+    ldh r1, #magicNumberR8
+    ldl r1, #magicNumberR8 ; r1 <= &magicNumberR8
+    add r5, r0, r14        ; r5 <= magicNumberR8
+    st r5, r0, r1          ; Salva magicNumberR8 em memoria
+    
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; ESTADO 3 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;.
+    
+;   Seta em portConfig a direção dos dados como saída
+    ldh r1, #arrayPorta
+    ldl r1, #arrayPorta
+    addi r1, #1
+    ld r1, r0, r1        ; r1 <= &portConfig
+    
+    ldh r5, #00h
+    ldl r5, #0Dh         ; dataDD <= '0' (out), outros bits de configuração são mantidos (r5 <= "0000_1101")
+    
+    st r5, r0, r1        ; portConfig <= ("00000000_0xxx1101")
+    
+;   Prepara dado para escrita
+    ldh r1, #magicNumberR8
+    ldl r1, #magicNumberR8
+    ld r5, r0, r1
+
+;   Shifta magicNumberR8 até sua posição    
+    sl0 r5, r5 ; MSB @ 8
+    sl0 r5, r5 ; MSB @ 9
+    sl0 r5, r5 ; MSB @ 10
+    sl0 r5, r5 ; MSB @ 11
+    sl0 r5, r5 ; MSB @ 12
+    sl0 r5, r5 ; MSB @ 13
+    sl0 r5, r5 ; MSB @ 14
+    sl0 r5, r5 ; MSB @ 15
+    
+;   Seta ack para '1', dataDD para '0' (saida)
+    addi r5, #02h ; (r5 <= "0xxx_xx0x")
+    
+;   Carrega endereço de PortData
+    ldh r1, #arrayPorta
+    ldl r1, #arrayPorta
+    ld r1, r0, r1        ; r1 <= &portData  
+ 
+;   Transmite p/ porta magicNumberR8, sinaliza dataDD = OUT, ack = '1' 
+    st r5, r0, r1
+    
+;   Seta argumento para calculo da chave criptografica (r2 <= magicNumberCryptoMessage)
+    ldh r1, #magicNumberCryptoMessage
+    ldl r1, #magicNumberCryptoMessage
+    ld r2, r0, r1
+  
+;   Calcula chave criptografica
+    jsrd #CalculaCryptoKey
+    
+;   Salva chave criptografica
+    ldh r1, #cryptoKey
+    ldl r1, #cryptoKey
+    st r14, r0, r1       ; Salva chave criptografica em memoria
+    
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; ESTADO 4 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+;   Configura bits de dados novamente como entrada
+;   r1 <= &arrayPorta
+    ldh r1, #arrayPorta ; Carrega &Porta
+    ldl r1, #arrayPorta ; Carrega &Porta
+    addi r1, #1
+    ld r1, r0, r1       ; r1 <= &portConfig
+    
+    ldh r5, #FFh
+    ldl r5, #8Dh        ; r5 <= "1111111110001101"
+    
+    st r5, r0, r1
+
+PollingLoop: ; Espera próximo sinal de data_av = '1'
+
+;   r1 <= &PortData
+    ldh r1, #arrayPorta
+    ldl r1, #arrayPorta
+    ld r1, r0, r1
+    
+;   r5 <= PortData
+    ld r5, r0, r1
+
+;   Carrega mascara de comparação para bit 3 (data_av)
+    ldh r6, #00h
+    ldl r6, #08h         ; r6 <= "00000000_00001000"
+
+;   Se operação com mascara resultar em 0, coloca caracter no array criptografado e descriptografado
+    and r6, r1, r5
+    sub r6, r6, r1
+    jmpzd #LeCaracter
+    
+;   Carrega mascara de comparação para bit 0 (eom)
+    ldh r6, #00h
+    ldl r6, #01h         ; r6 <= "00000000_00000001"   
+    
+;   Se operação com mascara resultar em 0, retorna da subrotina de driver p/ ISR, else, espera novo caracter
+    and r6, r1, r5
+    sub r6, r6, r1
+    jmpzd #returnPollingLoop
+ 
+;   Gera ACK 
+    jsrd #GeraACK
+    
+    jmpd #PollingLoop
+    
+  returnPollingLoop:
+    
+;   Gera ACK
+    jsrd #GeraACK
+    
+;   Incrementa contador de mensagens
+    ldh r1, #contadorMSGS
+    ldl r1, #contadorMSGS
+ 
+;   r5 <= contadorMSGS 
+    ld r5, r0, r1
+    
+;   Compara contador com 251, se for igual, volta para 0, se nao, incrementa
+    ldh r1, #00h
+    ldl r1, #251
+    
+    and r6, r1, r5
+    sub r6, r6, r1
+    jmpzd #contadorMSGSld0
+    
+    addi r5, #1
+    
+    st r5, r0, r1
+ 
+ returncontadorMSGSld0:
     
     pop r6
     pop r5
     pop r1
     
     rts
-
-  driverbuttonupld0:
+    
+  contadorMSGSld0:
     xor r5, r5, r5
-    jmpd #returndriverbuttonupld0
-
-driverButtonDown:
-
-;   Driver decrementa contador manual
-
-    push r1
-    push r5
-    
-    xor r0, r0, r0
-    xor r1, r1, r1
-    xor r5, r5, r5
-    
-;   r1 <= &contadorManual
-    ldh r1, #contadorManual
-    ldl r1, #contadorManual
-    
-;   r5 <= contadorManual
-    ld r5, r1, r0
-    add r5, r0, r5 ; Gera flag
-    jmpzd #driverbuttondownld99
-    
-;   Decrementa valor de contadorManual
-    subi r5, #01h
-    
-  returndriverbuttondownld99:  
-    
-;   Atualiza valor de contadorManual
-    st r5, r1, r0
-    
-    pop r5
-    pop r1
-    
-    rts
-
-  driverbuttondownld99:
-    ldl r5, #99
-    jmpzd #returndriverbuttondownld99
+    jmpd #returncontadorMSGSld0
 
 .endcode
 
 .data
 
-; Contadores
-contadorContinuo: db #0000h
-contadorManual:   db #0000h
-contador8ms:      db #0000h
-
-; array de regs da Porta Bidirecional
-
+; array de registradores da Porta Bidirecional
 ; arrayPorta [ PortData(0x8000) | PortConfig(0x8001) | PortEnable(0x8002) | irqtEnable(0x8003) ]
-arrayPorta: db #8000h, #8001h, #8002h, #8003h
+arrayPorta:               db #8000h, #8001h, #8002h, #8003h
 
-; array SSD representa o array de valores a serem postos nos displays de sete seg
-             ;|  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |  9  |
-arraySSD:   db #03h, #9fh, #25h, #0dh, #99h, #49h, #41h, #1fh, #01h, #09h
+; Variaveis p/ criptografia
+magicNumberR8:            db #0000h
+magicNumberCryptoMessage: db #0000h
+cryptoKey:                db #0000h
+contadorMSGS:             db #0000h ; Novo seed para geração de magic number
 
-; Array que escolhe qual disp sera utilizado  Mais da direita -> Mais da esquerda
-arrayDisp:  db #1E00h, #1A00h, #1600h, #0E00h
+; Array de 100 elementos para dados criptografados 
+arrayEncrypted: db #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h
 
-; Array que retorna dezena do numero indexador
-arrayDEC:   db #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0001h, #0001h, #0001h, #0001h, #0001h, #0001h, #0001h, #0001h, #0001h, #0001h, #0002h, #0002h, #0002h, #0002h, #0002h, #0002h, #0002h, #0002h, #0002h, #0002h, #0003h, #0003h, #0003h, #0003h, #0003h, #0003h, #0003h, #0003h, #0003h, #0003h, #0004h, #0004h, #0004h, #0004h, #0004h, #0004h, #0004h, #0004h, #0004h, #0004h, #0005h, #0005h, #0005h, #0005h, #0005h, #0005h, #0005h, #0005h, #0005h, #0005h, #0006h, #0006h, #0006h, #0006h, #0006h, #0006h, #0006h, #0006h, #0006h, #0006h, #0007h, #0007h, #0007h, #0007h, #0007h, #0007h, #0007h, #0007h, #0007h, #0007h, #0008h, #0008h, #0008h, #0008h, #0008h, #0008h, #0008h, #0008h, #0008h, #0008h, #0009h, #0009h, #0009h, #0009h, #0009h, #0009h, #0009h, #0009h, #0009h, #0009h  
+; Array de 100 elementos para dados decriptografados
+arrayDecrypted: db #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h
 
-; Array que retorna unidade do numero indexador               
-arrayUNI:   db #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h,#0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h  
+; Ponteiro para arrays de criptografia
+arrayCryptoPointer: db #0000h
 
+; Array para aplicação principal (Bubble Sort) de 50 elementos
+arraySort: db #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h
 
+; Tamanho do array p/ bubble sort (50 elementos)
+arraySortSize: db #50
 
 .enddata
