@@ -10,6 +10,9 @@ use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
 
 entity R8_uC is
+    generic (
+        ASSEMBLY_FILE : string
+    );
 	port (
 		clk: in std_logic;
 		rst: in std_logic;
@@ -92,7 +95,7 @@ begin
         generic map(
             DATA_WIDTH => 16,
             ADDR_WIDTH => 15,
-            IMAGE => "NovoAssemblyT3P2_BRAM.txt" -- Assembly code (must be in same directory)
+            IMAGE => ASSEMBLY_FILE -- Assembly code (must be in same directory)
         )
         port map(
             clk => clk_MEM,

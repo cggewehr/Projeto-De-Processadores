@@ -397,8 +397,8 @@ begin
 
 	multiplicador <= regA * regB;
 
-	divisor(31 downto 16) <= regA mod regB;
-	divisor(15 downto 0) <= regA / regB;
+	divisor(31 downto 16) <= STD_LOGIC_VECTOR(UNSIGNED(regA) mod UNSIGNED(regB));
+	divisor(15 downto 0) <= STD_LOGIC_VECTOR(UNSIGNED(regA) / UNSIGNED(regB));
 	
 	ALUaux <= ('0' & regA) + ('0' & regB) when currentInstruction = ADD else
 			  ('0' & regA) + ('0' & ((not(regB))+1)) when currentInstruction = SUB else
@@ -418,7 +418,7 @@ begin
               '0' & regA(15 downto 1) when currentInstruction = SR0 else
               '1' & regA(15 downto 1) when currentInstruction = SR1 else
               not(regA) when currentInstruction = NOT_A else
-              regSP + 1 when currentInstruction = RTS or currentInstruction = POP or currentInstruction = POPF ro currentInstruction = RTI else
+              regSP + 1 when currentInstruction = RTS or currentInstruction = POP or currentInstruction = POPF or currentInstruction = RTI else
               regPC + regA when currentInstruction = JUMP_R else
               regPC + (JMPD_DESLOC(9)&JMPD_DESLOC(9)&JMPD_DESLOC(9)&JMPD_DESLOC(9)&JMPD_DESLOC(9)&JMPD_DESLOC(9)&JMPD_DESLOC) when currentInstruction = JUMP_D else
               regPC + (JSRD_DESLOC(11) & JSRD_DESLOC(11) & JSRD_DESLOC(11) & JSRD_DESLOC(11) & JSRD_DESLOC) when currentInstruction = JSRD else
