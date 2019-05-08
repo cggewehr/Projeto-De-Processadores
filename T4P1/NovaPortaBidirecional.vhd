@@ -67,7 +67,6 @@ architecture Behavioral of BidirectionalPort  is
     signal TRISTATE_DATA_TEMP : std_logic_vector (DATA_WIDTH-1 downto 0); -- Sinal temporario para comunicação com processador
     signal TRISTATE_DATA_EN   : std_logic;
     
-    --signal TRISTATE_PORT_IO_TEMP : std_logic_vector (DATA_WIDTH-1 downto 0);
     signal TRISTATE_PORT_IO_EN   : std_logic_vector (DATA_WIDTH-1 downto 0);
     
 begin
@@ -81,7 +80,6 @@ begin
             
                 -- Saida / PROCESSADOR -> PORTA
 				if TRISTATE_PORT_IO_EN(i) = '1' and address = PORT_DATA_ADDR and ce = '1' and rw = '1' then
-					--REG_PORT_DATA(i) <= data_in(i);
 					REG_PORT_DATA(i) <= data(i);
 				end if;
                     
@@ -99,7 +97,6 @@ begin
             REG_PORT_CONFIG <= (others=>'1'); -- Default como entrada
         elsif rising_edge(clk) then
             if address = PORT_CONFIG_ADDR and ce = '1' and rw = '1' then
-                --REG_PORT_CONFIG <= data_in;
                 REG_PORT_CONFIG <= data;
             end if;
         end if;
@@ -111,7 +108,6 @@ begin
             REG_PORT_ENABLE <= (others=>'0');
         elsif rising_edge(clk) then
             if address = PORT_ENABLE_ADDR and ce = '1' and rw = '1' then
-                --REG_PORT_ENABLE <= data_in;
                 REG_PORT_ENABLE <= data;
             end if;
         end if;
@@ -147,7 +143,8 @@ begin
     -- MULTIPLEXADOR PARA TRISTATE_DATA
     TRISTATE_DATA_TEMP <= REG_PORT_DATA when address = PORT_DATA_ADDR else
                           REG_PORT_CONFIG when address = PORT_CONFIG_ADDR else
-                          REG_PORT_ENABLE;
+                          REG_PORT_ENABLE when address = PORT_ENABLE_ADDR else
+                          REG_PORT_IRQ;
     
     -- CONTROLE TRISTATE PARA PROCESSADOR
     TRISTATE_DATA_EN <= '1' when rw = '0' and ce = '1' else '0';
@@ -155,11 +152,6 @@ begin
     -- TRISTATE PARA PROCESSADOR
     data <= TRISTATE_DATA_TEMP when TRISTATE_DATA_EN = '1' else (others=>'Z'); -- read
 
-    -- BARRAMENTO DE SAIDA
---    data_out <= REG_PORT_DATA when address = PORT_DATA_ADDR else
---                REG_PORT_CONFIG when address = PORT_CONFIG_ADDR else
---                REG_PORT_ENABLE;
-    
     -- CONTROLE TRISTATE PARA CONEXAO DA PORTA
     TRISTATE_SAIDA_EN: for i in 0 to DATA_WIDTH-1 generate
         TRISTATE_PORT_IO_EN(i) <= '1' when REG_PORT_CONFIG(i) = '0' and REG_PORT_ENABLE(i) = '1' else '0';

@@ -373,7 +373,7 @@ begin
               '0' & regA(15 downto 1) when currentInstruction = SR0 else
               '1' & regA(15 downto 1) when currentInstruction = SR1 else
               not(regA) when currentInstruction = NOT_A else
-              regSP + 1 when currentInstruction = RTS or currentInstruction = POP or currentInstruction = POPF else
+              regSP + 1 when currentInstruction = RTS or currentInstruction = POP or currentInstruction = POPF or currentInstruction = RTI else
               regPC + regA when currentInstruction = JUMP_R else
               regPC + (JMPD_DESLOC(9)&JMPD_DESLOC(9)&JMPD_DESLOC(9)&JMPD_DESLOC(9)&JMPD_DESLOC(9)&JMPD_DESLOC(9)&JMPD_DESLOC) when currentInstruction = JUMP_D else
               regPC + (JSRD_DESLOC(11) & JSRD_DESLOC(11) & JSRD_DESLOC(11) & JSRD_DESLOC(11) & JSRD_DESLOC) when currentInstruction = JSRD else
@@ -389,7 +389,7 @@ begin
     -- SINAIS MEMORIA 
     address <= regPC when currentState = Sfetch else
                --outALU when currentState = Sld or currentState = Sst or currentState = Spop or currentState = Srts else
-               regALU when currentState = Sld or currentState = Sst or currentState = Spop or currentState = Srts or currentState = Spopf else
+               regALU when currentState = Sld or currentState = Sst or currentState = Spop or currentState = Srts or currentState = Spopf or Srti else
                regSP; -- Pra dar salto em uma subrotina e o PUSH (Spushf, Spush, Sitr)
                     
     data_out <= regBank(to_integer(unsigned(REGTARGET))) when currentState = Sst and rst = '0' else
