@@ -203,7 +203,7 @@ end:
 ;------------------------------------------------SUBROTINAS--------------------------------------------------
 
 ; CalculaMagicNumberR8:    DEBUG
-; CalculaCryptoKey:      TODO
+; CalculaCryptoKey:        DEBUG
 ; GeraACK:                    DONE
 ; LeCaracter:                 DONE
 
