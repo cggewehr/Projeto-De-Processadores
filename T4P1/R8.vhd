@@ -397,8 +397,8 @@ begin
 
 	multiplicador <= regA * regB;
 
-	divisor(31 downto 16) <= STD_LOGIC_VECTOR(UNSIGNED(regA) mod UNSIGNED(regB));
-	divisor(15 downto 0) <= STD_LOGIC_VECTOR(UNSIGNED(regA) / UNSIGNED(regB));
+	divisor(31 downto 16) <= STD_LOGIC_VECTOR(UNSIGNED(regB) mod UNSIGNED(regA));
+	divisor(15 downto 0) <= STD_LOGIC_VECTOR(SIGNED(regB) / SIGNED(regA)) when regA /= 0x"0000" else 0x"0000";
 	
 	ALUaux <= ('0' & regA) + ('0' & regB) when currentInstruction = ADD else
 			  ('0' & regA) + ('0' & ((not(regB))+1)) when currentInstruction = SUB else
