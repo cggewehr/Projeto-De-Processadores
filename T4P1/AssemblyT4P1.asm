@@ -202,13 +202,15 @@ end:
 
 ;------------------------------------------------SUBROTINAS--------------------------------------------------
 
-; CalculaMagicNumberR8:  TODO - DEBUG
+; CalculaMagicNumberR8:    DEBUG
 ; CalculaCryptoKey:      TODO
 ; GeraACK:                    DONE
 ; LeCaracter:                 DONE
 
 CalculaMagicNumberR8: ; Retorna em r14 o magicNumber do processador
-    ; MagicNumberR8 = a^x * mod q
+
+
+    ; MagicNumberR8 = a^x * mod q	
     ; MagicNumberR8 = 6^x * mod 251
 
     push r4 ; 251
@@ -236,19 +238,17 @@ CalculaMagicNumberR8: ; Retorna em r14 o magicNumber do processador
     ldl r7, #80h ; Mascara [ 0000 0000 1000 0000]
 
     ; Verifica se a seed é menor que 251
-    sub r6, r4, r5
+    sub r6, r4, r5   ; Realiza (251 - Seed )
     jmpnd #SeedInvalida
     jmpzd #SeedInvalida  ; caso a seed for Negativa ou Zero
 
-    addi r7, #00h ; R7 deve estar igual a 1
+    addi r14, #00h ; R14 deve estar igual a 1
     jmpd #calculoExponencial
 
 SeedInvalida:
     xor r6, r6, r6 ; Zera a Seed
     jmpd #calculoExponencial
-
-
-
+	
 calculoExponencial: ; DEBUG - r14 sendo atualizado com r6
 
     jmpzd #retornaMagicNumber
@@ -258,6 +258,7 @@ calculoExponencial: ; DEBUG - r14 sendo atualizado com r6
 
     div r14, r4
     mfh r14 ; r14 <= r14^2 mod q
+	
     and r13, r7, r5 ; Comparacao da mascara
 
     jmpzd #shiftAndJump
@@ -269,7 +270,7 @@ calculoMod:
     mfh r14 ; r14 <= r14 * 6 mod 251
 
 shiftAndJump:
-    sr0  r7, r7
+    sr0  r7, r7 ; Shift da mascara
     jmpd #calculoExponencial
 
 
@@ -283,7 +284,25 @@ retornaMagicNumber:
 
 
 CalculaCryptoKey:     ; Retorna em r14 chave criptografica, recebe em r2 magic number do periferico
+	
+	; Se da pelo calculo de Key = magicNumber mod q
+	
+	push r3 ; 251
+	
+	ldh r3, #00h
+	ldl r3, #FBh  ; r3 <= 251
+	
+	div r2, r3 
+	mfh r14 ; r14 <= r2( Magic Number ) mod r3 ( q ( 251 ) )
+	
+	jmpd #retornaCalculaCryptoKey
+	
+retornaCalculaCryptoKey:
 
+	pop r3
+	rts
+	
+	
 
 GeraACK:              ; Envia ack
 
