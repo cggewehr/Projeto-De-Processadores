@@ -74,8 +74,8 @@ begin
             FILE_NAME  => "empire.txt"
         )
     	port map(
-    		--clk         => clk_4,
-    		clk         => clk,
+    		clk         => clk_4,
+    		--clk         => clk,
     		rst         => reset_sync,
     		--rst         => rst,
     		data_in     => data_in_crypto,
@@ -87,10 +87,10 @@ begin
     	);
 
     data_in_crypto <= port_io_uC(15 downto 8);
-   	data_AV_crypto <= port_io_uC(3);
+   	port_io_uC(3) <= data_AV_crypto;
    	port_io_uC(2) <= keyEXG_crypto;
    	ack_crypto <= port_io_uC(1);
-   	eom_crypto <= port_io_uC(0);
+   	port_io_uC(0) <= eom_crypto;
 
     TRISTATE_CRYPTO_TO_PORT <= data_out_crypto;
     TRISTATE_CRYPTO_TO_PORT_EN <= port_io_uC(7);

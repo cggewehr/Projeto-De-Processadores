@@ -98,9 +98,9 @@ setup:
 
 ;   Seta PortConfig
     ldl r4, #01h   ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &PortConfig ]
-    ldh r5, #FFh   ; r5 <= "11111111_10001101"
-    ldl r5, #8Dh   ; bits 15 a 8 inicialmente são entrada, espera keyExchange
-    st r5, r1, r4  ; PortConfig <= "11111111_1xxx1101"
+    ldh r5, #FFh   ; r5 <= "11111111_00001101"
+    ldl r5, #0Dh   ; bits 15 a 8 inicialmente são entrada, espera keyExchange
+    st r5, r1, r4  ; PortConfig <= "11111111_0xxx1101"
 
 ;   Seta irqtEnable
     ldl r4, #03h   ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &irqtEnable ]
@@ -275,11 +275,12 @@ shiftAndJump:
 
 
 retornaMagicNumber:
-    push r13
-    push r12
-    push r6
-    push r5
-    push r4
+    pop r13
+    pop r12
+    pop r7
+    pop r6
+    pop r5
+    pop r4
     rts
 
 
@@ -301,7 +302,6 @@ retornaCalculaCryptoKey:
 
 	pop r3
 	rts
-	
 	
 
 GeraACK:              ; Envia ack

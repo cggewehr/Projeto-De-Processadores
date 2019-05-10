@@ -256,8 +256,12 @@ begin
 				end if;
 				
 			elsif currentState = Shalt then
-				-- Idles until next reset (only leaves this state when signal rst = '1')
-				currentState <= Shalt;
+				-- Idles until next reset (only leaves this state when signal rst = '1' or irq = '1')
+                if irq = '1' and interruptFlag = '0' then
+                    currentState <= Sitr;
+                else
+                    currentState <= Shalt;
+                end if;
 
 			elsif currentState = Sula then
 				-- Utilização da ALU
