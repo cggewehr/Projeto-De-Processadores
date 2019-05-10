@@ -287,11 +287,16 @@ retornaMagicNumber:
     rts
 
 
-CalculaCryptoKey:     ; Retorna em r14 chave criptografica, recebe em r2 magic number do periferico
+CalculaCryptoKey:     ; Retorna em r14 chave criptografica, recebe em r2 magic number do periferico (Se magicNumber = 0, retorna 1)
 	
 	; Se da pelo calculo de Key = magicNumber mod q
 	
 	push r3 ; 251
+    
+    xor r14, r14, r14
+    
+    add r2, r0, r2
+    jmpzd #calculaCryptoKeyRetornaZero ; Se magicNumber == 0, retorna 1
 	
 	ldh r3, #00h
 	ldl r3, #FBh  ; r3 <= 251
@@ -301,13 +306,17 @@ CalculaCryptoKey:     ; Retorna em r14 chave criptografica, recebe em r2 magic n
 	
 	jmpd #retornaCalculaCryptoKey
 	
-retornaCalculaCryptoKey:
+  retornaCalculaCryptoKey:
 
 	pop r3
 	rts
-	
+    
+  calculaCryptoKeyRetornaZero:
+    addi r14, #1
+    jmpd #retornaCalculaCryptoKey
+    
 
-GeraACK:              ; Envia ack
+GeraACK:              ; Envia pulso de ACK
 
     push r1
     push r5
@@ -318,10 +327,21 @@ GeraACK:              ; Envia ack
     xor r5, r5, r5
     xor r6, r6, r6
 
-;   r1 <= &portData
+;   r1 <= &portConfig
     ldh r1, #arrayPorta ; Carrega &Porta
     ldl r1, #arrayPorta ; Carrega &Porta
-    ld r1, r0, r1       ; Carrega &portData
+    addi r1, #1
+    ld r1, r0, r1       ; Carrega &portConfig
+    
+;   r5 <= (Bits de dados como entrada, dataDD saida, outros de acordo)
+    ldh r5, #FFh
+    ldl r5, #0Dh
+    st r5, r0, r1
+    
+;   r1 <= &portData
+    ldh r1, #arrayPorta
+    ldl r1, #arrayPorta
+    ld r1, r0, r1
 
 ;   r5 <= dataDD = '1', ACK = '1'
     ldh r5, #00h
@@ -355,11 +375,27 @@ LeCaracter:           ; Le caracter atual da porta, salva nos arrays, incrementa
     xor r4, r4, r4
     xor r5, r5, r5
     xor r6, r6, r6
+    
+;   r1 <= &portConfig
+    ldh r1, #arrayPorta ; Carrega &Porta
+    ldl r1, #arrayPorta ; Carrega &Porta
+    addi r1, #1
+    ld r1, r0, r1       ; Carrega &portData
+    
+;   r5 <= (Bits de dados como entrada, dataDD como saida, outros de acordo)
+    ldh r5, #FFh
+    ldl r5, #0Dh
+    st r5, r0, r1
 
 ;   r1 <= &portData
     ldh r1, #arrayPorta ; Carrega &Porta
     ldl r1, #arrayPorta ; Carrega &Porta
     ld r1, r0, r1       ; Carrega &portData
+    
+;   r5 <= dataDD = IN, ACK = 0 (Habilita Tristate)
+    ldh r5, #00h
+    ldl r5, #80h
+    st r5, r0, r1
 
 ;   r5 <= PortData
     ld r5, r0, r1
@@ -380,8 +416,11 @@ LeCaracter:           ; Le caracter atual da porta, salva nos arrays, incrementa
 
     ldh r4, #arrayCryptoPointer
     ldl r4, #arrayCryptoPointer
+    ld r4, r0, r4
 
     st r5, r1, r4 ; arrayEncrypted[r4] = Caracter criptografado
+    
+    add r10, r0, r5 ; r10 <= DADO CRIPTOGRAFADO
 
 ;   Carrega chave de criptografia
     ldh r6, #cryptoKey
@@ -393,7 +432,7 @@ LeCaracter:           ; Le caracter atual da porta, salva nos arrays, incrementa
 
 ;   Zera bit não relevantes
     ldh r6, #0
-    ldh r6, #FFh
+    ldl r6, #7Fh ; r6 <= "0000000001111111"
     and r5, r5, r6
 
 ;   Salva caracter no vetor de dados descriptografados
@@ -401,6 +440,8 @@ LeCaracter:           ; Le caracter atual da porta, salva nos arrays, incrementa
     ldl r1, #arrayDecrypted
 
     st r5, r1, r4 ; arrayDecrypted[r4] = Caracter descriptografado
+    
+    add r11, r0, r5 ; r11 <= DADO DESCRIPTOGRAFADO
 
 ;   Incrementa ponteiro dos vetores
     ldh r1, #arrayCryptoPointer
@@ -492,16 +533,31 @@ InterruptionServiceRoutine:
     xor r6, r6, r6
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; LEITURA DO DADO DA PORTA, NAO MUDAR ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;   Seta porta como entrada
+
+;   r1 <= &PortConfig
+    ldh r1, #arrayPorta
+    ldl r1, #arrayPorta
+    addi r1 #1
+    ld r1, r0, r1
+    
+;   r5 <= Dados como entrada, dataDD como saida, bits de controle de acordo
+    ldh r5, #FFh
+    ldl r5, #0Dh
+    st r5, r0, r1
     
 ;   r1 <= &PortData
     ldh r1, #arrayPorta
     ldl r1, #arrayPorta
     ld r1, r0, r1
+    
+;   r5 <= Habilita Tristate de data_out do periferico CryptoMessage
+    ldh r5, #00h
+    ldl r5, #8Dh
+    st r5, r0, r1
 
 ;   r5 <= PortData
     ld r5, r0, r1
-    
-    ldh r5, #00h
 
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; LEITURA DO DADO DA PORTA, NAO MUDAR ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -515,7 +571,6 @@ InterruptionServiceRoutine:
     jmpzd #callDriverBit2
 
   returnCallDriverBit2:
-
 
 ;   ADICIONAR AQUI TRATAMENTO PARA NOVOS GERADORES DE INTERRUPÇÃO
 
@@ -582,7 +637,7 @@ driverKeyExchange:
     
 ;   Seta PortConfig
     ldl r4, #01h   ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &PortConfig ]
-    ldh r5, #FFh   ; r5 <= "11111111_00001101"
+    ldh r5, #FFh   ; r5 <= "11111111_0xxx1101"
     ldl r5, #0Dh   ; bits 15 a 8 inicialmente são entrada, espera keyExchange
     st r5, r1, r4  ; PortConfig <= "11111111_0xxx1101"
     
@@ -590,6 +645,11 @@ driverKeyExchange:
     ldh r5, #00h
     ldl r5, #80h 
     st r5, r0, r1 ; portData <= "xxxxxxxx_1xxxxx0x"
+    
+;   r1 <= &PortData
+    ldh r1, #arrayPorta
+    ldl r1, #arrayPorta
+    ld r1, r0, r1
 
 ;   r5 <= PortData
     ld r5, r0, r1
@@ -602,7 +662,7 @@ driverKeyExchange:
     sr0 r5, r5 ; LSB @ 3
     sr0 r5, r5 ; LSB @ 2
     sr0 r5, r5 ; LSB @ 1
-    sr0 r5, r5 ; LSB @ 0
+    sr0 r5, r5 ; LSB @ 0 r5 <= "00000000 & MagicNumber"
 
 ;   Carrega endereço da variavel magicNumberCryptoMessage
     ldh r1, #magicNumberCryptoMessage
@@ -689,7 +749,7 @@ driverKeyExchange:
     ldl r1, #arrayPorta
     ld r1, r0, r1        ; r1 <= &portData
 
-    ldh r5, #FFh
+    ldh r5, #00h
     ldl r5, #80h
     st r5, r0, r1        ; r5 <= "xxxx_xxxx_1xxx_xx0x"
 
@@ -774,8 +834,7 @@ PollingLoop: ; Espera próximo sinal de data_av = '1'
     ldh r1, #00h
     ldl r1, #251
 
-    and r6, r1, r5
-    sub r6, r6, r1
+    sub r1, r5, r1
     jmpzd #contadorMSGSld0
 
     addi r5, #1
@@ -785,6 +844,7 @@ PollingLoop: ; Espera próximo sinal de data_av = '1'
     ldh r1, #contadorMSGS
     ldl r1, #contadorMSGS
 
+;   Stores new value of message counter
     st r5, r0, r1
 
     pop r6
