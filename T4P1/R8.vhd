@@ -395,17 +395,15 @@ begin
 		end if;
 	end process;
 
-	multiplicador <= regA * regB;
+	multiplicador <= (regA * regB) when currentinstruction = MUL else (others=>'0');
 
-	divisor(31 downto 16) <= STD_LOGIC_VECTOR ( UNSIGNED( regB) mod UNSIGNED( regA)) when currentInstruction = MUL or
-																													  currentInstruction = DIV ;
-																													  
-	divisor(15 downto 0)  <=(STD_LOGIC_VECTOR ( SIGNED( regB) / SIGNED( regA)) ) when regA /= "0000000000000000" else "0000000000000000";
+	divisor(31 downto 16) <= STD_LOGIC_VECTOR ( UNSIGNED(regB) mod UNSIGNED(regA) ) when (currentInstruction = DIV and regA/= 0) else (others=>'0');																												  
+	divisor(15 downto 0)  <= STD_LOGIC_VECTOR ( SIGNED(regB) / SIGNED(regA) ) when (currentInstruction = DIV and regA/= 0) else (others=>'0');
 	
 	ALUaux <= ('0' & regA) + ('0' & regB) when currentInstruction = ADD else
-			    ('0' & regA) + ('0' & ((not(regB))+1)) when currentInstruction = SUB else
-			    ('0' & regB) + ('0' & x"00" & CONSTANTE) when currentInstruction = ADDI else
-			    ('0' & regB) + ((not('0' & x"00" & CONSTANTE))+1); -- when currentInstruction = SUBI;
+			  ('0' & regA) + ('0' & ((not(regB))+1)) when currentInstruction = SUB else
+			  ('0' & regB) + ('0' & x"00" & CONSTANTE) when currentInstruction = ADDI else
+			  ('0' & regB) + ((not('0' & x"00" & CONSTANTE))+1); -- when currentInstruction = SUBI;
     
     outALU <= ALUaux(15 downto 0) when (currentInstruction = ADD or currentInstruction = SUB or currentInstruction = ADDI or currentInstruction = SUBI) else 
               regA and regB when currentInstruction = AAND else
