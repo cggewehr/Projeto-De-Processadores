@@ -23,9 +23,9 @@ end R8_uC;
 architecture behavioral of R8_uC is
    
     signal clk_2                                     : std_logic;                      -- 50 MHz clock from DCM
-	signal reset_sync                                : std_logic;                      -- Synchronized reset
-	signal ce, rw                                    : std_logic;                      -- Auxiliary signals for R8 processor instantiation
-	signal rw_MEM, clk_MEM, en_MEM, en_PORT          : std_logic;                      -- Auxiliary signals for R8 processor instantiation
+	 signal reset_sync                                : std_logic;                      -- Synchronized reset
+	 signal ce, rw                                    : std_logic;                      -- Auxiliary signals for R8 processor instantiation
+	 signal rw_MEM, clk_MEM, en_MEM, en_PORT          : std_logic;                      -- Auxiliary signals for R8 processor instantiation
 
     signal data_PORT, data_MEM_in, data_mem_out      : std_logic_vector(15 downto 0); 
     signal data_r8_in, data_r8_out, address          : std_logic_vector(15 downto 0);
@@ -77,7 +77,7 @@ begin
         port map(
             clk      => clk_2,
             rst      => reset_sync,
-			irq      => irq_R8,
+			   irq      => irq_R8,
             address  => address,
             data_out => data_r8_out,
             data_in  => data_r8_in,
@@ -131,10 +131,10 @@ begin
             address => address_PORT,
             rw => rw_MEM,              -- 0: read; 1: write
             ce => en_PORT,
-			irq => irq_PORT,
+			   irq => irq_PORT,
 				
             -- External interface
-			port_io => port_io   
+			   port_io => port_io   
         );
 
 end behavioral;
