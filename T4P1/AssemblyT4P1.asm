@@ -23,7 +23,7 @@
 ;   - Respeitar o padrão de registradores estabelecidos
 ;   - Novas adições ao código deve ser o mais modular possível
 ;   - Subrotinas importantes devem começar com letra maiuscula
-;   - Subrotinas auxiliares devem começar com letra minuscula e serem identada com 2 espaços
+;   - Subrotinas auxiliares devem começar com letra minuscula e serem identadas com 2 espaços
 ;   - Instruções devem ser identadas com 4 espaços
 
 ; REGISTRADORES:
@@ -67,7 +67,7 @@
 
 setup:
 
-;   Inicializa ponteiro da pilha para 0x"7FFF" (ultimo endereço no espaço de endereçamento da memoria
+;   Inicializa ponteiro da pilha para 0x"7FFF" (ultimo endereço no espaço de endereçamento da memoria)
     ldh r0, #7Fh
     ldl r0, #FFh
     ldsp r0
@@ -241,12 +241,15 @@ CalculaMagicNumberR8: ; Retorna em r14 o magicNumber do processador
     sub r6, r4, r5   ; Realiza (251 - Seed )
     jmpnd #SeedInvalida
     jmpzd #SeedInvalida  ; caso a seed for Negativa ou Zero
+    
+    xor r6, r6, r6
+    addi r6, #06h
 
-    addi r14, #00h ; R14 deve estar igual a 1
+    addi r5, #00h ; Caso a seed esteja igual a zero
     jmpd #calculoExponencial
 
 SeedInvalida:
-    xor r6, r6, r6 ; Zera a Seed
+    xor r5, r5, r5 ; Zera a Seed
     jmpd #calculoExponencial
 	
 calculoExponencial: ; DEBUG - r14 sendo atualizado com r6
@@ -259,7 +262,7 @@ calculoExponencial: ; DEBUG - r14 sendo atualizado com r6
     div r14, r4
     mfh r14 ; r14 <= r14^2 mod q
 	
-    and r13, r7, r5 ; Comparacao da mascara
+    and r13, r7, r14 ; Comparacao da mascara
 
     jmpzd #shiftAndJump
 
@@ -322,11 +325,11 @@ GeraACK:              ; Envia ack
 
 ;   r5 <= dataDD = '1', ACK = '1'
     ldh r5, #00h
-    ldh r5, #12h
+    ldl r5, #82h
 
 ;   r6 <= dataDD = '1', ACK = '0'
-    ldh r5, #00h
-    ldh r5, #10h
+    ldh r6, #00h
+    ldl r6, #80h
 
 ;   portData <= dataDD = '1', ACK = '1'
     st r5, r1, r0
@@ -404,9 +407,22 @@ LeCaracter:           ; Le caracter atual da porta, salva nos arrays, incrementa
     ldl r1, #arrayCryptoPointer
     ld r5, r0, r1
 
+;   Se ponteiro == 100, volta para começo do buffer
+
+    ldh r6, #0
+    ldl r6, #100
+
+    sub r6, r6, r5
+    jmpzd #resetaCryptoPointer
+
     addi r5, #1
 
+  returnresetaCryptoPointer:
+
     st r5, r0, r1
+    
+;   Gera ACK
+    jsrd #GeraACK
 
     pop r6
     pop r5
@@ -414,6 +430,10 @@ LeCaracter:           ; Le caracter atual da porta, salva nos arrays, incrementa
     pop r1
 
     rts
+    
+  resetaCryptoPointer:
+    xor r5, r5, r5
+    jmpd #returnresetaCryptoPointer
 ;-----------------------------------------TRATAMENTO DE INTERRUPÇÃO------------------------------------------
 
 InterruptionServiceRoutine:
@@ -472,7 +492,7 @@ InterruptionServiceRoutine:
     xor r6, r6, r6
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; LEITURA DO DADO DA PORTA, NAO MUDAR ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
+    
 ;   r1 <= &PortData
     ldh r1, #arrayPorta
     ldl r1, #arrayPorta
@@ -480,6 +500,8 @@ InterruptionServiceRoutine:
 
 ;   r5 <= PortData
     ld r5, r0, r1
+    
+    ldh r5, #00h
 
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; LEITURA DO DADO DA PORTA, NAO MUDAR ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -496,8 +518,6 @@ InterruptionServiceRoutine:
 
 
 ;   ADICIONAR AQUI TRATAMENTO PARA NOVOS GERADORES DE INTERRUPÇÃO
-
-
 
 
 ;   Recupera contexto
@@ -543,11 +563,13 @@ driverKeyExchange:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; ESTADO 1 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
     push r1
+    push r4
     push r5
     push r6
 
     xor r0, r0, r0
     xor r1, r1, r1
+    xor r4, r4, r4
     xor r5, r5, r5
     xor r6, r6, r6
 
@@ -557,6 +579,17 @@ driverKeyExchange:
     ldh r1, #arrayPorta
     ldl r1, #arrayPorta
     ld r1, r0, r1
+    
+;   Seta PortConfig
+    ldl r4, #01h   ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &PortConfig ]
+    ldh r5, #FFh   ; r5 <= "11111111_00001101"
+    ldl r5, #0Dh   ; bits 15 a 8 inicialmente são entrada, espera keyExchange
+    st r5, r1, r4  ; PortConfig <= "11111111_0xxx1101"
+    
+;   Set data direction as IN
+    ldh r5, #00h
+    ldl r5, #80h 
+    st r5, r0, r1 ; portData <= "xxxxxxxx_1xxxxx0x"
 
 ;   r5 <= PortData
     ld r5, r0, r1
@@ -588,6 +621,17 @@ driverKeyExchange:
     st r5, r0, r1          ; Salva magicNumberR8 em memoria
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; ESTADO 3 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;   set data direction as OUT
+    ldh r1, #arrayPorta
+    ldl r1, #arrayPorta
+    ld r1, r0, r1        ; r1 <= &portData
+  
+;   r5 <= "xxxxxxxx_0xxxxx0x" (Disables Tristate)  
+    ldh r5, #00h
+    ldl r5, #00h
+    
+    st r5, r0, r1
 
 ;   Seta em portConfig a direção dos dados como saída
     ldh r1, #arrayPorta
@@ -646,7 +690,7 @@ driverKeyExchange:
     ld r1, r0, r1        ; r1 <= &portData
 
     ldh r5, #FFh
-    ldl r5, #10h
+    ldl r5, #80h
     st r5, r0, r1        ; r5 <= "xxxx_xxxx_1xxx_xx0x"
 
 ;   Seta argumento para calculo da chave criptografica (r2 <= magicNumberCryptoMessage)
@@ -666,6 +710,26 @@ driverKeyExchange:
 
 PollingLoop: ; Espera próximo sinal de data_av = '1'
 
+;   Seta bits de dados como entrada
+    ldh r1, #arrayPorta
+    ldl r1, #arrayPorta
+    addi r1, #1
+    ld r1, r0, r1        ; r1 <= &portConfig
+
+;   Seta bits de dados novamente como entrada
+    ldh r5, #FFh
+    ldl r5, #0Dh
+    st r5, r0, r1        ; r5 <= "11111111_0xxx1101"
+
+;   Seta dataDD como entrada (dataDD = '1', ack = '0')
+    ldh r1, #arrayPorta
+    ldl r1, #arrayPorta
+    ld r1, r0, r1        ; r1 <= &portData
+
+    ldh r5, #FFh
+    ldl r5, #80h
+    st r5, r0, r1        ; r5 <= "xxxx_xxxx_1xxx_xx0x"
+
 ;   r1 <= &PortData
     ldh r1, #arrayPorta
     ldl r1, #arrayPorta
@@ -679,28 +743,25 @@ PollingLoop: ; Espera próximo sinal de data_av = '1'
     ldl r6, #08h         ; r6 <= "00000000_00001000"
 
 ;   Se operação com mascara resultar em 0, coloca caracter no array criptografado e descriptografado
-    and r6, r1, r5
+    and r1, r5, r6
     sub r6, r6, r1
-    jmpzd #LeCaracter
+    jmpzd #callLeCaracter
+    
+    
+ returncallLeCaracter:
 
 ;   Carrega mascara de comparação para bit 0 (eom)
     ldh r6, #00h
     ldl r6, #01h         ; r6 <= "00000000_00000001"
 
 ;   Se operação com mascara resultar em 0, retorna da subrotina de driver p/ ISR, else, espera novo caracter
-    and r6, r1, r5
+    and r1, r5, r6
     sub r6, r6, r1
     jmpzd #returnPollingLoop
-
-;   Gera ACK
-    jsrd #GeraACK
 
     jmpd #PollingLoop
 
   returnPollingLoop:
-
-;   Gera ACK
-    jsrd #GeraACK
 
 ;   Incrementa contador de mensagens
     ldh r1, #contadorMSGS
@@ -718,13 +779,17 @@ PollingLoop: ; Espera próximo sinal de data_av = '1'
     jmpzd #contadorMSGSld0
 
     addi r5, #1
+    
+  returncontadorMSGSld0:    
+  
+    ldh r1, #contadorMSGS
+    ldl r1, #contadorMSGS
 
     st r5, r0, r1
 
-  returncontadorMSGSld0:
-
     pop r6
     pop r5
+    pop r4
     pop r1
 
     rts
@@ -732,6 +797,10 @@ PollingLoop: ; Espera próximo sinal de data_av = '1'
   contadorMSGSld0:
     xor r5, r5, r5
     jmpd #returncontadorMSGSld0
+    
+  callLeCaracter:
+    jsrd #LeCaracter
+    jmpd #returncallLeCaracter
 
 .endcode
 
