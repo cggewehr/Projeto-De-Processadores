@@ -98,9 +98,9 @@ setup:
 
 ;   Seta PortConfig
     ldl r4, #01h   ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &PortConfig ]
-    ldh r5, #FFh   ; r5 <= "11111111_00001101"
-    ldl r5, #0Dh   ; bits 15 a 8 inicialmente são entrada, espera keyExchange
-    st r5, r1, r4  ; PortConfig <= "11111111_0xxx1101"
+    ldh r5, #FFh   ; r5 <= "11111111_10001101"
+    ldl r5, #8Dh   ; bits 15 a 8 inicialmente são entrada, espera keyExchange
+    st r5, r1, r4  ; PortConfig <= "11111111_1xxx1101"
 
 ;   Seta irqtEnable
     ldl r4, #03h   ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &irqtEnable ]
@@ -108,17 +108,17 @@ setup:
     ldl r5, #04h   ; Habilita a interrupção no bit 2 (keyExchange)
     st r5, r1, r4  ; irqtEnable <= "00000000_0xxx0100"
 
-;   Seta dataDD como '1', ack como '0'
-    ldl r4, #0     ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &PortData ]
-    ldh r5, #00h   ; r5 <= "00000000_10000100"
-    ldl r5, #80h   ; dataDD = '1', ACK = '0'
-    st r5, r1, r4  ; portData <= "xxxxxxxx_1xxxxx0x"
-
 ;   Seta PortEnable
     ldl r4, #02h   ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &PortEnable ]
     ldh r5, #FFh   ; r5 <= "11111111_10001111"
     ldl r5, #8Fh   ; Habilita acesso a todos os bits da porta de I/O, menos bits 6 a 4
     st r5, r1, r4  ; PortEnable <= "11111111_10001111"
+    
+;   Seta dataDD como '1', ack como '0'
+    ldl r4, #0     ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &PortData ]
+    ldh r5, #00h   ; r5 <= "00000000_10000100"
+    ldl r5, #80h   ; dataDD = '1', ACK = '0'
+    st r5, r1, r4  ; portData <= "xxxxxxxx_1xxxxx0x"
 
     jmpd #main
 

@@ -14,18 +14,16 @@ entity R8_uC is
         ASSEMBLY_FILE : string
     );
 	port (
-		clk: in std_logic;
-		rst: in std_logic;
+		clk: in std_logic; -- 50MHz from DCM
+		rst: in std_logic; -- Synchronous reset
         port_io: inout std_logic_vector(15 downto 0)
 	);
 end R8_uC;
 
 architecture behavioral of R8_uC is
    
-    signal clk_2                                     : std_logic;                      -- 50 MHz clock from DCM
-	 signal reset_sync                                : std_logic;                      -- Synchronized reset
-	 signal ce, rw                                    : std_logic;                      -- Auxiliary signals for R8 processor instantiation
-	 signal rw_MEM, clk_MEM, en_MEM, en_PORT          : std_logic;                      -- Auxiliary signals for R8 processor instantiation
+    signal ce, rw                                    : std_logic;                      -- Auxiliary signals for R8 processor instantiation
+    signal rw_MEM, clk_MEM, en_MEM, en_PORT          : std_logic;                      -- Auxiliary signals for R8 processor instantiation
 
     signal data_PORT, data_MEM_in, data_mem_out      : std_logic_vector(15 downto 0); 
     signal data_r8_in, data_r8_out, address          : std_logic_vector(15 downto 0);
@@ -44,22 +42,6 @@ architecture behavioral of R8_uC is
 	signal irq_PORT           : std_logic_vector(15 downto 0);
    
 begin
-
-	-- Xilinx DCM
-    ClockManager: entity work.ClockManager
-        port map(
-            clk_in   => clk,
-            clk_div2 => clk_2,
-            clk_div4 => open
-        );
-        
-    -- Reset synchronizer    
-    ResetSynchronizer: entity work.ResetSynchronizer
-        port map(
-            clk     => clk_2,
-            rst_in  => rst,
-            rst_out => reset_sync
-        );
 		
     -- Processor signals
     data_r8_in <= data_MEM_out when ENABLE_PERIFERICO = '0' else data_PORT;
@@ -75,9 +57,9 @@ begin
 			ISR_ADDR => "0000000000000001" -- Address for ISR, always @ second memory position
 		)
         port map(
-            clk      => clk_2,
-            rst      => reset_sync,
-			   irq      => irq_R8,
+            clk      => clk,
+            rst      => rst,
+			irq      => irq_R8,
             address  => address,
             data_out => data_r8_out,
             data_in  => data_r8_in,
@@ -86,7 +68,7 @@ begin
         );
 		
     -- Memory signals
-    clk_MEM <= not clk_2; -- Makes memory sensitive to falling edge
+    clk_MEM <= not clk;   -- Makes memory sensitive to falling edge
     rw_MEM  <= not rw;    -- Writes when 0, Reads when 1
     en_MEM  <= '1' when (ce = '1' and ENABLE_PERIFERICO = '0') else '0'; -- address(15)      
     
@@ -123,18 +105,18 @@ begin
 			PORT_IRQ_ADDR       => "11"
         )
         port map(
-            clk => clk_2, 
-            rst => reset_sync,
+            clk => clk, 
+            rst => rst,
 				
             -- Processor Interface
             data => data_PORT,
             address => address_PORT,
             rw => rw_MEM,              -- 0: read; 1: write
             ce => en_PORT,
-			   irq => irq_PORT,
+			irq => irq_PORT,
 				
             -- External interface
-			   port_io => port_io   
+			port_io => port_io   
         );
 
 end behavioral;

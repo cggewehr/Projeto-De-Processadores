@@ -20,7 +20,7 @@ use IEEE.numeric_std.all;
 entity R8 is
 	generic (
 		-- Hardwired address for ISR
-		  ISR_ADDR : std_logic_vector(15 downto 0)
+        ISR_ADDR : std_logic_vector(15 downto 0)
 	);
     port( 
 		-- 50 MHz clock from DCM
@@ -30,7 +30,7 @@ entity R8 is
         rst      : in std_logic;
 		
 		-- Flag de interrupção por periferico
-		  irq      : in std_logic;
+        irq      : in std_logic;
         
         -- Memory interface
         data_in  : in std_logic_vector(15 downto 0);
@@ -65,27 +65,27 @@ architecture Behavioural of R8 is
 	
 	-- Registradores do Processador
 	signal regBank                     : RegisterArray(0 to 15);        -- Banco de registradores	 
-   signal regPC                       : std_logic_vector(15 downto 0); -- Program Counter
-   signal regIR                       : std_logic_vector(15 downto 0); -- Registrador de Instruçoes
-   signal regSP                       : std_logic_vector(15 downto 0); -- Stack Pointer
-   signal regA                        : std_logic_vector(15 downto 0); -- Primeiro reg lido do REGBANK
+    signal regPC                       : std_logic_vector(15 downto 0); -- Program Counter
+    signal regIR                       : std_logic_vector(15 downto 0); -- Registrador de Instruçoes
+    signal regSP                       : std_logic_vector(15 downto 0); -- Stack Pointer
+    signal regA                        : std_logic_vector(15 downto 0); -- Primeiro reg lido do REGBANK
 	signal regB                        : std_logic_vector(15 downto 0); -- Segundo reg lido do REGBANK
 	signal regALU                      : std_logic_vector(15 downto 0); -- Registrador ALU
 	signal regHIGH                     : std_logic_vector(15 downto 0); -- Registrador HIGH para MUL/DIV
 	signal regLOW                      : std_logic_vector(15 downto 0); -- Registrador LOW para MUL/DIV
 
 	-- Sinais combinacionais pra ALU
-	signal ALUaux                      : std_logic_vector(16 downto 0); -- Sinal com 17 bits pra lidar com overflow 
-   signal outALU                      : std_logic_vector(15 downto 0);  
-   signal multiplicador               : std_logic_vector(31 downto 0);
-   signal divisor                     : std_logic_vector(31 downto 0);
+    signal ALUaux                      : std_logic_vector(16 downto 0); -- Sinal com 17 bits pra lidar com overflow 
+    signal outALU                      : std_logic_vector(15 downto 0);  
+    signal multiplicador               : std_logic_vector(31 downto 0);
+    signal divisor                     : std_logic_vector(31 downto 0);
     
 	-- Registrador de Flags
-   signal regFLAGS : std_logic_vector(3 downto 0);
-   alias n :std_logic is regFLAGS(3);
-   alias z :std_logic is regFLAGS(2);
-   alias c :std_logic is regFLAGS(1);
-   alias v :std_logic is regFLAGS(0);
+    signal regFLAGS : std_logic_vector(3 downto 0);
+    alias n :std_logic is regFLAGS(3);
+    alias z :std_logic is regFLAGS(2);
+    alias c :std_logic is regFLAGS(1);
+    alias v :std_logic is regFLAGS(0);
 	
     -- Sinais auxiliares para geração de flags, atualizados combinacionalmente na ALU
     signal flagN, flagZ, flagC, flagV  : std_logic; -- Flags ALU| negativo, zero, carry, OVFLW
