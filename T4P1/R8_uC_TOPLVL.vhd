@@ -67,7 +67,8 @@ begin
     -- CryptoMessage peripheral
     CryptoMessage: entity work.CryptoMessage
         generic map(
-            msg_interval => 2000 -- Waits 2000 clocks before sending next msg
+            MSG_INTERVAL => 2000, -- Waits 2000 clocks before sending next msg
+            FILE_NAME  => "empire.txt"
         )
     	port map(
     		clk         => clk_4,
