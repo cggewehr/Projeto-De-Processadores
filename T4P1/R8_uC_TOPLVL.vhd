@@ -90,6 +90,6 @@ begin
     TRISTATE_CRYPTO_TO_PORT <= data_out_crypto;
     TRISTATE_CRYPTO_TO_PORT_EN <= port_io_uC(7);
 
-    port_io_uC(15 downto 8) <= TRISTATE_CRYPTO_TO_PORT;
+    port_io_uC(15 downto 8) <= TRISTATE_CRYPTO_TO_PORT when TRISTATE_CRYPTO_TO_PORT_EN = '1' else (others=>'Z');
 	
 end architecture Behavioural;
