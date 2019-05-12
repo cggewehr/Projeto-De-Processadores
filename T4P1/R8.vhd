@@ -259,6 +259,7 @@ begin
 				-- Idles until next reset (only leaves this state when signal rst = '1' or irq = '1')
                 if irq = '1' and interruptFlag = '0' then
                     currentState <= Sitr;
+                    regPC <= regPC - 1; -- In order to remain on halt on return from interruption
                 else
                     currentState <= Shalt;
                 end if;
