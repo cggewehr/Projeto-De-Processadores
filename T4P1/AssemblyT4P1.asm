@@ -113,7 +113,7 @@ setup:
     ldh r5, #FFh   ; r5 <= "11111111_10001111"
     ldl r5, #8Fh   ; Habilita acesso a todos os bits da porta de I/O, menos bits 6 a 4
     st r5, r1, r4  ; PortEnable <= "11111111_10001111"
-    
+
 ;   Seta dataDD como '1', ack como '0'
     ldl r4, #0     ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &PortData ]
     ldh r5, #00h   ; r5 <= "00000000_10000100"
@@ -210,7 +210,7 @@ end:
 CalculaMagicNumberR8: ; Retorna em r14 o magicNumber do processador
 
 
-    ; MagicNumberR8 = a^x * mod q	
+    ; MagicNumberR8 = a^x * mod q
     ; MagicNumberR8 = 6^x * mod 251
 
     push r4 ; 251
@@ -231,6 +231,7 @@ CalculaMagicNumberR8: ; Retorna em r14 o magicNumber do processador
     ldl r5, #contadorMSGS
     ld r5, r0, r5 ; Carrega o Valor do Contador msg para r5
 
+
     ldh r6, #00h
     ldl r6, #06h ; carreaga Seis
 
@@ -241,7 +242,7 @@ CalculaMagicNumberR8: ; Retorna em r14 o magicNumber do processador
     sub r6, r4, r5   ; Realiza (251 - Seed )
     jmpnd #SeedInvalida
     jmpzd #SeedInvalida  ; caso a seed for Negativa ou Zero
-    
+
     xor r6, r6, r6
     addi r6, #06h
 
@@ -251,7 +252,7 @@ CalculaMagicNumberR8: ; Retorna em r14 o magicNumber do processador
 SeedInvalida:
     xor r5, r5, r5 ; Zera a Seed
     jmpd #calculoExponencial
-	
+
 calculoExponencial: ; DEBUG - r14 sendo atualizado com r6
 
     jmpzd #retornaMagicNumber
@@ -261,7 +262,7 @@ calculoExponencial: ; DEBUG - r14 sendo atualizado com r6
 
     div r14, r4
     mfh r14 ; r14 <= r14^2 mod q
-	
+
     and r13, r7, r14 ; Comparacao da mascara
 
     jmpzd #shiftAndJump
@@ -278,6 +279,11 @@ shiftAndJump:
 
 
 retornaMagicNumber:
+
+    ldh r12, #seed
+    ldl r12, #seed
+    st r5, r0, r12 ; salva o valor atual da seed
+
     pop r13
     pop r12
     pop r7
@@ -287,34 +293,73 @@ retornaMagicNumber:
     rts
 
 
-CalculaCryptoKey:     ; Retorna em r14 chave criptografica, recebe em r2 magic number do periferico (Se magicNumber = 0, retorna 1)
-	
-	; Se da pelo calculo de Key = magicNumber mod q
-	
-	push r3 ; 251
-    
-    xor r14, r14, r14
-    
-    add r2, r0, r2
-    jmpzd #calculaCryptoKeyRetornaZero ; Se magicNumber == 0, retorna 1
-	
-	ldh r3, #00h
-	ldl r3, #FBh  ; r3 <= 251
-	
-	div r2, r3 
-	mfh r14 ; r14 <= r2( Magic Number ) mod r3 ( q ( 251 ) )
-	
-	jmpd #retornaCalculaCryptoKey
-	
-  retornaCalculaCryptoKey:
+CalculaCryptoKey: ; Retorna em r14 chave criptografica, recebe em r2 magic number do periferico (Se magicNumber = 0, retorna 1)
+    ; KEY = a^b mod q
+    ; KEY =  magicNumberFromCrypto^SEED * mod q
+	; Se da pelo calculo de Key = magicNumberFromCrypto`^SEED mod q
+    ;push r2 ; magicNumberFromCrypto
+	push r3 ; SEED
+    push r4 ; 251
+    push r5 ; Mascara
+    push r13 ; temporario
 
-	pop r3
-	rts
-    
-  calculaCryptoKeyRetornaZero:
-    addi r14, #1
+    ; Carrega a seed
+    ldh r3, #seed
+    ldl r3, #seed
+    ld r3, r0, r3 ; Carrega a Seed
+
+    ldh r4, #00h
+	ldl r4, #FBh  ; r3 <= 251
+
+    ldh r5, #00h
+    ldl r5, #80h ; Mascara [ 0000 0000 1000 0000]
+
+    xor r13, r13, r13 ; zera o temporário
+
+    xor r14, r14, r14  ; Zera a key
+    addi r14, #1      ; Retorno  <= 1
+
+    ;add r2, r0, r2
+    ;jmpzd #calculaCryptoKeyRetornaZero ; Se magicNumberFromCrypto == 0, retorna 1
+
+    ;add r3, r0, r3 ; Caso seed seja Zero
+    ;jmpzd #calculaCryptoKeyRetornaZero
+
+    ;add r14, r3, r0   ; recebe o numero do magicNumberR8
+    addi r5, #00h  ; Flag da mascara
+
+    calculoExponencialKey:
+    jmpzd #retornaCalculaCryptoKey
+
+    mul r14, r14
+    mfl r14 ;   r14 <= r14^2
+    div r14, r4
+    mfh r14 ; r14 <= r14^2 mod q
+
+    and r13, r5, r3 ; Comparacao da mascara com SEED
+    jmpzd #shiftAndJumpKey
+
+    calculoModKey:
+    mul r14, r2     ; magicNumberFromCrypto
+    mfl r14 ; r14 <= r14 * a |
+    div r14, r4  ; div por 251
+    mfh r14 ; r14 <= r14 * a mod 251
+
+    shiftAndJumpKey:
+    sr0  r5, r5 ; Shift da mascara
+    jmpd #calculoExponencialKey
+
+    calculaCryptoKeyRetornaZero:
+    ;addi r14, #1
     jmpd #retornaCalculaCryptoKey
-    
+
+retornaCalculaCryptoKey:
+    pop r13
+    pop r5
+    pop r4
+	pop r3
+    ;pop r2
+	rts
 
 GeraACK:              ; Envia pulso de ACK
 
@@ -332,12 +377,12 @@ GeraACK:              ; Envia pulso de ACK
     ldl r1, #arrayPorta ; Carrega &Porta
     addi r1, #1
     ld r1, r0, r1       ; Carrega &portConfig
-    
+
 ;   r5 <= (Bits de dados como entrada, dataDD saida, outros de acordo)
     ldh r5, #FFh
     ldl r5, #0Dh
     st r5, r0, r1
-    
+
 ;   r1 <= &portData
     ldh r1, #arrayPorta
     ldl r1, #arrayPorta
@@ -375,13 +420,13 @@ LeCaracter:           ; Le caracter atual da porta, salva nos arrays, incrementa
     xor r4, r4, r4
     xor r5, r5, r5
     xor r6, r6, r6
-    
+
 ;   r1 <= &portConfig
     ldh r1, #arrayPorta ; Carrega &Porta
     ldl r1, #arrayPorta ; Carrega &Porta
     addi r1, #1
     ld r1, r0, r1       ; Carrega &portData
-    
+
 ;   r5 <= (Bits de dados como entrada, dataDD como saida, outros de acordo)
     ldh r5, #FFh
     ldl r5, #0Dh
@@ -391,7 +436,7 @@ LeCaracter:           ; Le caracter atual da porta, salva nos arrays, incrementa
     ldh r1, #arrayPorta ; Carrega &Porta
     ldl r1, #arrayPorta ; Carrega &Porta
     ld r1, r0, r1       ; Carrega &portData
-    
+
 ;   r5 <= dataDD = IN, ACK = 0 (Habilita Tristate)
     ldh r5, #00h
     ldl r5, #80h
@@ -419,7 +464,7 @@ LeCaracter:           ; Le caracter atual da porta, salva nos arrays, incrementa
     ld r4, r0, r4
 
     st r5, r1, r4 ; arrayEncrypted[r4] = Caracter criptografado
-    
+
     add r10, r0, r5 ; r10 <= DADO CRIPTOGRAFADO
 
 ;   Carrega chave de criptografia
@@ -440,7 +485,7 @@ LeCaracter:           ; Le caracter atual da porta, salva nos arrays, incrementa
     ldl r1, #arrayDecrypted
 
     st r5, r1, r4 ; arrayDecrypted[r4] = Caracter descriptografado
-    
+
     add r11, r0, r5 ; r11 <= DADO DESCRIPTOGRAFADO
 
 ;   Incrementa ponteiro dos vetores
@@ -461,7 +506,7 @@ LeCaracter:           ; Le caracter atual da porta, salva nos arrays, incrementa
   returnresetaCryptoPointer:
 
     st r5, r0, r1
-    
+
 ;   Gera ACK
     jsrd #GeraACK
 
@@ -471,7 +516,7 @@ LeCaracter:           ; Le caracter atual da porta, salva nos arrays, incrementa
     pop r1
 
     rts
-    
+
   resetaCryptoPointer:
     xor r5, r5, r5
     jmpd #returnresetaCryptoPointer
@@ -540,17 +585,17 @@ InterruptionServiceRoutine:
     ldl r1, #arrayPorta
     addi r1 #1
     ld r1, r0, r1
-    
+
 ;   r5 <= Dados como entrada, dataDD como saida, bits de controle de acordo
     ldh r5, #FFh
     ldl r5, #0Dh
     st r5, r0, r1
-    
+
 ;   r1 <= &PortData
     ldh r1, #arrayPorta
     ldl r1, #arrayPorta
     ld r1, r0, r1
-    
+
 ;   r5 <= Habilita Tristate de data_out do periferico CryptoMessage
     ldh r5, #00h
     ldl r5, #8Dh
@@ -634,18 +679,18 @@ driverKeyExchange:
     ldh r1, #arrayPorta
     ldl r1, #arrayPorta
     ld r1, r0, r1
-    
+
 ;   Seta PortConfig
     ldl r4, #01h   ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &PortConfig ]
     ldh r5, #FFh   ; r5 <= "11111111_0xxx1101"
     ldl r5, #0Dh   ; bits 15 a 8 inicialmente são entrada, espera keyExchange
     st r5, r1, r4  ; PortConfig <= "11111111_0xxx1101"
-    
+
 ;   Set data direction as IN
     ldh r5, #00h
-    ldl r5, #80h 
+    ldl r5, #80h
     st r5, r0, r1 ; portData <= "xxxxxxxx_1xxxxx0x"
-    
+
 ;   r1 <= &PortData
     ldh r1, #arrayPorta
     ldl r1, #arrayPorta
@@ -686,11 +731,11 @@ driverKeyExchange:
     ldh r1, #arrayPorta
     ldl r1, #arrayPorta
     ld r1, r0, r1        ; r1 <= &portData
-  
-;   r5 <= "xxxxxxxx_0xxxxx0x" (Disables Tristate)  
+
+;   r5 <= "xxxxxxxx_0xxxxx0x" (Disables Tristate)
     ldh r5, #00h
     ldl r5, #00h
-    
+
     st r5, r0, r1
 
 ;   Seta em portConfig a direção dos dados como saída
@@ -806,8 +851,8 @@ PollingLoop: ; Espera próximo sinal de data_av = '1'
     and r1, r5, r6
     sub r6, r6, r1
     jmpzd #callLeCaracter
-    
-    
+
+
  returncallLeCaracter:
 
 ;   Carrega mascara de comparação para bit 0 (eom)
@@ -832,15 +877,15 @@ PollingLoop: ; Espera próximo sinal de data_av = '1'
 
 ;   Compara contador com 251, se for igual, volta para 0, se nao, incrementa
     ldh r1, #00h
-    ldl r1, #251
+    ldl r1, #FBh
 
     sub r1, r5, r1
     jmpzd #contadorMSGSld0
 
     addi r5, #1
-    
-  returncontadorMSGSld0:    
-  
+
+  returncontadorMSGSld0:
+
     ldh r1, #contadorMSGS
     ldl r1, #contadorMSGS
 
@@ -851,13 +896,12 @@ PollingLoop: ; Espera próximo sinal de data_av = '1'
     pop r5
     pop r4
     pop r1
-
     rts
 
   contadorMSGSld0:
     xor r5, r5, r5
     jmpd #returncontadorMSGSld0
-    
+
   callLeCaracter:
     jsrd #LeCaracter
     jmpd #returncallLeCaracter
@@ -875,6 +919,7 @@ magicNumberR8:            db #0000h
 magicNumberCryptoMessage: db #0000h
 cryptoKey:                db #0000h
 contadorMSGS:             db #0000h ; Novo seed para geração de magic number
+seed:                     db #0000h ; Seed para calculo da key
 
 ; Array de 100 elementos para dados criptografados
 arrayEncrypted: db #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h
@@ -886,7 +931,7 @@ arrayDecrypted: db #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000
 arrayCryptoPointer: db #0000h
 
 ; Array para aplicação principal (Bubble Sort) de 50 elementos
-arraySort: db #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h
+arraySort: db #0050h, #0049h, #0048h, #0047h, #0046h, #0045h, #0044h, #0043h, #0042h, #0041h, #0040h, #0039h, #0038h, #0037h, #0036h, #0035h, #0034h, #0033h, #0032h, #0031h, #0030h, #0029h, #0028h, #0027h, #0026h, #0025h, #0024h, #0023h, #0022h, #0021h, #0020h, #0019h, #0018h, #0017h, #0016h, #0015h, #0014h, #0013h, #0012h, #0011h, #0010h, #0009h, #0008h, #0007h, #0006h, #0005h, #0004h, #0003h, #0002h, #0001h
 
 ; Tamanho do array p/ bubble sort (50 elementos)
 arraySortSize: db #50
