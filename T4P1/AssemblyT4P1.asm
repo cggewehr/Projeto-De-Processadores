@@ -231,7 +231,6 @@ CalculaMagicNumberR8: ; Retorna em r14 o magicNumber do processador
     ldl r5, #contadorMSGS
     ld r5, r0, r5 ; Carrega o Valor do Contador msg para r5
 
-
     ldh r6, #00h
     ldl r6, #06h ; carreaga Seis
 
@@ -279,11 +278,6 @@ shiftAndJump:
 
 
 retornaMagicNumber:
-
-    ldh r12, #seed
-    ldl r12, #seed
-    st r5, r0, r12 ; salva o valor atual da seed
-
     pop r13
     pop r12
     pop r7
@@ -295,18 +289,18 @@ retornaMagicNumber:
 
 CalculaCryptoKey: ; Retorna em r14 chave criptografica, recebe em r2 magic number do periferico (Se magicNumber = 0, retorna 1)
     ; KEY = a^b mod q
-    ; KEY =  magicNumberFromCrypto^SEED * mod q
-	; Se da pelo calculo de Key = magicNumberFromCrypto`^SEED mod q
+    ; KEY =  MagicNumberR8 ^ magicNumberFromCrypto * mod q
+	; Se da pelo calculo de Key = magicNumberR8^magicNumberFromCrypto mod q
     ;push r2 ; magicNumberFromCrypto
-	push r3 ; SEED
+	push r3 ; magicNumberR8
     push r4 ; 251
     push r5 ; Mascara
+    push r6 ; Seed
     push r13 ; temporario
 
-    ; Carrega a seed
-    ldh r3, #seed
-    ldl r3, #seed
-    ld r3, r0, r3 ; Carrega a Seed
+    ldh r3, #magicNumberR8
+    ldl r3, #magicNumberR8
+    ld r3, r0, r3   ; r3 <= magicNumberR8
 
     ldh r4, #00h
 	ldl r4, #FBh  ; r3 <= 251
@@ -314,21 +308,23 @@ CalculaCryptoKey: ; Retorna em r14 chave criptografica, recebe em r2 magic numbe
     ldh r5, #00h
     ldl r5, #80h ; Mascara [ 0000 0000 1000 0000]
 
-    xor r13, r13, r13 ; zera o temporário
+
+    ldh r6, #contadorMSGS
+    ldl r6, #contadorMSGS
+    ld r6, r0, r6 ; Carrega o Valor do Contador msg para r6
 
     xor r14, r14, r14  ; Zera a key
-    addi r14, #1      ; Retorno  <= 1
 
-    ;add r2, r0, r2
-    ;jmpzd #calculaCryptoKeyRetornaZero ; Se magicNumberFromCrypto == 0, retorna 1
+    add r2, r0, r2
+    jmpzd #calculaCryptoKeyRetornaZero ; Se magicNumberFromCrypto == 0, retorna 1
 
-    ;add r3, r0, r3 ; Caso seed seja Zero
-    ;jmpzd #calculaCryptoKeyRetornaZero
-
+    addi r14, #1    ; Precisa estar em um pra realizar exp
     ;add r14, r3, r0   ; recebe o numero do magicNumberR8
-    addi r5, #00h  ; Flag da mascara
+;;-----
+    addi r6, #00h ; Caso a seed esteja igual a zero
+    jmpd #calculoExponencialKey
 
-    calculoExponencialKey:
+calculoExponencialKey:
     jmpzd #retornaCalculaCryptoKey
 
     mul r14, r14
@@ -336,25 +332,26 @@ CalculaCryptoKey: ; Retorna em r14 chave criptografica, recebe em r2 magic numbe
     div r14, r4
     mfh r14 ; r14 <= r14^2 mod q
 
-    and r13, r5, r3 ; Comparacao da mascara com SEED
+    and r13, r5, r2 ; Comparacao da mascara
     jmpzd #shiftAndJumpKey
 
-    calculoModKey:
-    mul r14, r2     ; magicNumberFromCrypto
-    mfl r14 ; r14 <= r14 * a |
-    div r14, r4  ; div por 251
-    mfh r14 ; r14 <= r14 * a mod 251
+calculoModKey:
+    mul r14, r6
+    mfl r14 ; r14 <= r14 * magicNumberR8 |
+    div r14, r4
+    mfh r14 ; r14 <= r14 * magicNumberR8 mod 251
 
-    shiftAndJumpKey:
+shiftAndJumpKey:
     sr0  r5, r5 ; Shift da mascara
     jmpd #calculoExponencialKey
 
-    calculaCryptoKeyRetornaZero:
-    ;addi r14, #1
+calculaCryptoKeyRetornaZero:
+    addi r14, #1
     jmpd #retornaCalculaCryptoKey
 
 retornaCalculaCryptoKey:
     pop r13
+    pop r6
     pop r5
     pop r4
 	pop r3
@@ -877,7 +874,7 @@ PollingLoop: ; Espera próximo sinal de data_av = '1'
 
 ;   Compara contador com 251, se for igual, volta para 0, se nao, incrementa
     ldh r1, #00h
-    ldl r1, #FBh
+    ldl r1, #251
 
     sub r1, r5, r1
     jmpzd #contadorMSGSld0
@@ -919,7 +916,6 @@ magicNumberR8:            db #0000h
 magicNumberCryptoMessage: db #0000h
 cryptoKey:                db #0000h
 contadorMSGS:             db #0000h ; Novo seed para geração de magic number
-seed:                     db #0000h ; Seed para calculo da key
 
 ; Array de 100 elementos para dados criptografados
 arrayEncrypted: db #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h
