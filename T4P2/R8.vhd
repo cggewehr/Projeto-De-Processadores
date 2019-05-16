@@ -59,7 +59,7 @@ architecture Behavioural of R8 is
     ); 
 
 	type RegisterArray is array (natural range <>) of std_logic_vector(15 downto 0); 
-   type instrucionType is (tipo1, tipo2, outras);
+    type instrucionType is (tipo1, tipo2, outras);
 	
 	signal currentInstruction          : R8Instruction;
 	signal currentState                : State;
