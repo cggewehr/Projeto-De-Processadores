@@ -41,7 +41,7 @@ end CryptoManager;
 
 architecture Behavioural of CryptoManager is
 
-    type State is (waitingITR, waitingMAGICNUMBER, txMAGICNUMBER, waitingCHAR, waitingACK);
+    type State is (waitingITR, waitingMAGICNUMBER, txMAGICNUMBER, txCHAR, waitingACK, waitingACK_EOM);
 
     signal currentState: State;
     signal lockedCrypto : integer;
@@ -81,22 +81,61 @@ begin
             elsif currentState = waitingMAGICNUMBER then
 
                 if ack_R8 = '1' then
-                    data_in_crypto(lockedCrypto) <= data;  -- Transmits R8's magic number to locked crypto
-                    ack_crypto(lockedCrypto) <= '1';       -- ACK pulse
+                    data_in_crypto(lockedCrypto) <= data;   -- Transmits R8's magic number to locked crypto
+                    ack_crypto(lockedCrypto) <= '1';        -- ACK pulse
                     currentState <= txMAGICNUMBER;
                 else
-                    currentState <= waitingMAGICNUMBER;    -- waits for processor to transmit its magic number
+                    currentState <= waitingMAGICNUMBER;     -- waits for processor to transmit its magic number
                 end if;
 
             elsif currentState = txMAGICNUMBER then
 
-                ack_crypto(lockedCrypto) <= '0';        -- Completes ACK pulse
+                ack_crypto(lockedCrypto) <= '0';            -- Completes ACK pulse
 
-                currentState <= waitingCHAR;
+                currentState <= txCHAR;
 
-            elsif currentState = waitingCHAR
+            elsif currentState = txCHAR then
+                currentState <= txCHAR;                     -- Defaults to txCHAR
 
+                if data_av_crypto(lockedCrypto) = '1' then
+                    data <= data_out_crypto(lockedCrypto);
+                    data_av_R8 <= '1';
+
+                    if eom_crypto(lockedCrypto) = '1' then
+                        currentState <= waitingACK_EOM;
+                    else
+                        currentState <= waitingACK;
+                    end if;
+
+                end if;
                 
+            elsif currentState = waitingACK then
+                currentState <= waitingACK;
+
+                if ack_R8 = '1' then
+                    ack_crypto(lockedCrypto) <= '1';
+                    currentState <= txACK;
+                end if;
+
+            elsif currentState = txACK then
+
+                ack_crypto(lockedCrypto) <= '0';
+
+                currentState <= txCHAR;
+
+            elsif currentState = waitingACK_EOM then
+                currentState <= waitingACK_EOM;
+
+                if ack_R8 = '1' then
+                    ack_crypto(lockedCrypto) = '1';
+                    currentState <= txACK_EOM;
+                end if;
+
+            elsif currentState = txACK_EOM then
+
+                ack_crypto(lockedCrypto) <= '0';
+
+                currentState <= waitingITR;
 
             end if;
         end if;
