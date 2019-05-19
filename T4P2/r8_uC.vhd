@@ -11,7 +11,9 @@ use IEEE.numeric_std.all;
 
 entity R8_uC is
     generic (
-        ASSEMBLY_FILE : string
+        ASSEMBLY_FILE : string;
+        ADDR_PORT     : std_logic_vector(3 downto 0);
+        ADDR_PIC      : std_logic_vector(3 downto 0)
     );
 	port (
 		clk: in std_logic; -- 50MHz from DCM
@@ -90,11 +92,11 @@ begin
         );
 		
     -- Port signals
-    en_PORT <= '1' when (ce = '1' and ENABLE_PERIFERICO = '1' and ID_PERIFERICO = "0000") else '0';   
+    en_PORT <= '1' when (ce = '1' and ENABLE_PERIFERICO = '1' and ID_PERIFERICO = "ADDR_PORT") else '0';   
         
     -- Tristate between I/O port and processor
 	data_PORT <= data_r8_out when TRISTATE_PORT_EN = '1' else (others=>'Z');
-	TRISTATE_PORT_EN <= '1' when rw = '0' and ID_PERIFERICO = "0000" else '0';  -- Enables when writes
+	TRISTATE_PORT_EN <= '1' when rw = '0' and ID_PERIFERICO = "ADDR_PORT" else '0';  -- Enables when writes
 
     -- I/O port 
     IO_Port: entity work.BidirectionalPort
@@ -121,7 +123,7 @@ begin
         );
 
     -- PIC signals
-    en_PIC <= '1' when (ce = '1' and ENABLE_PERIFERICO = '1' and ID_PERIFERICO = "1111") else '0';
+    en_PIC <= '1' when (ce = '1' and ENABLE_PERIFERICO = '1' and ID_PERIFERICO = "ADDR_PIC") else '0';
 
     irq_PIC(7) <= irq_PORT(15);
     irq_PIC(6) <= irq_PORT(14);
@@ -131,25 +133,25 @@ begin
 
     -- Tristate between PIC and processor
     data_PIC <= data_r8_out(7 downto 0) when TRISTATE_PIC_EN = '1' else (others=>'Z');
-    TRISTATE_PIC_EN <= '1' when rw = '0' and ID_PERIFERICO = "1111" else '0';  -- Enables when writes
+    TRISTATE_PIC_EN <= '1' when rw = '0' and ID_PERIFERICO = "ADDR_PIC" else '0';  -- Enables when writes
 
     -- Peripheral Interrupt Controller:
     PIC: entity work.InterruptController
         generic map(
-        IRQ_ID_ADDR    => "00",
-        INT_ACK_ADDR   => "01",
-        MASK_ADDR      => "10"
-    )
+            IRQ_ID_ADDR    => "00",
+            INT_ACK_ADDR   => "01",
+            MASK_ADDR      => "10"
+        )   
 
-    port map(
-        clk       => clk,
-        rst       => rst,
-        data      => data_PIC,
-        address   => address_PIC,
-        rw        => rw_MEM,         -- 0: read; 1: write
-        ce        => en_PIC,
-        intr      => intr_PIC,       -- To processor
-        irq       => irq_PIC         -- From port
-    );
+        port map(
+            clk       => clk,
+            rst       => rst,
+            data      => data_PIC,
+            address   => address_PIC,
+            rw        => rw_MEM,         -- 0: read; 1: write
+            ce        => en_PIC,
+            intr      => intr_PIC,       -- To processor
+            irq       => irq_PIC         -- From port
+        );
 
 end behavioral;

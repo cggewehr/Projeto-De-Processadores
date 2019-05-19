@@ -30,7 +30,8 @@ architecture Behavioural of R8_uC_TOPLVL is
 	signal port_io_uC                 : std_logic_vector(15 downto 0);
 
 	-- CryptoManager signals
-    signal data_R8                    : std_logic_vector(7 downto 0);
+    signal data_in_R8                 : std_logic_vector(7 downto 0);
+    signal data_out_R8                : std_logic_vector(7 downto 0);
 	signal data_AV_R8                 : std_logic;
 	signal ack_R8                     : std_logic;
 	signal eom_R8                     : std_logic;
@@ -83,10 +84,11 @@ begin
             rst => reset_sync,
 
             -- Processor
-            data       => data_R8,
-            data_AV_R8 => data_AV_R8,
-            ack_R8     => ack_R8,
-            eom_R8     => eom_R8,
+            data_in_R8  => data_in_R8,
+            data_out_R8 => data_out_R8,
+            data_AV_R8  => data_AV_R8,
+            ack_R8      => ack_R8,
+            eom_R8      => eom_R8,
 
             -- CryptoMessage 0
             data_in_crypto(0)     => data_in(0),
@@ -122,31 +124,88 @@ begin
         );
 
     -- CryptoMessage peripheral
-    CryptoMessage: entity work.CryptoMessage
+    CryptoMessage0: entity work.CryptoMessage
         generic map(
-            MSG_INTERVAL => 2000, -- Waits 2000 clocks before sending next msg
+            MSG_INTERVAL => 1000, -- Waits 1000 clocks before sending next msg
             FILE_NAME  => "empire.txt"
         )
     	port map(
     		clk         => clk_4,
     		rst         => reset_sync,
-    		data_in     => data_in_crypto,
-    		data_out    => data_out_crypto,
-    		keyExchange => keyEXG_crypto,
-    		data_AV     => data_AV_crypto,
-    		ack         => ack_crypto,
-    		eom         => eom_crypto
+    		data_in     => data_in(0),
+    		data_out    => data_out(0),
+    		keyExchange => keyExchange(0),
+    		data_AV     => data_AV(0),
+    		ack         => ack(0),
+    		eom         => eom(0)
     	);
 
-    data_in_crypto <= port_io_uC(15 downto 8);
-   	port_io_uC(3) <= data_AV_crypto;
-   	port_io_uC(2) <= keyEXG_crypto;
-   	ack_crypto <= port_io_uC(1);
-   	port_io_uC(0) <= eom_crypto;
+    CryptoMessage1: entity work.CryptoMessage
+        generic map(
+            MSG_INTERVAL => 2000, -- Waits 2000 clocks before sending next msg
+            FILE_NAME  => "RevolutionCalling.txt"
+        )
+        port map(
+            clk         => clk_4,
+            rst         => reset_sync,
+            data_in     => data_in(1),
+            data_out    => data_out(1),
+            keyExchange => keyExchange(1),
+            data_AV     => data_AV(1),
+            ack         => ack(1),
+            eom         => eom(1)
+        );
 
-    TRISTATE_CRYPTO_TO_PORT <= data_out_crypto;
-    TRISTATE_CRYPTO_TO_PORT_EN <= port_io_uC(7);
+    CryptoMessage2: entity work.CryptoMessage
+        generic map(
+            MSG_INTERVAL => 3000, -- Waits 3000 clocks before sending next msg
+            FILE_NAME  => "DoctorRockter.txt"
+        )
+        port map(
+            clk         => clk_4,
+            rst         => reset_sync,
+            data_in     => data_in(2),
+            data_out    => data_out(2),
+            keyExchange => keyExchange(2),
+            data_AV     => data_AV(2),
+            ack         => ack(2),
+            eom         => eom(2)
+        );
 
-    port_io_uC(15 downto 8) <= TRISTATE_CRYPTO_TO_PORT when TRISTATE_CRYPTO_TO_PORT_EN = '1' else (others=>'Z');
+    CryptoMessage3: entity work.CryptoMessage
+        generic map(
+            MSG_INTERVAL => 4000, -- Waits 4000 clocks before sending next msg
+            FILE_NAME  => "empire.txt"
+        )
+        port map(
+            clk         => clk_4,
+            rst         => reset_sync,
+            data_in     => data_in(3),
+            data_out    => data_out(3),
+            keyExchange => keyExchange(3),
+            data_AV     => data_AV(3),
+            ack         => ack(3),
+            eom         => eom(3)
+        );
+
+    port_io_uC(12) <= keyExchange(0); -- Highest priority Crypto
+    port_io_uC(13) <= keyExchange(1);
+    port_io_uC(14) <= keyExchange(2);
+    port_io_uC(15) <= keyExchange(3); -- Lowest priority Crypto
+
+    data_AV_R8 <= port_io_uC(11);
+    port_io_uC(10) <= ack_R8;
+    eom_R8 <= port_io_uC(9);
+
+   	port_io_uC(11) <= data_AV_R8;
+   	ack_crypto <= port_io_uC(10);
+   	port_io_uC(9) <= eom_crypto;
+
+    TRISTATE_CRYPTO_TO_PORT <= data_out_R8;
+    TRISTATE_CRYPTO_TO_PORT_EN <= port_io_uC(8);
+
+    port_io_uC(7 downto 0) <= TRISTATE_CRYPTO_TO_PORT when TRISTATE_CRYPTO_TO_PORT_EN = '1' else (others=>'Z');
+
+    data_in_R8 <= port_io_uC(7 downto 0);
 	
 end architecture Behavioural;

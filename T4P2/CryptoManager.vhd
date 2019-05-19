@@ -22,7 +22,8 @@ entity CryptoManager is
         rst                 : in std_logic;
 
         -- Processor Interface
-        data                : inout std_logic_vector(DATA_WIDTH-1 downto 0);
+        data_in_R8          : in std_logic_vector(DATA_WIDTH-1 downto 0);
+        data_out_R8         : out std_logic_vector(DATA_WIDTH-1 downto 0);
         data_av_R8          : out std_logic;
         ack_R8              : in std_logic;
         eom_R8              : out std_logic;      
@@ -39,7 +40,7 @@ end CryptoManager;
 
 architecture Behavioural of CryptoManager is
 
-    type State is (waitingITR, waitingMAGICNUMBER, txMAGICNUMBER, txCHAR, waitingACK, waitingACK_EOM);
+    type State is (waitingITR, waitingMAGICNUMBER, txMAGICNUMBER, txCHAR, waitingACK, waitingACK_EOM, txACK, txACK_EOM);
 
     signal currentState: State;
     signal lockedCrypto : integer;
@@ -69,34 +70,34 @@ begin
 
                 for i in 0 to CRYPTO_AMOUNT-1 loop
                     if keyExchange_crypto(i) = '1' then
-                        lockedCrypto <= i;                  -- Determines which Crypto to initiate communication (lowest numbered Cryptos have higher priority)
-                        data <= data_out_crypto(i);         -- Transmits Crypto's magic number to R8
-                        currentState <= waitingMAGICNUMBER; -- Waits for processor acknowledgement
-                        exit;                               -- Stop checking for new communication requests
+                        lockedCrypto <= i;                      -- Determines which Crypto to initiate communication (lowest numbered Cryptos have higher priority)
+                        data_out_R8 <= data_out_crypto(i);      -- Transmits Crypto's magic number to R8
+                        currentState <= waitingMAGICNUMBER;     -- Waits for processor acknowledgement
+                        exit;                                   -- Stop checking for new communication requests
                     end if;
                 end loop; -- If no keyExchange is active, holds on waitingITR
 
             elsif currentState = waitingMAGICNUMBER then
 
                 if ack_R8 = '1' then
-                    data_in_crypto(lockedCrypto) <= data;   -- Transmits R8's magic number to locked crypto
-                    ack_crypto(lockedCrypto) <= '1';        -- ACK pulse
+                    data_in_crypto(lockedCrypto) <= data_in_R8; -- Transmits R8's magic number to locked crypto
+                    ack_crypto(lockedCrypto) <= '1';            -- ACK pulse
                     currentState <= txMAGICNUMBER;
                 else
-                    currentState <= waitingMAGICNUMBER;     -- waits for processor to transmit its magic number
+                    currentState <= waitingMAGICNUMBER;         -- waits for processor to transmit its magic number
                 end if;
 
             elsif currentState = txMAGICNUMBER then
 
-                ack_crypto(lockedCrypto) <= '0';            -- Completes ACK pulse
+                ack_crypto(lockedCrypto) <= '0';                -- Completes ACK pulse
 
                 currentState <= txCHAR;
 
             elsif currentState = txCHAR then
-                currentState <= txCHAR;                     -- Defaults to txCHAR
+                currentState <= txCHAR;                         -- Defaults to txCHAR
 
                 if data_av_crypto(lockedCrypto) = '1' then
-                    data <= data_out_crypto(lockedCrypto);
+                    data_out_R8 <= data_out_crypto(lockedCrypto);
                     data_av_R8 <= '1';
 
                     if eom_crypto(lockedCrypto) = '1' then
