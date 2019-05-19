@@ -6,17 +6,16 @@
 ; CARLOS GEWEHR E EMILIO FERREIRA
 
 ; DESCRIÇÃO:
-; PROCESSADOR R8 COM SUPORTE A INTERRUPÇÕES DE I/O
+; PROCESSADOR R8 COM SUPORTE A INTERRUPÇÕES DE I/O VIA PIC
 
 ; APLICAÇÃO ATUAL:
-; COMUNICAÇAO COM PERIFERICO "CRYPTOMESSAGE" VIA INTERRUPÇÃO
+; COMUNICAÇAO COM MULTIPLOS PERIFERICOS "CRYPTOMESSAGE" VIA INTERRUPÇÃO COM PRIORIDADES
 
 ; CHANGELOG:
-; v0.1 (Gewehr) - 06/05/2019 : Implementada logica de tratamento de interrupção
-; v0.2 (Gewehr) - 07/05/2019 : Implementadas subrotinas GeraACK e LeCaracter
+; 
 
-; TODO: (as of v0.2)
-;  - Implementar subrotinas :  CalculaMagicNumberR8, CalculaCryptoKey
+; TODO: 
+;  
 
 ; OBSERVAÇÕES:
 ;   - O parametro ISR_ADDR deve ser setado para 0x"0001" na instanciação do processador na entity top level
@@ -34,25 +33,26 @@
 ; --------------------- r15 = Retorno de subrotina
 
 ;////////////////////////////////////////////////////////////////////////////////////////////////////////////
-; port_io[15] = data[7] (in/out)
-; port_io[14] = data[6] (in/out)
-; port_io[13] = data[5] (in/out)
-; port_io[12] = data[4] (in/out)
-; port_io[11] = data[3] (in/out)
-; port_io[10] = data[2] (in/out)
-; port_io[9]  = data[1] (in/out)
-; port_io[8]  = data[0] (in/out)
 
-; port_io[7] = Direção dos bits de dados (dataDD) (15 a 8) , 1 = entrada, 0 = saida (out)
+; port_io[8] = Direção dos bits de dados (dataDD) (15 a 8) , 1 = entrada, 0 = saida (out)
 
-; port_io[6] = Não utilizado (x)
-; port_io[5] = Não utilizado (x)
-; port_io[4] = Não utilizado (x)
+; port_io[7] = data[7] (in/out)
+; port_io[6] = data[6] (in/out)
+; port_io[5] = data[5] (in/out)
+; port_io[4] = data[4] (in/out)
+; port_io[3] = data[3] (in/out)
+; port_io[2] = data[2] (in/out)
+; port_io[1] = data[1] (in/out)
+; port_io[0] = data[0] (in/out)
 
-; port_io[3] = data_av     (in)
-; port_io[2] = keyExchange (in)
-; port_io[1] = ack         (out)
-; port_io[0] = eom         (in)
+; port_io[11] = data_av (in)
+; port_io[10] = ack (out)
+; port_io[9]  = eom (in)
+
+; port_io[12] = keyExchange CryptoMessage0 (in) Maior prioridade
+; port_io[13] = keyExchange CryptoMessage0 (in)
+; port_io[14] = keyExchange CryptoMessage0 (in)
+; port_io[15] = keyExchange CryptoMessage0 (in) Menor prioridade
 
 .org #0000h
 
@@ -71,7 +71,12 @@ setup:
     ldh r0, #7Fh
     ldl r0, #FFh
     ldsp r0
-
+    
+;   Seta endereço do tratador de interrupção
+    ldh r0, #InterruptionServiceRoutine
+    ldl r0, #InterruptionServiceRoutine
+    ldisra r0
+    
 ;   Inicialização dos registradores
     xor r0, r0, r0
     xor r1, r1, r1
@@ -522,33 +527,34 @@ LeCaracter:           ; Le caracter atual da porta, salva nos arrays, incrementa
 InterruptionServiceRoutine:
 
 ; 1. Salvamento de contexto
-; 2. Verificação da origem da interrupção (polling) e salto para o driver correspondente (jsr)
-; 3. Recuperação de contexto
-; 4. Retorno (rti)
+; 2. Ler do PIC o número da IRQ
+; 3. Indexar irq_handlers e gravar em algum registrador o endereço do handler
+; 4. jsr reg (chama handler)
+; 5. Notificar PIC sobre a IRQ tratada
+; 6. Recuperação de contexto
+; 7. Retorno (rti)
 
 ;////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-; port_io[15] = data[7] (in/out)
-; port_io[14] = data[6] (in/out)
-; port_io[13] = data[5] (in/out)
-; port_io[12] = data[4] (in/out)
-; port_io[11] = data[3] (in/out)
-; port_io[10] = data[2] (in/out)
-; port_io[9]  = data[1] (in/out)
-; port_io[8]  = data[0] (in/out)
+; port_io[8] = Direção dos bits de dados (dataDD) (15 a 8) , 1 = entrada, 0 = saida (out)
 
-; port_io[7] = Direção dos bits de dados (dataDD) (15 a 8) , 1 = entrada, 0 = saida (out)
+; port_io[7] = data[7] (in/out)
+; port_io[6] = data[6] (in/out)
+; port_io[5] = data[5] (in/out)
+; port_io[4] = data[4] (in/out)
+; port_io[3] = data[3] (in/out)
+; port_io[2] = data[2] (in/out)
+; port_io[1] = data[1] (in/out)
+; port_io[0] = data[0] (in/out)
 
-; port_io[6] = Não utilizado (x)
-; port_io[5] = Não utilizado (x)
-; port_io[4] = Não utilizado (x)
+; port_io[11] = data_av (in)
+; port_io[10] = ack (out)
+; port_io[9]  = eom (in)
 
-; port_io[3] = data_av (in)
-; port_io[2] = keyExchange (in)
-; port_io[1] = ack (out)
-; port_io[0] = eom (in)
-
-; Interrupção pode ser gerada por bit 15 e bit 14
+; port_io[12] = keyExchange CryptoMessage0 (in) Maior prioridade
+; port_io[13] = keyExchange CryptoMessage0 (in)
+; port_io[14] = keyExchange CryptoMessage0 (in)
+; port_io[15] = keyExchange CryptoMessage0 (in) Menor prioridade
 
 ;   Salva contexto
     push r0
@@ -574,48 +580,11 @@ InterruptionServiceRoutine:
     xor r5, r5, r5
     xor r6, r6, r6
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; LEITURA DO DADO DA PORTA, NAO MUDAR ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   Seta porta como entrada
+;   Ler ID da interrupção do PIC
 
-;   r1 <= &PortConfig
-    ldh r1, #arrayPorta
-    ldl r1, #arrayPorta
-    addi r1 #1
-    ld r1, r0, r1
+;   Jump para handler
 
-;   r5 <= Dados como entrada, dataDD como saida, bits de controle de acordo
-    ldh r5, #FFh
-    ldl r5, #0Dh
-    st r5, r0, r1
-
-;   r1 <= &PortData
-    ldh r1, #arrayPorta
-    ldl r1, #arrayPorta
-    ld r1, r0, r1
-
-;   r5 <= Habilita Tristate de data_out do periferico CryptoMessage
-    ldh r5, #00h
-    ldl r5, #8Dh
-    st r5, r0, r1
-
-;   r5 <= PortData
-    ld r5, r0, r1
-
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; LEITURA DO DADO DA PORTA, NAO MUDAR ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;   Carrega mascara de comparação para bit 2
-    ldh r1, #00h
-    ldl r1, #04h
-
-;   Se operação com mascara resultar em 0, interrupção for gerada por bit 2
-    and r6, r1, r5
-    sub r6, r6, r1
-    jmpzd #callDriverBit2
-
-  returnCallDriverBit2:
-
-;   ADICIONAR AQUI TRATAMENTO PARA NOVOS GERADORES DE INTERRUPÇÃO
-
+;   Notificar interrupção tratada
 
 ;   Recupera contexto
     popf

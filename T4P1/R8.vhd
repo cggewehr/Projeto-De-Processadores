@@ -56,8 +56,8 @@ architecture Behavioural of R8 is
 		  MUL, DIV, MFH, MFL
     ); 
 
-	type RegisterArray is array (natural range <>) of std_logic_vector(15 downto 0); 
-   type instrucionType is (tipo1, tipo2, outras);
+    type RegisterArray is array (natural range <>) of std_logic_vector(15 downto 0); 
+    type instrucionType is (tipo1, tipo2, outras);
 	
 	signal currentInstruction          : R8Instruction;
 	signal currentState                : State;
@@ -133,20 +133,20 @@ begin
                           LDH    when OPCODE = x"8" else
                           LD     when OPCODE = x"9" else
                           ST     when OPCODE = x"A" else      
-					           SL0    when OPCODE = x"B"  and  REGSOURCE2 = x"0" else
-				              SL1    when OPCODE = x"B"  and  REGSOURCE2 = x"1" else
+                          SL0    when OPCODE = x"B"  and  REGSOURCE2 = x"0" else
+                          SL1    when OPCODE = x"B"  and  REGSOURCE2 = x"1" else
                           SR0    when OPCODE = x"B"  and  REGSOURCE2 = x"2" else
-				              SR1    when OPCODE = x"B"  and  REGSOURCE2 = x"3" else
+                          SR1    when OPCODE = x"B"  and  REGSOURCE2 = x"3" else
                           NOT_A  when OPCODE = x"B"  and  REGSOURCE2 = x"4" else
                           NOP    when OPCODE = x"B"  and  REGSOURCE2 = x"5" else
                           HALT   when OPCODE = x"B"  and  REGSOURCE2 = x"6" else
-				              LDSP   when OPCODE = x"B"  and  REGSOURCE2 = x"7" else
-				              RTS    when OPCODE = x"B"  and  REGSOURCE2 = x"8" else
-				              POP    when OPCODE = x"B"  and  REGSOURCE2 = x"9" else
+                          LDSP   when OPCODE = x"B"  and  REGSOURCE2 = x"7" else
+                          RTS    when OPCODE = x"B"  and  REGSOURCE2 = x"8" else
+                          POP    when OPCODE = x"B"  and  REGSOURCE2 = x"9" else
                           PUSH   when OPCODE = x"B"  and  REGSOURCE2 = x"A" else
 						  
 						  -- Novas Instruções T4P1
-						        MUL     when OPCODE = x"B" and REGSOURCE2 = x"B" else -- MULTIPLICAÇÃO
+                          MUL     when OPCODE = x"B" and REGSOURCE2 = x"B" else -- MULTIPLICAÇÃO
                           DIV     when OPCODE = x"B" and REGSOURCE2 = x"C" else -- DIVISÃO
                           MFH     when OPCODE = x"B" and REGSOURCE2 = x"D" else -- MOVE FROM HIGH
                           MFL     when OPCODE = x"B" and REGSOURCE2 = x"E" else -- MOVE FROM LOW
@@ -181,9 +181,8 @@ begin
 
                           -- Novas Instruções T3P2
                           PUSHF when OPCODE = x"C" and REGSOURCE2 = x"C" else -- PUSH FLAGS
-			                 POPF  when OPCODE = x"C" and REGSOURCE2 = x"D" else -- POP FLAGS
-			                 RTI   when OPCODE = x"C" and REGSOURCE2 = x"E" else -- RETORNO DE INTERRUPCAO
-                            
+			              POPF  when OPCODE = x"C" and REGSOURCE2 = x"D" else -- POP FLAGS
+			              RTI   when OPCODE = x"C" and REGSOURCE2 = x"E" else -- RETORNO DE INTERRUPCAO 
                           
                           NOP; -- Jumps condicionais com flag = 0
 								                            
@@ -193,10 +192,10 @@ begin
 
 			regPC    <= (others=>'0');
 			regSP    <= (others=>'0');
-         regALU   <= (others=>'0');
-         regIR    <= (others=>'0');
-         regA     <= (others=>'0');
-         regB     <= (others=>'0');
+            regALU   <= (others=>'0');
+            regIR    <= (others=>'0');
+            regA     <= (others=>'0');
+            regB     <= (others=>'0');
 			regFLAGS <= (others=>'0');
 			regHIGH  <= (others=>'0');
 			regLOW   <= (others=>'0');
