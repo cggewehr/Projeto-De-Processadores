@@ -3,7 +3,7 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 package CryptoManagerPkg is
-    type Data_Out_Array is array (natural range <> ) of std_logic_vector;
+    type DataArray is array (natural range <> ) of std_logic_vector;
 end package;
 
 library ieee;
@@ -23,8 +23,6 @@ entity CryptoManager is
 
         -- Processor Interface
         data                : inout std_logic_vector(DATA_WIDTH-1 downto 0);
-        dataDD              : in std_logic;
-        keyExchange_R8      : out std_logic_vector(CRYPTO_AMOUNT-1 downto 0); 
         data_av_R8          : out std_logic;
         ack_R8              : in std_logic;
         eom_R8              : out std_logic;      
@@ -34,8 +32,8 @@ entity CryptoManager is
         data_av_crypto      : in std_logic_vector(CRYPTO_AMOUNT-1 downto 0);
         ack_crypto          : out std_logic_vector(CRYPTO_AMOUNT-1 downto 0);
         eom_crypto          : in std_logic_vector(CRYPTO_AMOUNT-1 downto 0);
-        data_in_crypto      : out std_logic_vector(DATA_WIDTH-1 downto 0);
-        data_out_crypto     : in Data_Out_Array(CRYPTO_AMOUNT-1)(DATA_WIDTH-1) -- Será que funciona?
+        data_in_crypto      : out DataArray(CRYPTO_AMOUNT-1)(DATA_WIDTH-1);
+        data_out_crypto     : in DataArray(CRYPTO_AMOUNT-1)(DATA_WIDTH-1) -- Será que funciona?
     );
 end CryptoManager;
 
