@@ -77,10 +77,6 @@ begin
 
     -- CryptoManager (Multiplexes CryptoMessages)    
     CryptoManager: entity work.CryptoManager
-        generic map(
-            CRYPTO_AMOUNT => 4,
-            DATA_WIDTH    => 8
-        )
         port map (
             clk => clk_2,
             rst => reset_sync,
