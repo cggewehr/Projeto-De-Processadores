@@ -552,9 +552,9 @@ InterruptionServiceRoutine:
 ; port_io[9]  = eom (in)
 
 ; port_io[12] = keyExchange CryptoMessage0 (in) Maior prioridade
-; port_io[13] = keyExchange CryptoMessage0 (in)
-; port_io[14] = keyExchange CryptoMessage0 (in)
-; port_io[15] = keyExchange CryptoMessage0 (in) Menor prioridade
+; port_io[13] = keyExchange CryptoMessage1 (in)
+; port_io[14] = keyExchange CryptoMessage2 (in)
+; port_io[15] = keyExchange CryptoMessage3 (in) Menor prioridade
 
 ;////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -638,22 +638,26 @@ InterruptionServiceRoutine:
 
 irq0Handler: ; CryptoMessage 0
 
-    jsrd #DriverCrypto0
+    xor r2, r2, r2
+    jsrd #GenericCryptoDriver
     rts
 
 irq1Hanlder: ; CryptoMessage 1
 
-    jsrd #DriverCrypto1
+    addi r2, #1
+    jsrd #GenericCryptoDriver
     rts
 
 irq2Handler: ; CryptoMessage 2
 
-    jsrd #DriverCrypto2
+    addi r2, #2
+    jsrd #GenericCryptoDriver
     rts
     
 irq3Handler: ; CryptoMessage 3
 
-    jsrd #DriverCrypto3
+    addi r2, #3
+    jsrd #GenericCryptoDriver
     rts
     
 irq4Handler: ; Aberto
@@ -676,7 +680,7 @@ irq7Handler: ; Aberto
 ;-------------------------------------------------DRIVERS----------------------------------------------------
 
 
-driverKeyExchange:
+GenericCryptoDriver: ; Espera como parametro o ID do CryptoMessage interrompente em r2
 
 ; 1. CryptoMessage ativa keyExchange e coloca no barramento data_out seu magicNumber
 ; 2. R8 lê o magicNumber e calcula o seu magicNumber
@@ -706,14 +710,14 @@ driverKeyExchange:
 
 ;   Seta PortConfig
     ldl r4, #01h   ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &PortConfig ]
-    ldh r5, #FFh   ; r5 <= "11111111_0xxx1101"
-    ldl r5, #0Dh   ; bits 15 a 8 inicialmente são entrada, espera keyExchange
+    ldh r5, #FAh   ; r5 <= "11111010_11111111"
+    ldl r5, #FFh   ; bits 15 a 8 inicialmente são entrada, espera keyExchange
     st r5, r1, r4  ; PortConfig <= "11111111_0xxx1101"
 
-;   Set data direction as IN
-    ldh r5, #00h
-    ldl r5, #80h
-    st r5, r0, r1 ; portData <= "xxxxxxxx_1xxxxx0x"
+;   Set data direction as IN ( ack = 0, dataDD = 1 )
+    ldh r5, #01h
+    ldl r5, #00h
+    st r5, r0, r1 ; portData <= "xxxxx0x1_xxxxxxxx"
 
 ;   r1 <= &PortData
     ldh r1, #arrayPorta
@@ -723,15 +727,8 @@ driverKeyExchange:
 ;   r5 <= PortData
     ld r5, r0, r1
 
-;   Shifta até LSB do dado estar no bit 0
-    sr0 r5, r5 ; LSB @ 7
-    sr0 r5, r5 ; LSB @ 6
-    sr0 r5, r5 ; LSB @ 5
-    sr0 r5, r5 ; LSB @ 4
-    sr0 r5, r5 ; LSB @ 3
-    sr0 r5, r5 ; LSB @ 2
-    sr0 r5, r5 ; LSB @ 1
-    sr0 r5, r5 ; LSB @ 0 r5 <= "00000000 & MagicNumber"
+;   Apaga parte alta dos dados lidos ( r5 <= "00000000" & magicNumberCrypto )
+    ldh r5, #0
 
 ;   Carrega endereço da variavel magicNumberCryptoMessage
     ldh r1, #magicNumberCryptoMessage
@@ -751,12 +748,12 @@ driverKeyExchange:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; ESTADO 3 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;   set data direction as OUT
+;   Set data direction as OUT
     ldh r1, #arrayPorta
     ldl r1, #arrayPorta
     ld r1, r0, r1        ; r1 <= &portData
 
-;   r5 <= "xxxxxxxx_0xxxxx0x" (Disables Tristate)
+;   r5 <= "xxxxx0x0_xxxxxxxx" (Disables Tristate)
     ldh r5, #00h
     ldl r5, #00h
 
@@ -768,28 +765,18 @@ driverKeyExchange:
     addi r1, #1
     ld r1, r0, r1        ; r1 <= &portConfig
 
-    ldh r5, #00h
-    ldl r5, #0Dh         ; dataDD <= '0' (out), outros bits de configuração são mantidos (r5 <= "0xxx_1101")
+    ldh r5, #FAh
+    ldl r5, #00h         
 
-    st r5, r0, r1        ; portConfig <= ("00000000_0xxx1101")
+    st r5, r0, r1        ; portConfig <= ("11111010_00000000")
 
 ;   Prepara dado para escrita
     ldh r1, #magicNumberR8
     ldl r1, #magicNumberR8
     ld r5, r0, r1
 
-;   Shifta magicNumberR8 até sua posição
-    sl0 r5, r5 ; MSB @ 8
-    sl0 r5, r5 ; MSB @ 9
-    sl0 r5, r5 ; MSB @ 10
-    sl0 r5, r5 ; MSB @ 11
-    sl0 r5, r5 ; MSB @ 12
-    sl0 r5, r5 ; MSB @ 13
-    sl0 r5, r5 ; MSB @ 14
-    sl0 r5, r5 ; MSB @ 15
-
 ;   Seta ack para '1', dataDD para '0' (saida)
-    ldl r5, #02h ; r5 <= "(magicNumberR8)_0xxx_xx1x"
+    ldh r5, #02h ; r5 <= "xxxxx101" & magicNumberR8
 
 ;   Carrega endereço de PortData
     ldh r1, #arrayPorta
@@ -809,18 +796,18 @@ driverKeyExchange:
     ld r1, r0, r1        ; r1 <= &portConfig
 
 ;   Seta bits de dados novamente como entrada
-    ldh r5, #FFh
-    ldl r5, #0Dh
-    st r5, r0, r1        ; r5 <= "11111111_00001101"
+    ldh r5, #FAh
+    ldl r5, #FFh
+    st r5, r0, r1        ; r5 <= "11111010_11111111"
 
 ;   Seta dataDD como entrada (dataDD = '1', ack = '0')
     ldh r1, #arrayPorta
     ldl r1, #arrayPorta
     ld r1, r0, r1        ; r1 <= &portData
 
-    ldh r5, #00h
-    ldl r5, #80h
-    st r5, r0, r1        ; r5 <= "xxxx_xxxx_1xxx_xx0x"
+    ldh r5, #01h
+    ldl r5, #00h
+    st r5, r0, r1        ; r5 <= "xxxx_x0x1_xxxx_xxxx"
 
 ;   Seta argumento para calculo da chave criptografica (r2 <= magicNumberCryptoMessage)
     ldh r1, #magicNumberCryptoMessage
