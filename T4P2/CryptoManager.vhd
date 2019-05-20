@@ -3,7 +3,9 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 package CryptoManagerPkg is
-    type DataArray is array (natural range <> ) of std_logic_vector;
+    constant CRYPTO_AMOUNT : natural := 4; 
+    constant DATA_WIDTH : natural := 8; 
+    type DataArray is array (natural range 0 to CRYPTO_AMOUNT-1 ) of std_logic_vector(DATA_WIDTH-1 downto 0);
 end package;
 
 library ieee;
@@ -12,10 +14,6 @@ use ieee.numeric_std.all;
 use work.CryptoManagerPkg.all;
 
 entity CryptoManager is
-    generic (
-        CRYPTO_AMOUNT       : integer;
-        DATA_WIDTH          : integer
-    );
     port(
         --Basic
         clk                 : in std_logic;
@@ -33,8 +31,8 @@ entity CryptoManager is
         data_av_crypto      : in std_logic_vector(CRYPTO_AMOUNT-1 downto 0);
         ack_crypto          : out std_logic_vector(CRYPTO_AMOUNT-1 downto 0);
         eom_crypto          : in std_logic_vector(CRYPTO_AMOUNT-1 downto 0);
-        data_in_crypto      : out DataArray(CRYPTO_AMOUNT-1)(DATA_WIDTH-1);
-        data_out_crypto     : in DataArray(CRYPTO_AMOUNT-1)(DATA_WIDTH-1) -- Será que funciona?
+        data_in_crypto      : out DataArray;
+        data_out_crypto     : in DataArray
     );
 end CryptoManager;
 

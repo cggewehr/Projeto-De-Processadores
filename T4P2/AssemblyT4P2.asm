@@ -207,8 +207,8 @@ end:
 
 ;------------------------------------------------SUBROTINAS--------------------------------------------------
 
-; CalculaMagicNumberR8:    DEBUG
-; CalculaCryptoKey:        DEBUG
+; CalculaMagicNumberR8:       DONE
+; CalculaCryptoKey:           DONE
 ; GeraACK:                    DONE
 ; LeCaracter:                 DONE
 
@@ -556,7 +556,9 @@ InterruptionServiceRoutine:
 ; port_io[14] = keyExchange CryptoMessage0 (in)
 ; port_io[15] = keyExchange CryptoMessage0 (in) Menor prioridade
 
-;   Salva contexto
+;////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+;-----------------------------------------------Salva contexto-----------------------------------------------
     push r0
     push r1
     push r2
@@ -580,13 +582,38 @@ InterruptionServiceRoutine:
     xor r5, r5, r5
     xor r6, r6, r6
 
-;   Ler ID da interrupção do PIC
+;------------------------------------------Ler ID da interrupção do PIC--------------------------------------
 
-;   Jump para handler
+;   r4 <= IrqID
+    ldh r4, #arrayPIC
+    ldl r4, #arrayPIC
+    ld r4, r0, r4 ; r4 <= &IrqID
+    ld r4, r0, r4 ; r4 <= IrqID
+    
+;   r1 <= &interruptVector
+    ldh r1, #interruptVector
+    ldl r1, #interruptVector
+    
+;   r1 <= interruptVector[IrqID]
+    ld r1, r4, r1
+    
+;-----------------------------------------------Jump para handler--------------------------------------------
 
-;   Notificar interrupção tratada
+    jsr r1
 
-;   Recupera contexto
+;-----------------------------------------Notificar interrupção tratada--------------------------------------
+    
+;   r1 <= &IntACK
+    ldh r1, #arrayPIC
+    ldl r1, #arrayPIC
+    addi r1, #1
+    ld r1, r0, r1
+    
+;   IntACK <= IrqID
+    st r1, r0, r4
+
+;-----------------------------------------------Recupera contexto--------------------------------------------
+
     popf
     pop r15
     pop r14
@@ -607,16 +634,47 @@ InterruptionServiceRoutine:
 
     rti
 
-;--------------------------------------------------DRIVERS---------------------------------------------------
+;-------------------------------------------------HANDLERS---------------------------------------------------
 
-;;;;;;;; CHAMADAS P/ DRIVERS
+irq0Handler: ; CryptoMessage 0
 
-callDriverBit2:
-;   bit 2 = keyExchange
-    jsrd #driverKeyExchange
-    jmpd #returnCallDriverBit2
+    jsrd #DriverCrypto0
+    rts
 
-;;;;;;;;; DRIVERS
+irq1Hanlder: ; CryptoMessage 1
+
+    jsrd #DriverCrypto1
+    rts
+
+irq2Handler: ; CryptoMessage 2
+
+    jsrd #DriverCrypto2
+    rts
+    
+irq3Handler: ; CryptoMessage 3
+
+    jsrd #DriverCrypto3
+    rts
+    
+irq4Handler: ; Aberto
+
+    halt
+
+irq5Handler: ; Aberto
+
+    halt
+    
+irq6Handler: ; Aberto
+
+    halt
+    
+irq7Handler: ; Aberto
+
+    halt
+
+
+;-------------------------------------------------DRIVERS----------------------------------------------------
+
 
 driverKeyExchange:
 
@@ -876,9 +934,16 @@ PollingLoop: ; Espera próximo sinal de data_av = '1'
 
 .data
 
-; array de registradores da Porta Bidirecional
+; Array de registradores da Porta Bidirecional
 ; arrayPorta [ PortData(0x8000) | PortConfig(0x8001) | PortEnable(0x8002) | irqtEnable(0x8003) ]
 arrayPorta:               db #8000h, #8001h, #8002h, #8003h
+
+; Array de registradores do controlador de interrupções
+; arrayPIC [ IrqID(0x80F0) | IntACK(0x80F1) | Mask(0x80F2) ]
+arrayPIC:                 db #80F0h, #80F1h, #80F2h
+
+; Vetor com tratadores de interrupção 
+interruptVector:          db #irq0Handler, #irq1Handler, #irq2Handler, #irq3Handler, #irq4Handler, #irq5Handler, #irq6Handler, #irq7Handler 
 
 ; Variaveis p/ criptografia
 magicNumberR8:            db #0000h

@@ -65,7 +65,9 @@ begin
     -- R8 Microcontroller (Processor, Memory and I/O Port)
     Microcontroller: entity work.R8_uC
     	generic map (
-    		ASSEMBLY_FILE => "AssemblyT4P2_BRAM.txt"
+    		ASSEMBLY_FILE => "AssemblyT4P2_BRAM.txt",
+            ADDR_PORT     => "0000",
+            ADDR_PIC      => "1111"
     	)
     	port map (
     		clk     => clk_2,
