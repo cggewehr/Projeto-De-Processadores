@@ -103,27 +103,27 @@ setup:
 
 ;   Seta PortConfig
     ldl r4, #01h   ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &PortConfig ]
-    ldh r5, #FFh   ; r5 <= "11111111_00001101"
-    ldl r5, #0Dh   ; bits 15 a 8 inicialmente são entrada, espera keyExchange
-    st r5, r1, r4  ; PortConfig <= "11111111_0xxx1101"
+    ldh r5, #FAh   ; r5 <= "11111010_11111111"
+    ldl r5, #FFh   ; bits 7 a 0 inicialmente são entrada, espera interrupção
+    st r5, r1, r4  ; PortConfig <= "11111010_11111111"
 
 ;   Seta irqtEnable
     ldl r4, #03h   ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &irqtEnable ]
-    ldh r5, #00h   ; r5 <= "00000000_00000100"
-    ldl r5, #04h   ; Habilita a interrupção no bit 2 (keyExchange)
-    st r5, r1, r4  ; irqtEnable <= "00000000_0xxx0100"
+    ldh r5, #F0h   ; r5 <= "11110000_00000000"
+    ldl r5, #00h   ; Habilita a interrupção nos bits 12 a 15 
+    st r5, r1, r4  ; irqtEnable <= "11110000_00000000"
 
 ;   Seta PortEnable
     ldl r4, #02h   ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &PortEnable ]
-    ldh r5, #FFh   ; r5 <= "11111111_10001111"
-    ldl r5, #8Fh   ; Habilita acesso a todos os bits da porta de I/O, menos bits 6 a 4
-    st r5, r1, r4  ; PortEnable <= "11111111_10001111"
+    ldh r5, #FFh   ; r5 <= "11111111_11111111"
+    ldl r5, #FFh   ; Habilita acesso a todos os bits da porta de I/O
+    st r5, r1, r4  ; PortEnable <= "11111111_11111111"
 
 ;   Seta dataDD como '1', ack como '0'
     ldl r4, #0     ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &PortData ]
-    ldh r5, #00h   ; r5 <= "00000000_10000100"
-    ldl r5, #80h   ; dataDD = '1', ACK = '0'
-    st r5, r1, r4  ; portData <= "xxxxxxxx_1xxxxx0x"
+    ldh r5, #01h   ; r5 <= "xxxxx0x1_xxxxxxxx"
+    ldl r5, #00h   ; dataDD = '1', ACK = '0'
+    st r5, r1, r4  ; portData <= "xxxxx0x1_xxxxxxxx"
 
     jmpd #main
 
@@ -210,7 +210,7 @@ end:
 ; CalculaMagicNumberR8:       DONE
 ; CalculaCryptoKey:           DONE
 ; GeraACK:                    DONE
-; LeCaracter:                 DONE
+; LeCaracter:            TODO 
 
 CalculaMagicNumberR8: ; Retorna em r14 o magicNumber do processador
 
@@ -253,11 +253,11 @@ CalculaMagicNumberR8: ; Retorna em r14 o magicNumber do processador
     addi r5, #00h ; Caso a seed esteja igual a zero
     jmpd #calculoExponencial
 
-SeedInvalida:
+  SeedInvalida:
     xor r5, r5, r5 ; Zera a Seed
     jmpd #calculoExponencial
 
-calculoExponencial: ; DEBUG - r14 sendo atualizado com r6
+  calculoExponencial: ; DEBUG - r14 sendo atualizado com r6
 
     jmpzd #retornaMagicNumber
 
@@ -271,18 +271,18 @@ calculoExponencial: ; DEBUG - r14 sendo atualizado com r6
 
     jmpzd #shiftAndJump
 
-calculoMod:
+  calculoMod:
     mul r14, r6
     mfl r14 ; r14 <= r14 * 6
     div r14, r4
     mfh r14 ; r14 <= r14 * 6 mod 251
 
-shiftAndJump:
+  shiftAndJump:
     sr0  r7, r7 ; Shift da mascara
     jmpd #calculoExponencial
 
 
-retornaMagicNumber:
+  retornaMagicNumber:
     pop r13
     pop r12
     pop r7
@@ -329,7 +329,7 @@ CalculaCryptoKey: ; Retorna em r14 chave criptografica, recebe em r2 magic numbe
     addi r6, #00h ; Caso a seed esteja igual a zero
     jmpd #calculoExponencialKey
 
-calculoExponencialKey:
+  calculoExponencialKey:
     jmpzd #retornaCalculaCryptoKey
 
     mul r14, r14
@@ -340,21 +340,21 @@ calculoExponencialKey:
     and r13, r5, r2 ; Comparacao da mascara
     jmpzd #shiftAndJumpKey
 
-calculoModKey:
+  calculoModKey:
     mul r14, r6
     mfl r14 ; r14 <= r14 * magicNumberR8 |
     div r14, r4
     mfh r14 ; r14 <= r14 * magicNumberR8 mod 251
 
-shiftAndJumpKey:
+  shiftAndJumpKey:
     sr0  r5, r5 ; Shift da mascara
     jmpd #calculoExponencialKey
 
-calculaCryptoKeyRetornaZero:
+  calculaCryptoKeyRetornaZero:
     addi r14, #1
     jmpd #retornaCalculaCryptoKey
 
-retornaCalculaCryptoKey:
+  retornaCalculaCryptoKey:
     pop r13
     pop r6
     pop r5
@@ -411,6 +411,7 @@ GeraACK:              ; Envia pulso de ACK
     rts
 
 LeCaracter:           ; Le caracter atual da porta, salva nos arrays, incrementa ponteiro p/ arrays
+                      ; Espera ID do CryptoMessage interrompente em r2 (para gravar caracter atual no array correspondente)
 
     push r1
     push r4
@@ -430,8 +431,8 @@ LeCaracter:           ; Le caracter atual da porta, salva nos arrays, incrementa
     ld r1, r0, r1       ; Carrega &portData
 
 ;   r5 <= (Bits de dados como entrada, dataDD como saida, outros de acordo)
-    ldh r5, #FFh
-    ldl r5, #0Dh
+    ldh r5, #FAh
+    ldl r5, #FFh
     st r5, r0, r1
 
 ;   r1 <= &portData
@@ -440,34 +441,22 @@ LeCaracter:           ; Le caracter atual da porta, salva nos arrays, incrementa
     ld r1, r0, r1       ; Carrega &portData
 
 ;   r5 <= dataDD = IN, ACK = 0 (Habilita Tristate)
-    ldh r5, #00h
-    ldl r5, #80h
+    ldh r5, #01h
+    ldl r5, #00h
     st r5, r0, r1
 
 ;   r5 <= PortData
     ld r5, r0, r1
-
-;   Shifta até LSB do dado estar no bit 0
-    sr0 r5, r5 ; LSB @ 7
-    sr0 r5, r5 ; LSB @ 6
-    sr0 r5, r5 ; LSB @ 5
-    sr0 r5, r5 ; LSB @ 4
-    sr0 r5, r5 ; LSB @ 3
-    sr0 r5, r5 ; LSB @ 2
-    sr0 r5, r5 ; LSB @ 1
-    sr0 r5, r5 ; LSB @ 0
-
-;   Salva caracter no vetor de dados criptografados
-    ldh r1, #arrayEncrypted
-    ldl r1, #arrayEncrypted
-
+  
+;   r1 <= arrayEncrypted[irqID]
+    ldh r1, #arrayDecrypted
+    ldl r1, #arrayDecrypted
+    ld r1, r2, r1  ; r1 <= arrayEncrypted(0, 1, 2 ou 3)
+    
+;   r4 <= cryptoPointer
     ldh r4, #arrayCryptoPointer
     ldl r4, #arrayCryptoPointer
-    ld r4, r0, r4
-
-    st r5, r1, r4 ; arrayEncrypted[r4] = Caracter criptografado
-
-    add r10, r0, r5 ; r10 <= DADO CRIPTOGRAFADO
+    ld r4, r2, r4
 
 ;   Carrega chave de criptografia
     ldh r6, #cryptoKey
@@ -479,35 +468,67 @@ LeCaracter:           ; Le caracter atual da porta, salva nos arrays, incrementa
 
 ;   Zera bit não relevantes
     ldh r6, #0
-    ldl r6, #7Fh ; r6 <= "0000000001111111"
+    ldl r6, #7Fh ; r6 <= "00000000_01111111"
     and r5, r5, r6
 
-;   Salva caracter no vetor de dados descriptografados
-    ldh r1, #arrayDecrypted
-    ldl r1, #arrayDecrypted
+; if "saveHighLow" == 0, save character on lower part, else, save on higher part
 
+;   r6 <= saveHighLow
+    ldh r6, #arraySaveHighLow
+    ldl r6, #arraySaveHighLow
+    ld r6, r2, r6
+    add r6, r0, r6 ; Gera flag
+
+    jmpzd #saveOnLower
+    jmpd #saveOnHigher
+
+  saveOnLower:
+  
     st r5, r1, r4 ; arrayDecrypted[r4] = Caracter descriptografado
 
-    add r11, r0, r5 ; r11 <= DADO DESCRIPTOGRAFADO
-
-;   Incrementa ponteiro dos vetores
-    ldh r1, #arrayCryptoPointer
-    ldl r1, #arrayCryptoPointer
-    ld r5, r0, r1
-
-;   Se ponteiro == 100, volta para começo do buffer
-
-    ldh r6, #0
-    ldl r6, #100
-
-    sub r6, r6, r5
-    jmpzd #resetaCryptoPointer
-
+;   Incrementa saveHighLow (sinaliza proximo caracter a ser salvo na parte alta)
+    ldh r6, #saveHighLow
+    ldl r6, #saveHighLow
+    ld r5, r0, r6
     addi r5, #1
+    st r5, r0, r6
+    
+;   Incrementa CryptoPointer
+    
 
-  returnresetaCryptoPointer:
+    jmpd #returnSaveHighLow
 
-    st r5, r0, r1
+  saveOnHigher:
+  
+;   Shifta dado até bits mais significativos
+    sl0 r5, r5 ; MSB @ 8
+    sl0 r5, r5 ; MSB @ 9
+    sl0 r5, r5 ; MSB @ 10
+    sl0 r5, r5 ; MSB @ 11
+    sl0 r5, r5 ; MSB @ 12
+    sl0 r5, r5 ; MSB @ 13
+    sl0 r5, r5 ; MSB @ 14
+    sl0 r5, r5 ; MSB @ 15
+    
+;   r6 <= Caracter salvo na parte baixa
+    ld r6, r1, r4 ; r6 <= arrayEncryped(irqID)[CryptoPointer]
+    
+;   Apaga parte alta
+    ldh r6, #0
+    
+;   Junta caracter antigo com caracter novo
+    xor r5, r5, r6
+    
+;   Salva caracter antigo & caracter novo
+    st r5, r1, r4 ; arrayDecrypted[r4] = Caracter antigo + novo
+    
+;   
+    
+    
+    
+    jmpd #returnSaveHighLow
+
+ returnSaveHighLow:
 
 ;   Gera ACK
     jsrd #GeraACK
@@ -519,9 +540,6 @@ LeCaracter:           ; Le caracter atual da porta, salva nos arrays, incrementa
 
     rts
 
-  resetaCryptoPointer:
-    xor r5, r5, r5
-    jmpd #returnresetaCryptoPointer
 ;-----------------------------------------TRATAMENTO DE INTERRUPÇÃO------------------------------------------
 
 InterruptionServiceRoutine:
@@ -938,19 +956,36 @@ magicNumberCryptoMessage: db #0000h
 cryptoKey:                db #0000h
 contadorMSGS:             db #0000h ; Novo seed para geração de magic number
 
-; Array de 100 elementos para dados criptografados
-arrayEncrypted: db #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h
+; Arrays a serem indexados com ID da interrupção
+arrayDecrypted:           db #arrayDecrypted0, #arrayDecrypted1, #arrayDecrypted2, #arrayDecrypted3
+arrayCryptoPointer:       db #CryptoPointer0, #CryptoPointer1, #CryptoPointer2, #CryptoPointer3
+arraySaveHighLow:         db #SaveHighLow0, #SaveHighLow1, #SaveHighLow2, #SaveHighLow3
 
-; Array de 100 elementos para dados decriptografados
-arrayDecrypted: db #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h
+; Variaveis CryptoMessage 0
+CryptoPointer0:           db #0000h
+arrayDecrypted0:          db #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h
+saveHighLow0              db #0001h ; Se = 0, salva caracter na parte baixa, se = 1 salva na parte alta
 
-; Ponteiro para arrays de criptografia
-arrayCryptoPointer: db #0000h
+
+; Variaveis CryptoMessage 1
+CryptoPointer1:           db #0000h
+arrayDecrypted1:          db #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h
+saveHighLow1:             db #0001h ; Se = 0, salva caracter na parte baixa, se = 1 salva na parte alta
+
+; Variaveis CryptoMessage 2
+CryptoPointer2:           db #0000h
+arrayDecrypted2:          db #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h
+saveHighLow2:             db #0001h ; Se = 0, salva caracter na parte baixa, se = 1 salva na parte alta
+
+; Variaveis CryptoMessage 3
+CryptoPointer3:           db #0000h
+arrayDecrypted3:          db #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h
+saveHighLow3:             db #0001h ; Se = 0, salva caracter na parte baixa, se = 1 salva na parte alta
 
 ; Array para aplicação principal (Bubble Sort) de 50 elementos
-arraySort: db #0050h, #0049h, #0048h, #0047h, #0046h, #0045h, #0044h, #0043h, #0042h, #0041h, #0040h, #0039h, #0038h, #0037h, #0036h, #0035h, #0034h, #0033h, #0032h, #0031h, #0030h, #0029h, #0028h, #0027h, #0026h, #0025h, #0024h, #0023h, #0022h, #0021h, #0020h, #0019h, #0018h, #0017h, #0016h, #0015h, #0014h, #0013h, #0012h, #0011h, #0010h, #0009h, #0008h, #0007h, #0006h, #0005h, #0004h, #0003h, #0002h, #0001h
+arraySort:                db #0050h, #0049h, #0048h, #0047h, #0046h, #0045h, #0044h, #0043h, #0042h, #0041h, #0040h, #0039h, #0038h, #0037h, #0036h, #0035h, #0034h, #0033h, #0032h, #0031h, #0030h, #0029h, #0028h, #0027h, #0026h, #0025h, #0024h, #0023h, #0022h, #0021h, #0020h, #0019h, #0018h, #0017h, #0016h, #0015h, #0014h, #0013h, #0012h, #0011h, #0010h, #0009h, #0008h, #0007h, #0006h, #0005h, #0004h, #0003h, #0002h, #0001h
 
 ; Tamanho do array p/ bubble sort (50 elementos)
-arraySortSize: db #50
+arraySortSize:            db #50
 
 .enddata
