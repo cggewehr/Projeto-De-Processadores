@@ -381,8 +381,8 @@ GeraACK:              ; Envia pulso de ACK
     ld r1, r0, r1       ; Carrega &portConfig
 
 ;   r5 <= (Bits de dados como entrada, dataDD saida, outros de acordo)
-    ldh r5, #FFh
-    ldl r5, #0Dh
+    ldh r5, #FAh
+    ldl r5, #FFh
     st r5, r0, r1
 
 ;   r1 <= &portData
@@ -391,12 +391,12 @@ GeraACK:              ; Envia pulso de ACK
     ld r1, r0, r1
 
 ;   r5 <= dataDD = '1', ACK = '1'
-    ldh r5, #00h
-    ldl r5, #82h
+    ldh r5, #05h
+    ldl r5, #00h
 
 ;   r6 <= dataDD = '1', ACK = '0'
-    ldh r6, #00h
-    ldl r6, #80h
+    ldh r6, #01h
+    ldl r6, #00h
 
 ;   portData <= dataDD = '1', ACK = '1'
     st r5, r1, r0
@@ -487,14 +487,18 @@ LeCaracter:           ; Le caracter atual da porta, salva nos arrays, incrementa
     st r5, r1, r4 ; arrayDecrypted[r4] = Caracter descriptografado
 
 ;   Incrementa saveHighLow (sinaliza proximo caracter a ser salvo na parte alta)
-    ldh r6, #saveHighLow
-    ldl r6, #saveHighLow
-    ld r5, r0, r6
+    ldh r6, #arraySaveHighLow
+    ldl r6, #arraySaveHighLow
+    ld r5, r2, r6
     addi r5, #1
-    st r5, r0, r6
+    st r5, r2, r6
     
 ;   Incrementa CryptoPointer
-    
+    ldh r4, #arrayCryptoPointer
+    ldl r4, #arrayCryptoPointer
+    ld r5, r2, r4
+    addi r5, #1
+    st r5, r2, r4 
 
     jmpd #returnSaveHighLow
 
@@ -522,13 +526,14 @@ LeCaracter:           ; Le caracter atual da porta, salva nos arrays, incrementa
 ;   Salva caracter antigo & caracter novo
     st r5, r1, r4 ; arrayDecrypted[r4] = Caracter antigo + novo
     
-;   
-    
-    
+;   Zera saveHighLow
+    ldh r6, #arraySaveHighLow
+    ldl r6, #arraySaveHighLow
+    st r0, r2, r6
     
     jmpd #returnSaveHighLow
 
- returnSaveHighLow:
+  returnSaveHighLow:
 
 ;   Gera ACK
     jsrd #GeraACK
@@ -662,18 +667,21 @@ irq0Handler: ; CryptoMessage 0
 
 irq1Hanlder: ; CryptoMessage 1
 
+    xor r2, r2, r2
     addi r2, #1
     jsrd #GenericCryptoDriver
     rts
 
 irq2Handler: ; CryptoMessage 2
 
+    xor r2, r2, r2
     addi r2, #2
     jsrd #GenericCryptoDriver
     rts
     
 irq3Handler: ; CryptoMessage 3
 
+    xor r2, r2, r2
     addi r2, #3
     jsrd #GenericCryptoDriver
     rts
@@ -794,7 +802,7 @@ GenericCryptoDriver: ; Espera como parametro o ID do CryptoMessage interrompente
     ld r5, r0, r1
 
 ;   Seta ack para '1', dataDD para '0' (saida)
-    ldh r5, #02h ; r5 <= "xxxxx101" & magicNumberR8
+    ldh r5, #05h ; r5 <= "xxxxx1x1" & magicNumberR8
 
 ;   Carrega endereço de PortData
     ldh r1, #arrayPorta
@@ -802,7 +810,7 @@ GenericCryptoDriver: ; Espera como parametro o ID do CryptoMessage interrompente
     ld r1, r0, r1        ; r1 <= &portData
 
 ;   Transmite p/ porta magicNumberR8, sinaliza dataDD = OUT, ack = '1'
-    st r5, r0, r1 ; r5 <= "(magicNumberR8)_0xxx_xx1x"
+    st r5, r0, r1 ; r5 <= "xxxxx1x0_(magicnumberR8)"
 
 ;   Transmite ACK = '0'
     st r0, r0, r1
@@ -851,18 +859,18 @@ PollingLoop: ; Espera próximo sinal de data_av = '1'
     ld r1, r0, r1        ; r1 <= &portConfig
 
 ;   Seta bits de dados novamente como entrada
-    ldh r5, #FFh
-    ldl r5, #0Dh
-    st r5, r0, r1        ; r5 <= "11111111_0xxx1101"
+    ldh r5, #FAh
+    ldl r5, #FFh
+    st r5, r0, r1        ; r5 <= "11111010_11111111"
 
 ;   Seta dataDD como entrada (dataDD = '1', ack = '0')
     ldh r1, #arrayPorta
     ldl r1, #arrayPorta
     ld r1, r0, r1        ; r1 <= &portData
 
-    ldh r5, #FFh
-    ldl r5, #80h
-    st r5, r0, r1        ; r5 <= "xxxx_xxxx_1xxx_xx0x"
+    ldh r5, #01h
+    ldl r5, #00h
+    st r5, r0, r1        ; r5 <= "xxxx_xxx1_xxxx_xxxx"
 
 ;   r1 <= &PortData
     ldh r1, #arrayPorta
@@ -872,21 +880,20 @@ PollingLoop: ; Espera próximo sinal de data_av = '1'
 ;   r5 <= PortData
     ld r5, r0, r1
 
-;   Carrega mascara de comparação para bit 3 (data_av)
-    ldh r6, #00h
-    ldl r6, #08h         ; r6 <= "00000000_00001000"
+;   Carrega mascara de comparação para bit 11 (data_av)
+    ldh r6, #08h
+    ldl r6, #00h         ; r6 <= "00001000_00000000"
 
 ;   Se operação com mascara resultar em 0, coloca caracter no array criptografado e descriptografado
     and r1, r5, r6
     sub r6, r6, r1
     jmpzd #callLeCaracter
 
-
  returncallLeCaracter:
 
-;   Carrega mascara de comparação para bit 0 (eom)
-    ldh r6, #00h
-    ldl r6, #01h         ; r6 <= "00000000_00000001"
+;   Carrega mascara de comparação para bit 9 (eom)
+    ldh r6, #02h
+    ldl r6, #00h         ; r6 <= "00000010_00000000"
 
 ;   Se operação com mascara resultar em 0, retorna da subrotina de driver p/ ISR, else, espera novo caracter
     and r1, r5, r6
@@ -920,11 +927,18 @@ PollingLoop: ; Espera próximo sinal de data_av = '1'
 
 ;   Stores new value of message counter
     st r5, r0, r1
+    
+;   Resets CryptoPointer
+    ldh r1, #arrayCryptoPointer
+    ldl r1, #arrayCryptoPointer
+    ld r1, r2, r1 ; r1 <= &CryptoPointer(irqID)
+    st r0, r0, r1 ; CryptoPointer(irqID) <= 0
 
     pop r6
     pop r5
     pop r4
     pop r1
+    
     rts
 
   contadorMSGSld0:
