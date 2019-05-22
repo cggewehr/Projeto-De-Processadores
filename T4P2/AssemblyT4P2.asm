@@ -471,37 +471,19 @@ LeCaracter:           ; Le caracter atual da porta, salva nos arrays, incrementa
     ldl r6, #7Fh ; r6 <= "00000000_01111111"
     and r5, r5, r6
 
-; if "saveHighLow" == 0, save character on lower part, else, save on higher part
+; if "saveHighLow" == 0, save character on higher part, else, save on lower part
+; Sequentially, saves if higher part first, then sabes next character on lower part
 
 ;   r6 <= saveHighLow
     ldh r6, #arraySaveHighLow
     ldl r6, #arraySaveHighLow
-    ld r6, r2, r6
+    ld r6, r2, r6  ; r6 <= &saveHighLow(irqID)
+    ld r6, r0, r6  ; r6 <= saveHighLow(irqID)
     add r6, r0, r6 ; Gera flag
 
-    jmpzd #saveOnLower
-    jmpd #saveOnHigher
-
-  saveOnLower:
-  
-    st r5, r1, r4 ; arrayDecrypted[r4] = Caracter descriptografado
-
-;   Incrementa saveHighLow (sinaliza proximo caracter a ser salvo na parte alta)
-    ldh r6, #arraySaveHighLow
-    ldl r6, #arraySaveHighLow
-    ld r5, r2, r6
-    addi r5, #1
-    st r5, r2, r6
+    jmpzd #saveOnHigher
+    jmpd #saveOnLower
     
-;   Incrementa CryptoPointer
-    ldh r4, #arrayCryptoPointer
-    ldl r4, #arrayCryptoPointer
-    ld r5, r2, r4
-    addi r5, #1
-    st r5, r2, r4 
-
-    jmpd #returnSaveHighLow
-
   saveOnHigher:
   
 ;   Shifta dado até bits mais significativos
@@ -514,23 +496,35 @@ LeCaracter:           ; Le caracter atual da porta, salva nos arrays, incrementa
     sl0 r5, r5 ; MSB @ 14
     sl0 r5, r5 ; MSB @ 15
     
-;   r6 <= Caracter salvo na parte baixa
-    ld r6, r1, r4 ; r6 <= arrayEncryped(irqID)[CryptoPointer]
-    
-;   Apaga parte alta
-    ldh r6, #0
-    
-;   Junta caracter antigo com caracter novo
-    xor r5, r5, r6
-    
-;   Salva caracter antigo & caracter novo
+;   Salva caracter
     st r5, r1, r4 ; arrayDecrypted[r4] = Caracter antigo + novo
     
-;   Zera saveHighLow
+;   Incrementa saveHighLow (sinaliza proximo caracter a ser salvo na parte baixa)
     ldh r6, #arraySaveHighLow
     ldl r6, #arraySaveHighLow
+    ld r6, r2, r6
     st r0, r2, r6
     
+    jmpd #returnSaveHighLow
+
+  saveOnLower:
+  
+    st r5, r1, r4 ; arrayDecrypted[r4] = Caracter descriptografado
+
+;   Zera saveHighLow (sinaliza proximo caracter a ser salvo na parte alta)
+    ldh r6, #arraySaveHighLow
+    ldl r6, #arraySaveHighLow
+    ld r6, r2, r6
+    st r0, r0, r6
+    
+;   Incrementa CryptoPointer
+    ldh r4, #arrayCryptoPointer
+    ldl r4, #arrayCryptoPointer
+    ld r4, r2, r4 ; r4 <= &CryptoPointer(irqID)
+    ld r5, r0, r4 ; r5 <= CryptoPointer(irqID)
+    addi r5, #1   ; CryptoPointer++
+    st r5, r0, r4 
+
     jmpd #returnSaveHighLow
 
   returnSaveHighLow:
@@ -738,7 +732,7 @@ GenericCryptoDriver: ; Espera como parametro o ID do CryptoMessage interrompente
     ldl r4, #01h   ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &PortConfig ]
     ldh r5, #FAh   ; r5 <= "11111010_11111111"
     ldl r5, #FFh   ; bits 15 a 8 inicialmente são entrada, espera keyExchange
-    st r5, r1, r4  ; PortConfig <= "11111111_0xxx1101"
+    st r5, r1, r4  ; PortConfig <= "11111010_11111111"
 
 ;   Set data direction as IN ( ack = 0, dataDD = 1 )
     ldh r5, #01h
@@ -978,23 +972,22 @@ arraySaveHighLow:         db #SaveHighLow0, #SaveHighLow1, #SaveHighLow2, #SaveH
 ; Variaveis CryptoMessage 0
 CryptoPointer0:           db #0000h
 arrayDecrypted0:          db #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h
-saveHighLow0              db #0001h ; Se = 0, salva caracter na parte baixa, se = 1 salva na parte alta
-
+saveHighLow0              db #0000h ; Se = 0, salva caracter na parte baixa, se = 1 salva na parte alta
 
 ; Variaveis CryptoMessage 1
 CryptoPointer1:           db #0000h
 arrayDecrypted1:          db #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h
-saveHighLow1:             db #0001h ; Se = 0, salva caracter na parte baixa, se = 1 salva na parte alta
+saveHighLow1:             db #0000h ; Se = 0, salva caracter na parte baixa, se = 1 salva na parte alta
 
 ; Variaveis CryptoMessage 2
 CryptoPointer2:           db #0000h
 arrayDecrypted2:          db #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h
-saveHighLow2:             db #0001h ; Se = 0, salva caracter na parte baixa, se = 1 salva na parte alta
+saveHighLow2:             db #0000h ; Se = 0, salva caracter na parte baixa, se = 1 salva na parte alta
 
 ; Variaveis CryptoMessage 3
 CryptoPointer3:           db #0000h
 arrayDecrypted3:          db #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h
-saveHighLow3:             db #0001h ; Se = 0, salva caracter na parte baixa, se = 1 salva na parte alta
+saveHighLow3:             db #0000h ; Se = 0, salva caracter na parte baixa, se = 1 salva na parte alta
 
 ; Array para aplicação principal (Bubble Sort) de 50 elementos
 arraySort:                db #0050h, #0049h, #0048h, #0047h, #0046h, #0045h, #0044h, #0043h, #0042h, #0041h, #0040h, #0039h, #0038h, #0037h, #0036h, #0035h, #0034h, #0033h, #0032h, #0031h, #0030h, #0029h, #0028h, #0027h, #0026h, #0025h, #0024h, #0023h, #0022h, #0021h, #0020h, #0019h, #0018h, #0017h, #0016h, #0015h, #0014h, #0013h, #0012h, #0011h, #0010h, #0009h, #0008h, #0007h, #0006h, #0005h, #0004h, #0003h, #0002h, #0001h
