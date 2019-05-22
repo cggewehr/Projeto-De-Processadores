@@ -50,7 +50,7 @@ architecture behavioral of R8_uC is
 	 -- Pic signals
 	 signal en_pic             : std_logic;
 	 signal intr_pic           : std_logic;
-	 signal irq_pic            : std_logic_vector(6 downto 0);
+	 signal irq_pic            : std_logic_vector(7 downto 0);
    
 begin
 		

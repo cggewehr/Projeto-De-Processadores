@@ -28,7 +28,7 @@ entity CryptoManager is
 
         -- CryptoMessage Interface
         keyExchange_crypto  : in std_logic_vector(CRYPTO_AMOUNT-1 downto 0);
-		  keyExchange_R8      : in std_logic_vector(CRYPTO_AMOUNT-1 downto 0);
+		  --keyExchange_R8      : in std_logic_vector(CRYPTO_AMOUNT-1 downto 0);
         data_av_crypto      : in std_logic_vector(CRYPTO_AMOUNT-1 downto 0);
         ack_crypto          : out std_logic_vector(CRYPTO_AMOUNT-1 downto 0);
         eom_crypto          : in std_logic_vector(CRYPTO_AMOUNT-1 downto 0);
@@ -53,7 +53,7 @@ begin
             currentState <= waitingITR;
 
             for i in 0 to CRYPTO_AMOUNT-1 loop
-                keyExchange_R8(i) <= '0';
+                --keyExchange_R8(i) <= '0';
                 ack_crypto(i) <= '0';
             end loop;
 
