@@ -40,7 +40,7 @@ architecture behavioral of R8_uC is
     signal data_PIC                        : std_logic_vector(7 downto 0);
 	
     -- Tristate for bidirectional bus between processor and i/o port
-	 signal TRISTATE_PORT_EN   : std_logic;
+	signal TRISTATE_PORT_EN   : std_logic;
     signal TRISTATE_PIC_EN    : std_logic;
 	
 	 -- Interruption Interface
@@ -50,7 +50,7 @@ architecture behavioral of R8_uC is
 	 -- Pic signals
 	 signal en_pic             : std_logic;
 	 signal intr_pic           : std_logic;
-	 signal irq_pic            : std_logic_vector(6 downto 0);
+	 signal irq_pic            : std_logic_vector(7 downto 0);
    
 begin
 		
@@ -101,9 +101,9 @@ begin
         
     -- Tristate between I/O port and processor
 	data_PORT <= data_r8_out when TRISTATE_PORT_EN = '1' else (others=>'Z');
-	TRISTATE_PORT_EN <= '1' when rw = '0' and ID_PERIFERICO = ADDR_PORT else '0';  -- Enables when writes
+	TRISTATE_PORT_EN <= '1' when rw = '0' and ID_PERIFERICO = ADDR_PORT and ENABLE_PERIFERICO = '1' else '0';  -- Enables when writes
 
-    -- I/O port 
+    -- I/O port
     IO_Port: entity work.BidirectionalPort
         generic map(
 			DATA_WIDTH          => 16, -- Port width in bits
@@ -138,7 +138,7 @@ begin
 
     -- Tristate between PIC and processor
     data_PIC <= data_r8_out(7 downto 0) when TRISTATE_PIC_EN = '1' else (others=>'Z');
-    TRISTATE_PIC_EN <= '1' when rw = '0' and ID_PERIFERICO = ADDR_PIC else '0';  -- Enables when writes
+    TRISTATE_PIC_EN <= '1' when rw = '0' and ID_PERIFERICO = ADDR_PIC and ENABLE_PERIFERICO = '1' else '0';  -- Enables when writes
 
     -- Peripheral Interrupt Controller:
     PIC: entity work.InterruptController

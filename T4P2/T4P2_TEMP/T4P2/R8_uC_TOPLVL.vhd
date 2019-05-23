@@ -7,6 +7,9 @@
 library IEEE;
 use IEEE.std_logic_1164.all;
 
+library work;
+use work.CryptoManagerPkg.all;
+
 entity R8_uC_TOPLVL is
 	port (
 		clk: in std_logic; -- 100MHz board clock
@@ -16,7 +19,7 @@ end R8_uC_TOPLVL;
 
 architecture Behavioural of R8_uC_TOPLVL is
 
-   type DataArray is array (natural range <>) of std_logic_vector(7 downto 0);
+    --type DataArray is array (natural range <>) of std_logic_vector(7 downto 0);
 
 	-- Basic signals
 	signal clk_2, clk_4               : std_logic; -- 50MHz clock for uC, 25MHz clock for CryptoMessage
@@ -30,15 +33,17 @@ architecture Behavioural of R8_uC_TOPLVL is
 	signal port_io_uC                 : std_logic_vector(15 downto 0);
 
 	-- CryptoManager signals
-   signal data_in_R8                 : std_logic_vector(7 downto 0);
-   signal data_out_R8                : std_logic_vector(7 downto 0);
+    signal data_in_R8                 : std_logic_vector(7 downto 0);
+    signal data_out_R8                : std_logic_vector(7 downto 0);
 	signal data_AV_R8                 : std_logic;
 	signal ack_R8                     : std_logic;
 	signal eom_R8                     : std_logic;
 
     -- CryptoMessage signals
-    signal data_in                    : DataArray(0 to 3);
-    signal data_out                   : DataArray(0 to 3);
+    --signal data_in                    : DataArray(0 to 3);
+    signal data_in                    : DataArray;
+    --signal data_out                   : DataArray(0 to 3);
+    signal data_out                   : DataArray;
     signal keyExchange                : std_logic_vector(3 downto 0);
     signal data_AV                    : std_logic_vector(3 downto 0);
     signal ack                        : std_logic_vector(3 downto 0);
@@ -89,36 +94,43 @@ begin
             eom_R8      => eom_R8,
 
             -- CryptoMessage 0
-            data_in_crypto(0)     => data_in(0),
-            data_out_crypto(0)    => data_out(0),
-            keyExchange_crypto(0) => keyExchange(0),
-            data_AV_crypto(0)     => data_AV(0),
-            ack_crypto(0)         => ack(0),
-            eom_crypto(0)         => eom(0),
+--            data_in_crypto(0)     => data_in(0),
+--            data_out_crypto(0)    => data_out(0),
+--            keyExchange_crypto(0) => keyExchange(0),
+--            data_AV_crypto(0)     => data_AV(0),
+--            ack_crypto(0)         => ack(0),
+--            eom_crypto(0)         => eom(0),
+--
+--            -- CryptoMessage 1
+--            data_in_crypto(1)     => data_in(1),
+--            data_out_crypto(1)    => data_out(1),
+--            keyExchange_crypto(1) => keyExchange(1),
+--            data_AV_crypto(1)     => data_AV(1),
+--            ack_crypto(1)         => ack(1),
+--            eom_crypto(1)         => eom(1),
+--
+--            -- CryptoMessage 2
+--            data_in_crypto(2)     => data_in(2),
+--            data_out_crypto(2)    => data_out(2),
+--            keyExchange_crypto(2) => keyExchange(2),
+--            data_AV_crypto(2)     => data_AV(2),
+--            ack_crypto(2)         => ack(2),
+--            eom_crypto(2)         => eom(2),
+--
+--            -- CryptoMessage 3
+--            data_in_crypto(3)     => data_in(3),
+--            data_out_crypto(3)    => data_out(3),
+--            keyExchange_crypto(3) => keyExchange(3),
+--            data_AV_crypto(3)     => data_AV(3),
+--            ack_crypto(3)         => ack(3),
+--            eom_crypto(3)         => eom(3)
 
-            -- CryptoMessage 1
-            data_in_crypto(1)     => data_in(1),
-            data_out_crypto(1)    => data_out(1),
-            keyExchange_crypto(1) => keyExchange(1),
-            data_AV_crypto(1)     => data_AV(1),
-            ack_crypto(1)         => ack(1),
-            eom_crypto(1)         => eom(1),
-
-            -- CryptoMessage 2
-            data_in_crypto(2)     => data_in(2),
-            data_out_crypto(2)    => data_out(2),
-            keyExchange_crypto(2) => keyExchange(2),
-            data_AV_crypto(2)     => data_AV(2),
-            ack_crypto(2)         => ack(2),
-            eom_crypto(2)         => eom(2),
-
-            -- CryptoMessage 3
-            data_in_crypto(3)     => data_in(3),
-            data_out_crypto(3)    => data_out(3),
-            keyExchange_crypto(3) => keyExchange(3),
-            data_AV_crypto(3)     => data_AV(3),
-            ack_crypto(3)         => ack(3),
-            eom_crypto(3)         => eom(3)
+            data_in_crypto        => data_in,
+            data_out_crypto       => data_out,
+            keyExchange_crypto    => keyExchange,
+            data_AV_crypto        => data_AV,
+            ack_crypto            => ack,
+            eom_crypto            => eom
         );
 
     -- CryptoMessage peripheral
