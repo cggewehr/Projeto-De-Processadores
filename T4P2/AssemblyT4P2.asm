@@ -89,9 +89,9 @@ setup:
 ;   Seta a Mascara do vetor de interrupções
     ldl r4, #02h   ; Atualiza o indexador para carregar a mascara em arrayPIC
 
-    ldl r7, #arrayPIC   ; Carrega o endereço para o vetor de interrupções
-    ldh r7, #arrayPIC   ; Carrega o endereço do vetor de interrupções
-    ld r7, r4, r7    ; &mask
+    ldh r7, #arrayPIC   ; Carrega o endereço para o vetor de interrupções
+    ldl r7, #arrayPIC   ; Carrega o endereço do vetor de interrupções
+    ld r7, r4, r7       ; &mask
 
     ldh r8, #00h
     ldl r8, #F0h   ; Carrega a Mascara para o PIC [ r8 <= "0000_0000_1111_0000"]
@@ -108,6 +108,7 @@ setup:
     ld r1, r0, r1
 
     xor r4, r4, r4
+    
 ;   Seta PortConfig
     ldl r4, #01h   ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &PortConfig ]
     ldh r5, #FAh   ; r5 <= "11111010_11111111"
@@ -294,32 +295,80 @@ irq3Handler: ; CryptoMessage 3 - OPEN
 
     halt
 
-irq4Handler: ; CryptoMessage 0 -
+irq4Handler: ; CryptoMessage 0
 
+;   Chama Driver com ID = 0
     xor r2, r2, r2
     jsrd #GenericCryptoDriver
     rts
+    
+;   ACK Interrupçao
+    ldh r1, #arrayPIC
+    ldl r1, #arrayPIC
+    ld r1, r0, r1 ; r1 <= &irqID
+    addi r1, #1   ; r1 <= &itrACK
+    
+    ldh r5, #0
+    ldl r5, #4
+    
+    st r5, r0, r1
 
-irq5Handler: ; CryptoMessage 1 -
+irq5Handler: ; CryptoMessage 1
 
+;   Chama Driver com ID = 1
     xor r2, r2, r2
     addi r2, #1
     jsrd #GenericCryptoDriver
     rts
+    
+;   ACK Interrupçao
+    ldh r1, #arrayPIC
+    ldl r1, #arrayPIC
+    ld r1, r0, r1 ; r1 <= &irqID
+    addi r1, #1   ; r1 <= &itrACK
+    
+    ldh r5, #0
+    ldl r5, #5
+    
+    st r5, r0, r1
 
-irq6Handler: ; CryptoMessage 2 -
+irq6Handler: ; CryptoMessage 2
 
+;   Chama Driver com ID = 2
     xor r2, r2, r2
     addi r2, #2
     jsrd #GenericCryptoDriver
     rts
+    
+;   ACK Interrupçao
+    ldh r1, #arrayPIC
+    ldl r1, #arrayPIC
+    ld r1, r0, r1 ; r1 <= &irqID
+    addi r1, #1   ; r1 <= &itrACK
+    
+    ldh r5, #0
+    ldl r5, #6
+    
+    st r5, r0, r1
 
-irq7Handler: ; CryptoMessage 3 -
+irq7Handler: ; CryptoMessage 3
 
+;   Chama Driver com ID = 3
     xor r2, r2, r2
     addi r2, #3
     jsrd #GenericCryptoDriver
     rts 
+    
+;   ACK Interrupçao
+    ldh r1, #arrayPIC
+    ldl r1, #arrayPIC
+    ld r1, r0, r1 ; r1 <= &irqID
+    addi r1, #1   ; r1 <= &itrACK
+    
+    ldh r5, #0
+    ldl r5, #7
+    
+    st r5, r0, r1
 
 ;-------------------------------------------------DRIVERS----------------------------------------------------
 
@@ -592,6 +641,8 @@ main:
 ;*********************************************************************
 
 BubbleSort:
+
+    ;halt ; DEBUG, ignora bubble sort
 
     ; Initialization code
     xor r0, r0, r0          ; r0 <- 0
@@ -996,7 +1047,7 @@ LeCaracter:           ; Le caracter atual da porta, salva nos arrays, incrementa
 ;=============================================================================================================
 
 
-.org #01E0h
+;; .org #0300h
 .data
 
 ; Array de registradores da Porta Bidirecional

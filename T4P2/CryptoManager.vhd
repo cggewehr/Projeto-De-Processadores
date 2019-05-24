@@ -65,6 +65,9 @@ begin
             if currentState = waitingITR then
                 currentState <= waitingITR; -- Defaults to waitingITR
 
+                data_av_R8 <= '0';
+                eom_R8 <= '0';
+
                 for i in 0 to CRYPTO_AMOUNT-1 loop
                     if keyExchange_crypto(i) = '1' then
                         lockedCrypto <= i;                      -- Determines which Crypto to initiate communication (lowest numbered Cryptos have higher priority)
@@ -99,12 +102,14 @@ begin
 
                     if eom_crypto(lockedCrypto) = '1' then
                         currentState <= waitingACK_EOM;
+                        eom_R8 <= '1';
                     else
                         currentState <= waitingACK;
+                        eom_R8 <= '0';
                     end if;
-
                 else
                     data_av_R8 <= '0';
+                    eom_R8 <= '0';
                 end if;
                 
             elsif currentState = waitingACK then

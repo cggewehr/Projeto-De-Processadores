@@ -85,7 +85,7 @@ begin
     CryptoManager: entity work.CryptoManager
       port map 
 		(
-			clk => clk_2,
+			clk => clk_4,
 			rst => reset_sync,
 
 			-- Processor

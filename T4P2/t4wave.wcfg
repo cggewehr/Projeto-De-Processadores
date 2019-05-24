@@ -20,7 +20,7 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="36" />
+   <WVObjectSize size="42" />
    <wvobject fp_name="/r8_uc_tb/R8/clk_2" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">clk_2</obj_property>
       <obj_property name="ObjectShortName">clk_2</obj_property>
@@ -36,10 +36,12 @@
    <wvobject fp_name="/r8_uc_tb/R8/data_in_r8" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">data_in_r8[7:0]</obj_property>
       <obj_property name="ObjectShortName">data_in_r8[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/r8_uc_tb/R8/data_out_r8" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">data_out_r8[7:0]</obj_property>
       <obj_property name="ObjectShortName">data_out_r8[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/r8_uc_tb/R8/data_av_r8" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">data_av_r8</obj_property>
@@ -125,14 +127,17 @@
    <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/data_out" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">data_out[15:0]</obj_property>
       <obj_property name="ObjectShortName">data_out[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/data_in" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">data_in[15:0]</obj_property>
       <obj_property name="ObjectShortName">data_in[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/address" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">address[15:0]</obj_property>
       <obj_property name="ObjectShortName">address[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regpc" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">regpc[15:0]</obj_property>
@@ -195,10 +200,12 @@
       <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regbank[7]" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">[7]</obj_property>
          <obj_property name="ObjectShortName">regbank[7]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regbank[8]" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">[8]</obj_property>
          <obj_property name="ObjectShortName">regbank[8]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regbank[9]" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">[9]</obj_property>
@@ -232,5 +239,29 @@
    <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/tristate_pic_en" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">tristate_pic_en</obj_property>
       <obj_property name="ObjectShortName">tristate_pic_en</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/CryptoManager/currentstate" type="other" db_ref_id="1">
+      <obj_property name="ElementShortName">currentstate</obj_property>
+      <obj_property name="ObjectShortName">currentstate</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/CryptoManager/data_out_crypto" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">data_out_crypto[0:3]</obj_property>
+      <obj_property name="ObjectShortName">data_out_crypto[0:3]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/CryptoManager/data_in_crypto" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">data_in_crypto[0:3]</obj_property>
+      <obj_property name="ObjectShortName">data_in_crypto[0:3]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/CryptoManager/eom_crypto" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">eom_crypto[3:0]</obj_property>
+      <obj_property name="ObjectShortName">eom_crypto[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/CryptoManager/ack_crypto" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">ack_crypto[3:0]</obj_property>
+      <obj_property name="ObjectShortName">ack_crypto[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/CryptoManager/data_av_crypto" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">data_av_crypto[3:0]</obj_property>
+      <obj_property name="ObjectShortName">data_av_crypto[3:0]</obj_property>
    </wvobject>
 </wave_config>
