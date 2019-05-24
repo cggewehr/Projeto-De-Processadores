@@ -104,6 +104,7 @@
    <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/PIC/highpriorityreq" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">highpriorityreq[2:0]</obj_property>
       <obj_property name="ObjectShortName">highpriorityreq[2:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/PIC/idle" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">idle</obj_property>
