@@ -140,7 +140,7 @@ begin
 
     -- Tristate between PIC and processor
     data_PIC <= data_r8_out(7 downto 0) when TRISTATE_PIC_EN = '1' else (others=>'Z');
-    TRISTATE_PIC_EN <= '0' when rw = '1' and ID_PERIFERICO = ADDR_PIC and ENABLE_PERIFERICO = '1' else '0';  -- Enables when writes
+    TRISTATE_PIC_EN <= '1' when rw = '0' and ID_PERIFERICO = ADDR_PIC and ENABLE_PERIFERICO = '1' else '0';  -- Enables when writes
 
     -- Peripheral Interrupt Controller:
     PIC: entity work.InterruptController

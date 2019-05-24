@@ -79,11 +79,28 @@ setup:
 ;    ldl r0, #E6h
 ;    ldsp r0
 
-
 ;   Seta endereço do tratador de interrupção
     ldh r0, #InterruptionServiceRoutine
     ldl r0, #InterruptionServiceRoutine
     ldisra r0
+
+    xor r0, r0, r0
+
+;   Seta a Mascara do vetor de interrupções
+    ldl r4, #02h   ; Atualiza o indexador para carregar a mascara em arrayPIC
+
+    ldl r7, #arrayPIC   ; Carrega o endereço para o vetor de interrupções
+    ldh r7, #arrayPIC   ; Carrega o endereço do vetor de interrupções
+    ld r7, r4, r7    ; &mask
+
+    ldh r8, #00h
+    ldl r8, #F0h   ; Carrega a Mascara para o PIC [ r8 <= "0000_0000_1111_0000"]
+
+    st r8, r0, r7  ; arrayPIC [MASK] <= "0000_0000_1111_0000"
+
+    ; Array de registradores do controlador de interrupções
+    ; arrayPIC [ IrqID(0x80F0) | IntACK(0x80F1) | Mask(0x80F2) ]
+    ;arrayPIC:                 db #80F0h, #80F1h, #80F2h
 
 ;   r1 <= &arrayPorta
     ldh r1, #arrayPorta ; Carrega &Porta
@@ -114,29 +131,6 @@ setup:
     ldh r5, #01h   ; r5 <= "xxxxx0x1_xxxxxxxx"
     ldl r5, #00h   ; dataDD = '1', ACK = '0'
     st r5, r1, r4  ; portData <= "xxxxx0x1_xxxxxxxx"
-
-
-    ;xor r4, r4, r4 -- ESSA LINHA NUNCA EXECUTOU PQ:????? MÀGICA
-    ;ldh r4, #EEh
-    ;ldl r4, #FFh
-
-
-;   Seta a Mascara do vetor de interrupções
-    ldl r4, #02h   ; Atualiza o indexador para carregar a mascara em arrayPIC
-
-    ldl r7, #arrayPIC   ; Carrega o endereço para o vetor de interrupções
-    ldh r7, #arrayPIC   ; Carrega o endereço do vetor de interrupções
-    ld r7, r4, r7    ; &mask
-
-    ldh r8, #00h
-    ldl r8, #F0h   ; Carrega a Mascara para o PIC [ r8 <= "0000_0000_1111_0000"]
-
-    st r8, r0, r7  ; arrayPIC [ MASK] <= "0000_0000_1111_0000"
-
-
-    ; Array de registradores do controlador de interrupções
-    ; arrayPIC [ IrqID(0x80F0) | IntACK(0x80F1) | Mask(0x80F2) ]
-    ;arrayPIC:                 db #80F0h, #80F1h, #80F2h
 
 
 ;   Inicialização dos registradores
@@ -230,6 +224,7 @@ InterruptionServiceRoutine:
 ;   r4 <= IrqID
     ldh r4, #arrayPIC
     ldl r4, #arrayPIC
+    ld r4, r0, r4 ; r4 <= &IrqID
     ld r4, r0, r4 ; r4 <= IrqID
 
 ;   r1 <= &interruptVector
@@ -299,35 +294,32 @@ irq3Handler: ; CryptoMessage 3 - OPEN
 
     halt
 
-irq4Handler: ; CryptoMessage 4 -
+irq4Handler: ; CryptoMessage 0 -
 
     xor r2, r2, r2
-    addi r2, #4
     jsrd #GenericCryptoDriver
     rts
 
-irq5Handler: ; CryptoMessage 5 -
+irq5Handler: ; CryptoMessage 1 -
 
     xor r2, r2, r2
-    addi r2, #5
+    addi r2, #1
     jsrd #GenericCryptoDriver
     rts
 
-irq6Handler: ; CryptoMessage 6 -
+irq6Handler: ; CryptoMessage 2 -
 
     xor r2, r2, r2
-    addi r2, #6
+    addi r2, #2
     jsrd #GenericCryptoDriver
     rts
 
-irq7Handler: ; CryptoMessage 7 -
+irq7Handler: ; CryptoMessage 3 -
 
     xor r2, r2, r2
-    addi r2, #7
+    addi r2, #3
     jsrd #GenericCryptoDriver
-    rts
-
-
+    rts 
 
 ;-------------------------------------------------DRIVERS----------------------------------------------------
 
@@ -428,7 +420,7 @@ GenericCryptoDriver: ; Espera como parametro o ID do CryptoMessage interrompente
     ld r5, r0, r1
 
 ;   Seta ack para '1', dataDD para '0' (saida)
-    ldh r5, #05h ; r5 <= "xxxxx1x1" & magicNumberR8
+    ldh r5, #04h ; r5 <= "xxxxx1x0" & magicNumberR8
 
 ;   Carrega endereço de PortData
     ldh r1, #arrayPorta

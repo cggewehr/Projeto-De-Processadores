@@ -173,9 +173,13 @@ begin
     port_io_uC(14) <= keyExchange(2);
     port_io_uC(15) <= keyExchange(3); -- Lowest priority Crypto
 
-    data_AV_R8 <= port_io_uC(11);
-    port_io_uC(10) <= ack_R8;
-    eom_R8 <= port_io_uC(9);
+    --data_AV_R8 <= port_io_uC(11);
+    --port_io_uC(10) <= ack_R8;
+    --eom_R8 <= port_io_uC(9);
+
+    port_io_uC(11) <= data_AV_R8;
+    ack_R8 <= port_io_uC(10);
+    port_io_uC(9) <= eom_R8;    
 
     TRISTATE_CRYPTO_TO_PORT <= data_out_R8;
     TRISTATE_CRYPTO_TO_PORT_EN <= port_io_uC(8);

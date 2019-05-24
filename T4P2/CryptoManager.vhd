@@ -103,6 +103,8 @@ begin
                         currentState <= waitingACK;
                     end if;
 
+                else
+                    data_av_R8 <= '0';
                 end if;
                 
             elsif currentState = waitingACK then

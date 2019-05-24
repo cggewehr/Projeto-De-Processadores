@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="/home/carlos/Desktop/Projetos ISE/T4P2ProjetoDeProcessadores/r8_uC_tb_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="cryptomanagerpkg" />
+            <top_module name="numeric_std" />
+            <top_module name="r8_uc_tb" />
+            <top_module name="std_logic_1164" />
+            <top_module name="std_logic_arith" />
+            <top_module name="std_logic_unsigned" />
+            <top_module name="textio" />
+            <top_module name="util_package" />
+            <top_module name="vcomponents" />
+            <top_module name="vital_primitives" />
+            <top_module name="vital_timing" />
+            <top_module name="vpkg" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="36" />
+   <wvobject fp_name="/r8_uc_tb/R8/clk_2" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clk_2</obj_property>
+      <obj_property name="ObjectShortName">clk_2</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/reset_sync" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">reset_sync</obj_property>
+      <obj_property name="ObjectShortName">reset_sync</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/port_io_uc" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">port_io_uc[15:0]</obj_property>
+      <obj_property name="ObjectShortName">port_io_uc[15:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/data_in_r8" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">data_in_r8[7:0]</obj_property>
+      <obj_property name="ObjectShortName">data_in_r8[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/data_out_r8" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">data_out_r8[7:0]</obj_property>
+      <obj_property name="ObjectShortName">data_out_r8[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/data_av_r8" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">data_av_r8</obj_property>
+      <obj_property name="ObjectShortName">data_av_r8</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/ack_r8" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">ack_r8</obj_property>
+      <obj_property name="ObjectShortName">ack_r8</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/eom_r8" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">eom_r8</obj_property>
+      <obj_property name="ObjectShortName">eom_r8</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/data_in" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">data_in[0:3]</obj_property>
+      <obj_property name="ObjectShortName">data_in[0:3]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/data_out" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">data_out[0:3]</obj_property>
+      <obj_property name="ObjectShortName">data_out[0:3]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/keyexchange" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">keyexchange[3:0]</obj_property>
+      <obj_property name="ObjectShortName">keyexchange[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/data_av" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">data_av[3:0]</obj_property>
+      <obj_property name="ObjectShortName">data_av[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/eom" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">eom[3:0]</obj_property>
+      <obj_property name="ObjectShortName">eom[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/ack" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">ack[3:0]</obj_property>
+      <obj_property name="ObjectShortName">ack[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/PIC/data" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">data[7:0]</obj_property>
+      <obj_property name="ObjectShortName">data[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/PIC/address" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">address[1:0]</obj_property>
+      <obj_property name="ObjectShortName">address[1:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/PIC/irq" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">irq[7:0]</obj_property>
+      <obj_property name="ObjectShortName">irq[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/PIC/irq_reg" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">irq_reg[7:0]</obj_property>
+      <obj_property name="ObjectShortName">irq_reg[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/PIC/mask" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">mask[7:0]</obj_property>
+      <obj_property name="ObjectShortName">mask[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/PIC/pendingrequests" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">pendingrequests[7:0]</obj_property>
+      <obj_property name="ObjectShortName">pendingrequests[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/PIC/highpriorityreq" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">highpriorityreq[2:0]</obj_property>
+      <obj_property name="ObjectShortName">highpriorityreq[2:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/PIC/idle" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">idle</obj_property>
+      <obj_property name="ObjectShortName">idle</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/currentstate" type="other" db_ref_id="1">
+      <obj_property name="ElementShortName">currentstate</obj_property>
+      <obj_property name="ObjectShortName">currentstate</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/currentinstruction" type="other" db_ref_id="1">
+      <obj_property name="ElementShortName">currentinstruction</obj_property>
+      <obj_property name="ObjectShortName">currentinstruction</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/interruptflag" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">interruptflag</obj_property>
+      <obj_property name="ObjectShortName">interruptflag</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/data_out" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">data_out[15:0]</obj_property>
+      <obj_property name="ObjectShortName">data_out[15:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/data_in" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">data_in[15:0]</obj_property>
+      <obj_property name="ObjectShortName">data_in[15:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/address" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">address[15:0]</obj_property>
+      <obj_property name="ObjectShortName">address[15:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regpc" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">regpc[15:0]</obj_property>
+      <obj_property name="ObjectShortName">regpc[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regsp" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">regsp[15:0]</obj_property>
+      <obj_property name="ObjectShortName">regsp[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/IO_Port/reg_port_data" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">reg_port_data[15:0]</obj_property>
+      <obj_property name="ObjectShortName">reg_port_data[15:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/IO_Port/reg_port_config" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">reg_port_config[15:0]</obj_property>
+      <obj_property name="ObjectShortName">reg_port_config[15:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/IO_Port/reg_port_enable" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">reg_port_enable[15:0]</obj_property>
+      <obj_property name="ObjectShortName">reg_port_enable[15:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/IO_Port/reg_port_irq" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">reg_port_irq[15:0]</obj_property>
+      <obj_property name="ObjectShortName">reg_port_irq[15:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regbank" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">regbank[0:15]</obj_property>
+      <obj_property name="ObjectShortName">regbank[0:15]</obj_property>
+      <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regbank[0]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[0]</obj_property>
+         <obj_property name="ObjectShortName">regbank[0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regbank[1]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[1]</obj_property>
+         <obj_property name="ObjectShortName">regbank[1]</obj_property>
+         <obj_property name="Radix">BINARYRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regbank[2]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[2]</obj_property>
+         <obj_property name="ObjectShortName">regbank[2]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regbank[3]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[3]</obj_property>
+         <obj_property name="ObjectShortName">regbank[3]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regbank[4]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[4]</obj_property>
+         <obj_property name="ObjectShortName">regbank[4]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regbank[5]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[5]</obj_property>
+         <obj_property name="ObjectShortName">regbank[5]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regbank[6]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[6]</obj_property>
+         <obj_property name="ObjectShortName">regbank[6]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regbank[7]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[7]</obj_property>
+         <obj_property name="ObjectShortName">regbank[7]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regbank[8]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[8]</obj_property>
+         <obj_property name="ObjectShortName">regbank[8]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regbank[9]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[9]</obj_property>
+         <obj_property name="ObjectShortName">regbank[9]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regbank[10]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[10]</obj_property>
+         <obj_property name="ObjectShortName">regbank[10]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regbank[11]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[11]</obj_property>
+         <obj_property name="ObjectShortName">regbank[11]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regbank[12]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[12]</obj_property>
+         <obj_property name="ObjectShortName">regbank[12]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regbank[13]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[13]</obj_property>
+         <obj_property name="ObjectShortName">regbank[13]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regbank[14]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[14]</obj_property>
+         <obj_property name="ObjectShortName">regbank[14]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regbank[15]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[15]</obj_property>
+         <obj_property name="ObjectShortName">regbank[15]</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/tristate_pic_en" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">tristate_pic_en</obj_property>
+      <obj_property name="ObjectShortName">tristate_pic_en</obj_property>
+   </wvobject>
+</wave_config>
