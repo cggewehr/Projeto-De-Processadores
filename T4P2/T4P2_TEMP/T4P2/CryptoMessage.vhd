@@ -41,6 +41,7 @@ architecture behavioral of CryptoMessage is
     function ExpMod(a,b: in std_logic_vector(7 downto 0); n: in integer range 0 to 255) return std_logic_vector is
         variable f : integer range 0 to 255 := 1;
         variable i : integer range 0 to 7 := 0;
+		  
     begin
         
         for i in 7 downto 0 loop

@@ -25,7 +25,7 @@ entity InterruptController  is
     port (  
         clk         : in std_logic;
         rst         : in std_logic; 
-        data        : inout std_logic_vector (7 downto 0);
+        data        : inout std_logic_vector (7 downto 0); -- Bidirectional 
         address     : in std_logic_vector (1 downto 0);
         rw          : in std_logic; -- rw = 0: Read; rw = 1: Write
         ce          : in std_logic;

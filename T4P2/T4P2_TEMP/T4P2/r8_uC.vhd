@@ -40,7 +40,7 @@ architecture behavioral of R8_uC is
     signal data_PIC                        : std_logic_vector(7 downto 0);
 	
     -- Tristate for bidirectional bus between processor and i/o port
-	signal TRISTATE_PORT_EN   : std_logic;
+	 signal TRISTATE_PORT_EN   : std_logic;
     signal TRISTATE_PIC_EN    : std_logic;
 	
 	 -- Interruption Interface
