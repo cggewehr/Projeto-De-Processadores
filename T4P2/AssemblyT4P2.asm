@@ -239,17 +239,6 @@ InterruptionServiceRoutine:
 
     jsr r1
 
-;-----------------------------------------Notificar interrupção tratada--------------------------------------
-
-;   r1 <= &IntACK
-    ldh r1, #arrayPIC
-    ldl r1, #arrayPIC
-    addi r1, #1
-    ld r1, r0, r1
-
-;   IntACK <= IrqID
-    st r1, r0, r4
-
 ;-----------------------------------------------Recupera contexto--------------------------------------------
 
     popf
@@ -279,19 +268,19 @@ InterruptionServiceRoutine:
 
 ;-------------------------------------------------HANDLERS---------------------------------------------------
 
-irq0Handler: ; CryptoMessage 0 - OPEN
+irq0Handler: ; OPEN
 
     halt
 
-irq1Handler: ; CryptoMessage 1 - OPEN
+irq1Handler: ; OPEN
 
     halt
 
-irq2Handler: ; CryptoMessage 2 - OPEN
+irq2Handler: ; OPEN
 
     halt
 
-irq3Handler: ; CryptoMessage 3 - OPEN
+irq3Handler: ; OPEN
 
     halt
 
@@ -300,8 +289,9 @@ irq4Handler: ; CryptoMessage 0
 ;   Chama Driver com ID = 0
     xor r2, r2, r2
     jsrd #GenericCryptoDriver
-    rts
     
+;-----------------------------------------Notificar interrupção tratada--------------------------------------
+
 ;   ACK Interrupçao
     ldh r1, #arrayPIC
     ldl r1, #arrayPIC
@@ -312,15 +302,19 @@ irq4Handler: ; CryptoMessage 0
     ldl r5, #4
     
     st r5, r0, r1
+    
+    rts
 
 irq5Handler: ; CryptoMessage 1
+
 
 ;   Chama Driver com ID = 1
     xor r2, r2, r2
     addi r2, #1
     jsrd #GenericCryptoDriver
-    rts
-    
+   
+;-----------------------------------------Notificar interrupção tratada--------------------------------------
+   
 ;   ACK Interrupçao
     ldh r1, #arrayPIC
     ldl r1, #arrayPIC
@@ -331,6 +325,8 @@ irq5Handler: ; CryptoMessage 1
     ldl r5, #5
     
     st r5, r0, r1
+    
+    rts
 
 irq6Handler: ; CryptoMessage 2
 
@@ -338,8 +334,9 @@ irq6Handler: ; CryptoMessage 2
     xor r2, r2, r2
     addi r2, #2
     jsrd #GenericCryptoDriver
-    rts
     
+;-----------------------------------------Notificar interrupção tratada--------------------------------------
+
 ;   ACK Interrupçao
     ldh r1, #arrayPIC
     ldl r1, #arrayPIC
@@ -350,6 +347,8 @@ irq6Handler: ; CryptoMessage 2
     ldl r5, #6
     
     st r5, r0, r1
+    
+    rts
 
 irq7Handler: ; CryptoMessage 3
 
@@ -357,8 +356,9 @@ irq7Handler: ; CryptoMessage 3
     xor r2, r2, r2
     addi r2, #3
     jsrd #GenericCryptoDriver
-    rts 
     
+;-----------------------------------------Notificar interrupção tratada--------------------------------------
+
 ;   ACK Interrupçao
     ldh r1, #arrayPIC
     ldl r1, #arrayPIC
@@ -369,6 +369,8 @@ irq7Handler: ; CryptoMessage 3
     ldl r5, #7
     
     st r5, r0, r1
+    
+    rts
 
 ;-------------------------------------------------DRIVERS----------------------------------------------------
 

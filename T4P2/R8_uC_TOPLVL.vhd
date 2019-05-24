@@ -85,7 +85,7 @@ begin
     CryptoManager: entity work.CryptoManager
       port map 
 		(
-			clk => clk_4,
+			clk => clk_2,
 			rst => reset_sync,
 
 			-- Processor
@@ -106,7 +106,7 @@ begin
     -- CryptoMessage peripheral
     CryptoMessage0: entity work.CryptoMessage
         generic map(
-            MSG_INTERVAL => 1000, -- Waits 1000 clocks before sending next msg
+            MSG_INTERVAL => 10000, -- Waits 1000 clocks before sending next msg
             FILE_NAME  => "empire.txt"
         )
     	  port map(
@@ -122,7 +122,7 @@ begin
 
     CryptoMessage1: entity work.CryptoMessage
         generic map(
-            MSG_INTERVAL => 2000, -- Waits 2000 clocks before sending next msg
+            MSG_INTERVAL => 20000, -- Waits 2000 clocks before sending next msg
             FILE_NAME  => "RevolutionCalling.txt"
         )
         port map(
@@ -138,7 +138,7 @@ begin
 
     CryptoMessage2: entity work.CryptoMessage
         generic map(
-            MSG_INTERVAL => 3000, -- Waits 3000 clocks before sending next msg
+            MSG_INTERVAL => 30000, -- Waits 3000 clocks before sending next msg
             FILE_NAME  => "DoctorRockter.txt"
         )
         port map(
@@ -154,7 +154,7 @@ begin
 
     CryptoMessage3: entity work.CryptoMessage
         generic map(
-            MSG_INTERVAL => 4000, -- Waits 4000 clocks before sending next msg
+            MSG_INTERVAL => 40000, -- Waits 4000 clocks before sending next msg
             FILE_NAME  => "cheiademanias.txt"
         )
         port map(

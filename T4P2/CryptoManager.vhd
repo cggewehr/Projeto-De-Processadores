@@ -5,6 +5,7 @@ use ieee.numeric_std.all;
 package CryptoManagerPkg is
     constant CRYPTO_AMOUNT : natural := 4; 
     constant DATA_WIDTH : natural := 8; 
+    constant WAIT_COUNT : natural := 400; 
     type DataArray is array (natural range 0 to CRYPTO_AMOUNT-1 ) of std_logic_vector(DATA_WIDTH-1 downto 0);
 end package;
 
@@ -47,7 +48,10 @@ begin
 
     process(clk, rst)
 
+        variable counter: natural := 0;
+
     begin
+
         if rst = '1' then
             currentState <= waitingITR;
 
@@ -89,12 +93,14 @@ begin
 
             elsif currentState = txMAGICNUMBER then
 
-                ack_crypto(lockedCrypto) <= '0';                -- Completes ACK pulse
-
-                currentState <= txCHAR;
+                if ack_R8 = '0' then
+                    ack_crypto(lockedCrypto) <= '0';            -- Completes ACK pulse
+                    currentState <= txCHAR;
+                else 
+                    currentState <= txMAGICNUMBER;
+                end if;
 
             elsif currentState = txCHAR then
-                currentState <= txCHAR;                         -- Defaults to txCHAR
 
                 if data_av_crypto(lockedCrypto) = '1' then
                     data_out_R8 <= data_out_crypto(lockedCrypto);
@@ -107,43 +113,53 @@ begin
                         currentState <= waitingACK;
                         eom_R8 <= '0';
                     end if;
+
                 else
+                    currentState <= txCHAR;                     -- Defaults to txCHAR
                     data_av_R8 <= '0';
                     eom_R8 <= '0';
                 end if;
                 
             elsif currentState = waitingACK then
-                currentState <= waitingACK;
 
                 if ack_R8 = '1' then
                     ack_crypto(lockedCrypto) <= '1';
                     currentState <= txACK;
+                else
+                    currentState <= waitingACK;
                 end if;
 
             elsif currentState = txACK then
 
-                ack_crypto(lockedCrypto) <= '0';
-
-                currentState <= txCHAR;
+                if ack_R8 = '0' then
+                    ack_crypto(lockedCrypto) <= '0';
+                    currentState <= txCHAR;
+                else
+                    currentState <= txACK;
+                end if;
 
             elsif currentState = waitingACK_EOM then
-                currentState <= waitingACK_EOM;
 
                 if ack_R8 = '1' then
                     ack_crypto(lockedCrypto) <= '1';
                     currentState <= txACK_EOM;
+                else
+                    currentState <= waitingACK_EOM;
                 end if;
 
             elsif currentState = txACK_EOM then
 
-                ack_crypto(lockedCrypto) <= '0';
-
-                currentState <= waitingITR;
+                if ack_R8 = '0' then
+                    ack_crypto(lockedCrypto) <= '0';
+                    currentState <= waitingITR;
+                else
+                    currentState <= txACK_EOM;
+                end if;
 
             end if;
+            
         end if;
 
     end process;    
-    
 
 end architecture Behavioural;
