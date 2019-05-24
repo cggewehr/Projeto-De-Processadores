@@ -52,7 +52,6 @@ begin
             currentState <= waitingITR;
 
             for i in 0 to CRYPTO_AMOUNT-1 loop
-                keyExchange_R8(i) <= '0';
                 ack_crypto(i) <= '0';
             end loop;
 
@@ -124,7 +123,7 @@ begin
                 currentState <= waitingACK_EOM;
 
                 if ack_R8 = '1' then
-                    ack_crypto(lockedCrypto) = '1';
+                    ack_crypto(lockedCrypto) <= '1';
                     currentState <= txACK_EOM;
                 end if;
 

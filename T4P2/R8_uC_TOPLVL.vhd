@@ -7,6 +7,9 @@
 library IEEE;
 use IEEE.std_logic_1164.all;
 
+library work;
+use work.CryptoManagerPkg.all;
+
 entity R8_uC_TOPLVL is
 	port (
 		clk: in std_logic; -- 100MHz board clock
@@ -16,29 +19,29 @@ end R8_uC_TOPLVL;
 
 architecture Behavioural of R8_uC_TOPLVL is
 
-    type DataArray is array (natural range <>) of std_logic_vector(7 downto 0);
+    --type DataArray is array (natural range <>) of std_logic_vector(7 downto 0);
 
-	-- Basic signals
-	signal clk_2, clk_4               : std_logic; -- 50MHz clock for uC, 25MHz clock for CryptoMessage
-	signal reset_sync                 : std_logic; -- Synchronous reset
+	 -- Basic signals
+	 signal clk_2, clk_4               : std_logic; -- 50MHz clock for uC, 25MHz clock for CryptoMessage
+	 signal reset_sync                 : std_logic; -- Synchronous reset
 
-	-- Auxiliary signals
-	signal TRISTATE_CRYPTO_TO_PORT_EN : std_logic; 
-	signal TRISTATE_CRYPTO_TO_PORT    : std_logic_vector(7 downto 0);
+	 -- Auxiliary signals
+	 signal TRISTATE_CRYPTO_TO_PORT_EN : std_logic; 
+	 signal TRISTATE_CRYPTO_TO_PORT    : std_logic_vector(7 downto 0);
 
-	-- Microcontroller signals
-	signal port_io_uC                 : std_logic_vector(15 downto 0);
+	 -- Microcontroller signals
+	 signal port_io_uC                 : std_logic_vector(15 downto 0);
 
-	-- CryptoManager signals
+	 -- CryptoManager signals
     signal data_in_R8                 : std_logic_vector(7 downto 0);
     signal data_out_R8                : std_logic_vector(7 downto 0);
-	signal data_AV_R8                 : std_logic;
-	signal ack_R8                     : std_logic;
-	signal eom_R8                     : std_logic;
+	 signal data_AV_R8                 : std_logic;
+	 signal ack_R8                     : std_logic;
+	 signal eom_R8                     : std_logic;
 
     -- CryptoMessage signals
-    signal data_in                    : DataArray(0 to 3);
-    signal data_out                   : DataArray(0 to 3);
+    signal data_in                    : DataArray;
+    signal data_out                   : DataArray;
     signal keyExchange                : std_logic_vector(3 downto 0);
     signal data_AV                    : std_logic_vector(3 downto 0);
     signal ack                        : std_logic_vector(3 downto 0);
@@ -64,12 +67,15 @@ begin
 
     -- R8 Microcontroller (Processor, Memory and I/O Port)
     Microcontroller: entity work.R8_uC
-    	generic map (
+    	generic map 
+		(
     		ASSEMBLY_FILE => "AssemblyT4P2_BRAM.txt",
-            ADDR_PORT     => "0000",
-            ADDR_PIC      => "1111"
+         ADDR_PORT     => "0000",
+         ADDR_PIC      => "1111"
     	)
-    	port map (
+    	
+		port map 
+		(
     		clk     => clk_2,
     		rst     => reset_sync,
     		port_io => port_io_uC
@@ -77,49 +83,25 @@ begin
 
     -- CryptoManager (Multiplexes CryptoMessages)    
     CryptoManager: entity work.CryptoManager
-        port map (
-            clk => clk_2,
-            rst => reset_sync,
+      port map 
+		(
+			clk => clk_2,
+			rst => reset_sync,
 
-            -- Processor
-            data_in_R8  => data_in_R8,
-            data_out_R8 => data_out_R8,
-            data_AV_R8  => data_AV_R8,
-            ack_R8      => ack_R8,
-            eom_R8      => eom_R8,
+			-- Processor
+			data_in_R8  => data_in_R8,
+			data_out_R8 => data_out_R8,
+			data_AV_R8  => data_AV_R8,
+			ack_R8      => ack_R8,
+			eom_R8      => eom_R8,
 
-            -- CryptoMessage 0
-            data_in_crypto(0)     => data_in(0),
-            data_out_crypto(0)    => data_out(0),
-            keyExchange_crypto(0) => keyExchange(0),
-            data_AV_crypto(0)     => data_AV(0),
-            ack_crypto(0)         => ack(0),
-            eom_crypto(0)         => eom(0),
-
-            -- CryptoMessage 1
-            data_in_crypto(1)     => data_in(1),
-            data_out_crypto(1)    => data_out(1),
-            keyExchange_crypto(1) => keyExchange(1),
-            data_AV_crypto(1)     => data_AV(1),
-            ack_crypto(1)         => ack(1),
-            eom_crypto(1)         => eom(1),
-
-            -- CryptoMessage 2
-            data_in_crypto(2)     => data_in(2),
-            data_out_crypto(2)    => data_out(2),
-            keyExchange_crypto(2) => keyExchange(2),
-            data_AV_crypto(2)     => data_AV(2),
-            ack_crypto(2)         => ack(2),
-            eom_crypto(2)         => eom(2),
-
-            -- CryptoMessage 3
-            data_in_crypto(3)     => data_in(3),
-            data_out_crypto(3)    => data_out(3),
-            keyExchange_crypto(3) => keyExchange(3),
-            data_AV_crypto(3)     => data_AV(3),
-            ack_crypto(3)         => ack(3),
-            eom_crypto(3)         => eom(3)
-        );
+			data_in_crypto      => data_in,
+			data_out_crypto     => data_out,
+			keyExchange_crypto  => keyExchange,
+			data_AV_crypto      => data_AV,
+			ack_crypto          => ack,
+			eom_crypto          => eom
+	   );
 
     -- CryptoMessage peripheral
     CryptoMessage0: entity work.CryptoMessage
@@ -127,16 +109,16 @@ begin
             MSG_INTERVAL => 1000, -- Waits 1000 clocks before sending next msg
             FILE_NAME  => "empire.txt"
         )
-    	port map(
-    		clk         => clk_4,
-    		rst         => reset_sync,
-    		data_in     => data_in(0),
-    		data_out    => data_out(0),
-    		keyExchange => keyExchange(0),
-    		data_AV     => data_AV(0),
-    		ack         => ack(0),
-    		eom         => eom(0)
-    	);
+    	  port map(
+				clk         => clk_4,
+				rst         => reset_sync,
+				data_in     => data_in(0),
+				data_out    => data_out(0),
+				keyExchange => keyExchange(0),
+				data_AV     => data_AV(0),
+				ack         => ack(0),
+				eom         => eom(0)
+			);
 
     CryptoMessage1: entity work.CryptoMessage
         generic map(
@@ -173,7 +155,7 @@ begin
     CryptoMessage3: entity work.CryptoMessage
         generic map(
             MSG_INTERVAL => 4000, -- Waits 4000 clocks before sending next msg
-            FILE_NAME  => "empire.txt"
+            FILE_NAME  => "cheiademanias.txt"
         )
         port map(
             clk         => clk_4,

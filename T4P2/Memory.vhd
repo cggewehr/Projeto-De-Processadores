@@ -22,16 +22,16 @@ entity Memory is
         clk         : in std_logic;
         wr          : in std_logic;            -- Write Enable (1: write; 0: read)
         en          : in std_logic;            -- Memory enable
-        address     : in std_logic_vector (ADDR_WIDTH-1 downto 0);
-        data_in     : in std_logic_vector (DATA_WIDTH-1 downto 0);
+        address     : in std_logic_vector  (ADDR_WIDTH-1 downto 0);
+        data_in     : in std_logic_vector  (DATA_WIDTH-1 downto 0);
         data_out    : out std_logic_vector (DATA_WIDTH-1 downto 0)
     );
 end Memory;
 
 architecture BlockRAM of Memory is
     
-    --type RamType is array (0 to (2**ADDR_WIDTH)-1) of std_logic_vector(DATA_WIDTH-1 downto 0); -- Tamanho máximo de memoria
-    type RamType is array (0 to 50000) of std_logic_vector(DATA_WIDTH-1 downto 0); -- Tamanho reduzido de memoria
+    type RamType is array (0 to (2**ADDR_WIDTH)-1) of std_logic_vector(DATA_WIDTH-1 downto 0); -- Tamanho máximo de memoria
+    --type RamType is array (0 to 999) of std_logic_vector(DATA_WIDTH-1 downto 0); -- Tamanho reduzido de memoria
     
     impure function InitRamFromFile (RamFileName : in string) return RamType is
         --FILE RamFile : text is in RamFileName;
@@ -39,6 +39,7 @@ architecture BlockRAM of Memory is
         variable RamFileLine : line;
         variable RAM : RamType;
         variable data_str : string(1 to 4);
+		  
     begin   
         for I in RamType'range loop
             readline (RamFile, RamFileLine);

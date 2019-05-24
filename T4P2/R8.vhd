@@ -67,38 +67,38 @@ architecture Behavioural of R8 is
 	
 	-- Registradores do Processador
 	signal regBank                     : RegisterArray(0 to 15);        -- Banco de registradores	 
-    signal regPC                       : std_logic_vector(15 downto 0); -- Program Counter
-    signal regIR                       : std_logic_vector(15 downto 0); -- Instrução sendo executada
-    signal regSP                       : std_logic_vector(15 downto 0); -- Stack Pointer
-    signal regA                        : std_logic_vector(15 downto 0); -- Primeiro reg lido do banco de registradores
+   signal regPC                       : std_logic_vector(15 downto 0); -- Program Counter
+   signal regIR                       : std_logic_vector(15 downto 0); -- Instrução sendo executada
+   signal regSP                       : std_logic_vector(15 downto 0); -- Stack Pointer
+   signal regA                        : std_logic_vector(15 downto 0); -- Primeiro reg lido do banco de registradores
 	signal regB                        : std_logic_vector(15 downto 0); -- Segundo reg lido do banco de registradores
 	signal regALU                      : std_logic_vector(15 downto 0); -- Registrador ALU
 	signal regHIGH                     : std_logic_vector(15 downto 0); -- Registrador HIGH para MUL/DIV (Parte Alta)
 	signal regLOW                      : std_logic_vector(15 downto 0); -- Registrador LOW para MUL/DIV (Parte Baixa)
-    signal regISRA                     : std_logic_vector(15 downto 0); -- Registrador que contem o endereço da subrotina de tratamento de interrupção
+   signal regISRA                     : std_logic_vector(15 downto 0); -- Registrador que contem o endereço da subrotina de tratamento de interrupção
 
 	-- Sinais combinacionais pra ALU
-    signal ALUaux                      : std_logic_vector(16 downto 0); -- Sinal com 17 bits pra lidar com overflow 
-    signal outALU                      : std_logic_vector(15 downto 0);  
-    signal multiplicador               : std_logic_vector(31 downto 0);
-    signal divisor                     : std_logic_vector(31 downto 0);
+   signal ALUaux                      : std_logic_vector(16 downto 0); -- Sinal com 17 bits pra lidar com overflow 
+   signal outALU                      : std_logic_vector(15 downto 0);  
+   signal multiplicador               : std_logic_vector(31 downto 0);
+   signal divisor                     : std_logic_vector(31 downto 0);
     
 	-- Registrador de Flags
-    signal regFLAGS : std_logic_vector(3 downto 0);
-    alias n :std_logic is regFLAGS(3);
-    alias z :std_logic is regFLAGS(2);
-    alias c :std_logic is regFLAGS(1);
-    alias v :std_logic is regFLAGS(0);
+   signal regFLAGS : std_logic_vector(3 downto 0);
+   alias n :std_logic is regFLAGS(3);
+   alias z :std_logic is regFLAGS(2);
+   alias c :std_logic is regFLAGS(1);
+   alias v :std_logic is regFLAGS(0);
 	
     -- Sinais auxiliares para geração de flags, atualizados combinacionalmente na ALU
-    signal flagN, flagZ, flagC, flagV  : std_logic; -- Flags ALU| negativo, zero, carry, OVFLW
+   signal flagN, flagZ, flagC, flagV  : std_logic; -- Flags ALU| negativo, zero, carry, OVFLW
     
 	-- Campos do registrador de instrução
 	alias OPCODE      : std_logic_vector( 3 downto 0) is regIR(15 downto 12);
 	alias REGTARGET   : std_logic_vector( 3 downto 0) is regIR(11 downto  8);
 	alias REGSOURCE1  : std_logic_vector( 3 downto 0) is regIR( 7 downto  4);
 	alias REGSOURCE2  : std_logic_vector( 3 downto 0) is regIR( 3 downto  0);
-	alias CONSTANTE	  : std_logic_vector( 7 downto 0) is regIR( 7 downto  0);
+	alias CONSTANTE	: std_logic_vector( 7 downto 0) is regIR( 7 downto  0);
 	alias JMPD_AUX    : std_logic_vector( 1 downto 0) is regIR(11 downto 10);
 	alias JMPD_DESLOC : std_logic_vector( 9 downto 0) is regIR( 9 downto  0);
 	alias JSRD_DESLOC : std_logic_vector(11 downto 0) is regIR(11 downto  0);
@@ -136,20 +136,20 @@ begin
                           LDH    when OPCODE = x"8" else
                           LD     when OPCODE = x"9" else
                           ST     when OPCODE = x"A" else      
-					      SL0    when OPCODE = x"B"  and  REGSOURCE2 = x"0" else
-				          SL1    when OPCODE = x"B"  and  REGSOURCE2 = x"1" else
+					           SL0    when OPCODE = x"B"  and  REGSOURCE2 = x"0" else
+				              SL1    when OPCODE = x"B"  and  REGSOURCE2 = x"1" else
                           SR0    when OPCODE = x"B"  and  REGSOURCE2 = x"2" else
-				          SR1    when OPCODE = x"B"  and  REGSOURCE2 = x"3" else
+				              SR1    when OPCODE = x"B"  and  REGSOURCE2 = x"3" else
                           NOT_A  when OPCODE = x"B"  and  REGSOURCE2 = x"4" else
                           NOP    when OPCODE = x"B"  and  REGSOURCE2 = x"5" else
                           HALT   when OPCODE = x"B"  and  REGSOURCE2 = x"6" else
-				          LDSP   when OPCODE = x"B"  and  REGSOURCE2 = x"7" else
-				          RTS    when OPCODE = x"B"  and  REGSOURCE2 = x"8" else
-				          POP    when OPCODE = x"B"  and  REGSOURCE2 = x"9" else
+				              LDSP   when OPCODE = x"B"  and  REGSOURCE2 = x"7" else
+				              RTS    when OPCODE = x"B"  and  REGSOURCE2 = x"8" else
+				              POP    when OPCODE = x"B"  and  REGSOURCE2 = x"9" else
                           PUSH   when OPCODE = x"B"  and  REGSOURCE2 = x"A" else
 						  
-						  -- Novas Instruções T4P1
-						  MUL     when OPCODE = x"B" and REGSOURCE2 = x"B" else -- MULTIPLICAÇÃO
+						        -- Novas Instruções T4P1
+						        MUL     when OPCODE = x"B" and REGSOURCE2 = x"B" else -- MULTIPLICAÇÃO
                           DIV     when OPCODE = x"B" and REGSOURCE2 = x"C" else -- DIVISÃO
                           MFH     when OPCODE = x"B" and REGSOURCE2 = x"D" else -- MOVE FROM HIGH
                           MFL     when OPCODE = x"B" and REGSOURCE2 = x"E" else -- MOVE FROM LOW
@@ -188,8 +188,8 @@ begin
 
                           -- Novas Instruções T3P2
                           PUSHF when OPCODE = x"C" and REGSOURCE2 = x"C" else -- PUSH FLAGS
-			              POPF  when OPCODE = x"C" and REGSOURCE2 = x"D" else -- POP FLAGS
-			              RTI   when OPCODE = x"C" and REGSOURCE2 = x"E" else -- RETORNO DE INTERRUPCAO
+			                 POPF  when OPCODE = x"C" and REGSOURCE2 = x"D" else -- POP FLAGS
+			                 RTI   when OPCODE = x"C" and REGSOURCE2 = x"E" else -- RETORNO DE INTERRUPCAO
                             
                           
                           NOP; -- Jumps condicionais com flag = 0
@@ -200,10 +200,10 @@ begin
 
 			regPC    <= (others=>'0');
 			regSP    <= (others=>'0');
-            regALU   <= (others=>'0');
-            regIR    <= (others=>'0');
-            regA     <= (others=>'0');
-            regB     <= (others=>'0');
+         regALU   <= (others=>'0');
+         regIR    <= (others=>'0');
+         regA     <= (others=>'0');
+         regB     <= (others=>'0');
 			regFLAGS <= (others=>'0');
 			regHIGH  <= (others=>'0');
 			regLOW   <= (others=>'0');
