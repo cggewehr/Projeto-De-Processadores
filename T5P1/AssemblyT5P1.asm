@@ -680,9 +680,178 @@ PollingLoop: ; Espera próximo sinal de data_av = '1'
   callLeCaracter:
     jsrd #LeCaracter
     jmpd #returncallLeCaracter
-;_____________________________________________________________________________________________________________
+    
+;-------------------------------------------- Funções do Kernel ---------------------------------------------
 
+PrintString: ; Espera endereço da string a ser enviada em r2
 
+; Tabela de registradores:
+; r1 = Endereço do transmissor serial
+; r3 = Indexador da string do inteiro convertido (buffer)
+; r5 = Dado a ser transmitido
+
+    push r1
+    push r3
+    push r5
+
+    ldh r1, #UART_TX
+    ldl r1, #UART_TX
+    ld r1, r0, r1
+    
+    xor r0, r0, r0
+    xor r3, r3, r3
+    xor r5, r5, r5
+    
+  tx_loop:
+    
+;   r5 <= status do tx
+    ld r5, r0, r1
+    add r5, r0, r5 ; Gera flag
+  
+    jmpzd #tx_loop ; Espera transmissor estar disponivel
+    
+;   r5 <= string[r3]
+    ld r5, r3, r2
+    add r5, r0, r5 ; Gera flag
+    
+;   Se string[r3] = 0 (terminador de string), volta para caller
+    jmpzd #PrintStringReturn
+    
+;   UART TX <= r5
+    st r5, r0, r1
+    
+;   Incrementa indice
+    addi r3, #1
+    
+;   Transmite proximo caracter
+    jmpd #tx_loop
+    
+PrintStringReturn:
+    
+    pop r5
+    pop r3
+    pop r1
+    
+    rts
+
+IntegerToString: ; Espera inteiro a ser convertido em r2, retorna string em r14
+; https://stackoverflow.com/questions/7123490/how-compiler-is-converting-integer-to-string-and-vice-versa
+
+; Tabela de registradores:
+; r2 = Inteiro a ser convertido
+; r3 = Indexador da string do inteiro convertido (buffer)
+; r5 = Dado a ser gravado na memoria
+; r10 = Constante 10
+; r11 = Resto da divisao por 10
+
+    push r2
+    push r3
+    push r5
+    push r10
+    push r11
+    
+    xor r0, r0, r0
+    xor r2, r2, r2
+    xor r3, r3, r3
+    xor r10, r10, r10
+    xor r11, r11, r11
+    
+    ldl r10, #10
+    
+    ldh r14, #IntegerToStringBuffer
+    ldl r14, #IntegerToStringBuffer
+    
+    addi r3, #8
+    
+;   Limpa o buffer
+  limpaBufferLoop:
+    
+;   buffer[r3] <= 0
+    st r0, r3, r14
+    
+;   Decrementa indice do buffer
+    subi r3, #1
+    
+;   Limpa proxima posição do buffer
+    jmpnd #IntegerToStringStart
+    jmpd #limpaBufferLoop
+    
+IntegerToStringStart:
+    
+    xor r3, r3, r3
+    
+    add r2, r0, r2 ; Gera flag
+    
+    jmpnd #IntegerToStringNegativo
+    jmpzd #IntegerToStringZero
+      
+ConversionLoop:
+
+;   r2 <= r2/10, r11 <= r2 % 10
+    div r2, r10
+    mfh r11
+    mfl r2
+    
+;   r11 <= char[r11]
+    addi r11, #48
+    
+;   buffer <= char[r11]
+    st r11, r3, r14
+    
+;   Incrementa indexador do buffer
+    addi r3, #1
+
+    add r2, r0, r2
+    jmpzd #IntegerToStringReturn
+    jmpd #ConversionLoop
+    
+IntegerToStringReturn:  
+    
+    pop r11
+    pop r10
+    pop r5
+    pop r3
+    pop r2
+    
+    rts
+    
+IntegerToStringZero:
+    
+;   r5 <= '0'   
+    ldh r5, #0
+    ldl r5, #48
+
+;   Buffer[0] <= '0'
+    st r5, r3, r14
+    
+;   Retorna para caller
+    pop r11
+    pop r10
+    pop r5
+    pop r3
+    pop r2
+    
+    rts
+    
+IntegerToStringNegativo:
+
+;   r2 <= Inteiro a ser convertido positivo
+    not r2
+    addi r2, #1
+    
+;   r5 <= '-'
+    ldh r5, #0
+    ldl r5, #45
+    
+;   Grava sinal negativo na primeira posição do buffer
+    st r5, r3, r14
+    
+;   Incrementa ponteiro do buffer
+    addi r3, #1
+    
+;   Retorna para codigo de conversão
+    jmpd #ConversionLoop
+    
 ;------------------------------------------- PROGRAMA PRINCIPAL ---------------------------------------------
 
 main:
@@ -1123,8 +1292,14 @@ arrayPorta:               db #8000h, #8001h, #8002h, #8003h
 ; arrayPIC [ IrqID(0x80F0) | IntACK(0x80F1) | Mask(0x80F2) ]
 arrayPIC:                 db #80F0h, #80F1h, #80F2h
 
+; Endereço do transmissor serial
+UART_TX:                  db #8080h
+
 ; Vetor com tratadores de interrupção
 interruptVector:          db #irq0Handler, #irq1Handler, #irq2Handler, #irq3Handler, #irq4Handler, #irq5Handler, #irq6Handler, #irq7Handler
+
+; IntegerToString
+IntegerToStringBuffer:    db #0, #0, #0, #0, #0, #0, #0, #0
 
 ; Variaveis p/ criptografia
 magicNumberR8:            db #0000h
@@ -1140,7 +1315,7 @@ arraySaveHighLow:         db #SaveHighLow0, #SaveHighLow1, #SaveHighLow2, #SaveH
 ; Variaveis CryptoMessage 0
 CryptoPointer0:           db #0000h
 arrayDecrypted0:          db #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h
-saveHighLow0:              db #0001h ; Se = 0, salva caracter na parte baixa, se = 1 salva na parte alta
+saveHighLow0:             db #0001h ; Se = 0, salva caracter na parte baixa, se = 1 salva na parte alta
 
 ; Variaveis CryptoMessage 1
 CryptoPointer1:           db #0000h
