@@ -734,18 +734,20 @@ PrintStringReturn:
     
     rts
 
-IntegerToString: ; Espera inteiro a ser convertido em r2, retorna string em r14
+IntegerToString: ; Espera inteiro a ser convertido em r2, retorna ponteiro para string em r14
 ; https://stackoverflow.com/questions/7123490/how-compiler-is-converting-integer-to-string-and-vice-versa
 
 ; Tabela de registradores:
 ; r2 = Inteiro a ser convertido
-; r3 = Indexador da string do inteiro convertido (buffer)
+; r3 = Contador de pushes
+; r4 = Contador de pops
 ; r5 = Dado a ser gravado na memoria
 ; r10 = Constante 10
 ; r11 = Resto da divisao por 10
 
     push r2
     push r3
+    push r4
     push r5
     push r10
     push r11
@@ -753,6 +755,7 @@ IntegerToString: ; Espera inteiro a ser convertido em r2, retorna string em r14
     xor r0, r0, r0
     xor r2, r2, r2
     xor r3, r3, r3
+    xor r4, r4, r4
     xor r10, r10, r10
     xor r11, r11, r11
     
@@ -784,28 +787,46 @@ IntegerToStringStart:
     
     jmpnd #IntegerToStringNegativo
     jmpzd #IntegerToStringZero
+    jmpd #IntegerToStringPositivo
       
 ConversionLoop:
 
-;   r2 <= r2/10, r11 <= r2 % 10
+;   r2 <= r2 / 10, r11 <= r2 % 10
     div r2, r10
     mfh r11
     mfl r2
     
 ;   r11 <= char[r11]
     addi r11, #48
+
+;   Salva r11 na pilha (string será reordenada)
+    push r11
     
-;   buffer <= char[r11]
-    st r11, r3, r14
-    
-;   Incrementa indexador do buffer
+;   Incrementa contador de pushes
     addi r3, #1
 
+;   Gera Flag
     add r2, r0, r2
-    jmpzd #IntegerToStringReturn
-    jmpd #ConversionLoop
     
-IntegerToStringReturn:  
+    jmpzd #ReverseLoop
+    jmpd #ConversionLoop
+
+ReverseLoop:
+    
+    pop r5
+    
+    st r5, r4, r14
+    
+    addi r4, #1
+    
+    sub r5, r3, r4
+    
+    jmpzd #IntegerToStringReturn
+    jmpd #ReverseLoop
+    
+IntegerToStringReturn:
+
+    subi r1, #1
     
     pop r11
     pop r10
@@ -828,14 +849,16 @@ IntegerToStringZero:
     pop r11
     pop r10
     pop r5
+    pop r4
     pop r3
     pop r2
+    pop r1
     
     rts
     
 IntegerToStringNegativo:
 
-;   r2 <= Inteiro a ser convertido positivo
+;   r2 <= Inteiro a ser convertido passa a ser positivo
     not r2
     addi r2, #1
     
@@ -844,14 +867,30 @@ IntegerToStringNegativo:
     ldl r5, #45
     
 ;   Grava sinal negativo na primeira posição do buffer
-    st r5, r3, r14
+    st r5, r0, r14
     
-;   Incrementa ponteiro do buffer
-    addi r3, #1
+;   Incrementa ponteiro da string
+    addi r14, #1
     
 ;   Retorna para codigo de conversão
     jmpd #ConversionLoop
     
+IntegerToStringPositivo:
+
+;   r5 <= '+'
+    ldh r5, #0
+    ldl r5, #43
+    
+;   Grava sinal positivo na primeira posição do buffer
+    st r5, r0, r14
+    
+;   Incrementa ponteiro do buffer
+    addi r14, #1
+    
+;   Retorna para codigo de conversão
+    jmpd #ConversionLoop
+
+
 ;------------------------------------------- PROGRAMA PRINCIPAL ---------------------------------------------
 
 main:
@@ -1155,7 +1194,7 @@ LeCaracter:           ; Le caracter atual da porta, salva nos arrays, incrementa
     ldh r1, #arrayPorta ; Carrega &Porta
     ldl r1, #arrayPorta ; Carrega &Porta
     addi r1, #1
-    ld r1, r0, r1       ; Carrega &portData
+    ld r1, r0, r1       ; Carrega &portConfig
 
 ;   r5 <= (Bits de dados como entrada, dataDD como saida, outros de acordo)
     ldh r5, #FAh
@@ -1198,69 +1237,16 @@ LeCaracter:           ; Le caracter atual da porta, salva nos arrays, incrementa
     ldl r6, #7Fh ; r6 <= "00000000_01111111"
     and r5, r5, r6
 
-; if "saveHighLow" == 0, save character on lower part, else, save on higher part
-
-;   r6 <= saveHighLow
-    ldh r6, #arraySaveHighLow
-    ldl r6, #arraySaveHighLow
-    ld r6, r2, r6
-    add r6, r0, r6 ; Gera flag
-
-    jmpzd #saveOnLower
-    jmpd #saveOnHigher
-
-  saveOnLower:
-
-    st r5, r1, r4 ; arrayDecrypted[r4] = Caracter descriptografado
-
-;   Incrementa saveHighLow (sinaliza proximo caracter a ser salvo na parte alta)
-    ldh r6, #arraySaveHighLow
-    ldl r6, #arraySaveHighLow
-    ld r5, r2, r6
-    addi r5, #1
-    st r5, r2, r6
-
-;   Incrementa CryptoPointer
-    ldh r4, #arrayCryptoPointer
-    ldl r4, #arrayCryptoPointer
-    ld r5, r2, r4
-    addi r5, #1
-    st r5, r2, r4
-
-    jmpd #returnSaveHighLow
-
-  saveOnHigher:
-
-;   Shifta dado até bits mais significativos
-    sl0 r5, r5 ; MSB @ 8
-    sl0 r5, r5 ; MSB @ 9
-    sl0 r5, r5 ; MSB @ 10
-    sl0 r5, r5 ; MSB @ 11
-    sl0 r5, r5 ; MSB @ 12
-    sl0 r5, r5 ; MSB @ 13
-    sl0 r5, r5 ; MSB @ 14
-    sl0 r5, r5 ; MSB @ 15
-
-;   r6 <= Caracter salvo na parte baixa
-    ld r6, r1, r4 ; r6 <= arrayEncryped(irqID)[CryptoPointer]
-
-;   Apaga parte alta
-    ldh r6, #0
-
-;   Junta caracter antigo com caracter novo
-    xor r5, r5, r6
-
-;   Salva caracter antigo & caracter novo
-    st r5, r1, r4 ; arrayDecrypted[r4] = Caracter antigo + novo
-
-;   Zera saveHighLow
-    ldh r6, #arraySaveHighLow
-    ldl r6, #arraySaveHighLow
-    st r0, r2, r6
-
-    jmpd #returnSaveHighLow
-
-  returnSaveHighLow:
+;   Salva caracter na string a ser enviada
+    ldh r1, #CharString 
+    ldl r1, #CharString 
+    st r5, r0, r1
+    
+;   Seta argumento para PrintString
+    add r2, r0, r1
+    
+;   Envia caracter para transmissor serial
+    jsrd #PrintString
 
 ;   Gera ACK
     jsrd #GeraACK
@@ -1300,6 +1286,9 @@ interruptVector:          db #irq0Handler, #irq1Handler, #irq2Handler, #irq3Hand
 
 ; IntegerToString
 IntegerToStringBuffer:    db #0, #0, #0, #0, #0, #0, #0, #0
+
+; Primeira posição deve ser o caracter a ser enviado, segunda posição deve ser o terminador de string 
+CharString:               db #0, #0
 
 ; Variaveis p/ criptografia
 magicNumberR8:            db #0000h
