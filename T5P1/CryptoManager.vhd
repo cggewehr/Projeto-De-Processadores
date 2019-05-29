@@ -39,7 +39,7 @@ end CryptoManager;
 
 architecture Behavioural of CryptoManager is
 
-    type State is (waitingITR, waitingMAGICNUMBER, txMAGICNUMBER, txCHAR, waitingACK, waitingACK_EOM, txACK, txACK_EOM);
+    type State is (waitingID, waitingMAGICNUMBER, txMAGICNUMBER, txCHAR, waitingACK, waitingACK_EOM, txACK, txACK_EOM);
 
     signal currentState: State;
     signal lockedCrypto : integer;
@@ -66,20 +66,28 @@ begin
         elsif rising_edge(clk) then
 
             -- Checks if there is a new request 
-            if currentState = waitingITR then
-                currentState <= waitingITR; -- Defaults to waitingITR
+            if currentState = waitingID then
 
                 data_av_R8 <= '0';
                 eom_R8 <= '0';
 
-                for i in 0 to CRYPTO_AMOUNT-1 loop
-                    if keyExchange_crypto(i) = '1' then
-                        lockedCrypto <= i;                      -- Determines which Crypto to initiate communication (lowest numbered Cryptos have higher priority)
-                        data_out_R8 <= data_out_crypto(i);      -- Transmits Crypto's magic number to R8
-                        currentState <= waitingMAGICNUMBER;     -- Waits for processor acknowledgement
-                        exit;                                   -- Stop checking for new communication requests
-                    end if;
-                end loop; -- If no keyExchange is active, holds on waitingITR
+                if data_in_R8 >= 251 then
+                    lockedCrypto <= data_in_R8 - 251;           -- 
+                    data_out_R8 <= data_out_crypto(data_in_R8 - 251);
+                    currentState <= waitingMAGICNUMBER;
+                else
+                    lockedCrypto <= CRYPTO_AMOUNT;
+                    currentState <= waitingID;
+                end if;
+
+                --for i in 0 to CRYPTO_AMOUNT-1 loop
+                --    if keyExchange_crypto(i) = '1' then
+                --        lockedCrypto <= i;                      -- Determines which Crypto to initiate communication (lowest numbered Cryptos have higher priority)
+                --        data_out_R8 <= data_out_crypto(i);      -- Transmits Crypto's magic number to R8
+                --        currentState <= waitingMAGICNUMBER;     -- Waits for processor acknowledgement
+                --        exit;                                   -- Stop checking for new communication requests
+                --    end if;
+                --end loop; 
 
             elsif currentState = waitingMAGICNUMBER then
 
