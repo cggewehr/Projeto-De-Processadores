@@ -19,6 +19,7 @@ entity CryptoManager is
         --Basic
         clk                 : in std_logic;
         rst                 : in std_logic;
+        dataDD              : in std_logic;
 
         -- Processor Interface
         data_in_R8          : in std_logic_vector(DATA_WIDTH-1 downto 0);
@@ -65,13 +66,13 @@ begin
 
         elsif rising_edge(clk) then
 
-            -- Checks if there is a new request 
+            -- Checks if there is a new request
             if currentState = waitingID then
 
                 data_av_R8 <= '0';
                 eom_R8 <= '0';
 
-                if data_in_R8 >= 251 then
+                if data_in_R8 >= 251 and dataDD = '0' then
                     lockedCrypto <= data_in_R8 - 251;           -- 
                     data_out_R8 <= data_out_crypto(data_in_R8 - 251);
                     currentState <= waitingMAGICNUMBER;

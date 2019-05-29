@@ -46,7 +46,11 @@ architecture Behavioural of R8_uC_TOPLVL is
     signal keyExchange                : std_logic_vector(3 downto 0);
     signal data_AV                    : std_logic_vector(3 downto 0);
     signal ack                        : std_logic_vector(3 downto 0);
-    signal eom                        : std_logic_vector(3 downto 0); 
+    signal eom                        : std_logic_vector(3 downto 0);
+
+    --UART RX signals
+    signal data_out_rx                : std_logic_vector(7 downto 0);
+    signal data_av_rx                 : std_logic;
 
 begin
 
@@ -80,7 +84,7 @@ begin
     		port_io => port_io_uC,
             uart_tx => uart_tx
     	);
-    UART_RX: entity work.UART_TX
+    UART_RX: entity work.UART_RX
         generic map(
             RATE_FREQ_BAUD  => 5208 -- 9600 baud @ 50 MHz
         )
@@ -88,8 +92,8 @@ begin
             clk => clk_2,
             rst => reset_sync,
             rx  => uart_tx,
-            data_out => open,
-            data_av => open
+            data_out => data_out_rx,
+            data_av => data_av_rx
         );
 
     -- CryptoManager (Multiplexes CryptoMessages)    
@@ -98,6 +102,7 @@ begin
 		(
 			clk => clk_2,
 			rst => reset_sync,
+            dataDD => TRISTATE_CRYPTO_TO_PORT_EN,
 
 			-- Processor
 			data_in_R8  => data_in_R8,
