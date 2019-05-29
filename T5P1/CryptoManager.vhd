@@ -59,7 +59,7 @@ begin
                 ack_crypto(i) <= '0';
             end loop;
 
-            lockedCrypto <= 0;
+            lockedCrypto <= CRYPTO_AMOUNT;
             data_av_R8 <= '0';
             eom_R8 <= '0';
 
