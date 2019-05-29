@@ -831,6 +831,7 @@ IntegerToStringReturn:
     pop r11
     pop r10
     pop r5
+    pop r4
     pop r3
     pop r2
     
@@ -859,7 +860,7 @@ IntegerToStringZero:
 IntegerToStringNegativo:
 
 ;   r2 <= Inteiro a ser convertido passa a ser positivo
-    not r2
+    not r2, r2
     addi r2, #1
     
 ;   r5 <= '-'
@@ -910,6 +911,9 @@ main:
 ;*          r6: array index
 ;*          r7: element array[r5]
 ;*          r8: element array[r8]
+;*          r9: send count
+;*          r10: array size
+;*          r11: transmission count
 ;*
 ;*********************************************************************
 
@@ -919,6 +923,7 @@ BubbleSort:
 
     ; Initialization code
     xor r0, r0, r0          ; r0 <- 0
+    xor r11, r11, r11       ; r11 <- 0
 
     ldh r1, #arraySort      ;
     ldl r1, #arraySort      ; r1 <- &array
@@ -926,16 +931,36 @@ BubbleSort:
     ldh r2, #arraySortSize  ;
     ldl r2, #arraySortSize  ; r2 <- &size
     ld r2, r2, r0           ; r2 <- size
+    add r10, r0, r2         ; r10 <- size (to be used on Serial Transmission)
 
     add r3, r2, r1          ; r3 points the end of array (right after the last element)
 
     ldl r4, #0              ;
     ldh r4, #1              ; r4 <- 1
-
+    
+; Converts array to char and transmits via UART
+TX_ARRAY_INICIAL:
+    
+;   Loops for 50 iterations on IntegerToString function
+    
+    ld r2, r11, r1          ; r2 <- arraySort[transmissionCount]
+    
+    jsrd #IntegerToString   ; Converts integer to string
+    
+    add r2, r0, r14         ; r2 <- Pointer to converted string
+    jsrd #PrintString       ; Prints string on UART transmiter
+    
+    addi r11, #1            ; Increments transmission count
+    
+    sub r5, r10, r11        ; If transmission count == array size, breaks loop, else iterates again
+    
+    jmpzd #scan
+    jmpd #TX_ARRAY_INICIAL    
+    
 ; Main code
 scan:
     addi r4, #0             ; Verifies if there was element swapping
-    jmpzd #end              ; If r4 = 0 then no element swapping
+    jmpzd #TX_ARRAY_FINAL   ; If r4 = 0 then no element swapping
 
     xor r4, r4, r4          ; r4 <- 0 before each pass
 
@@ -967,7 +992,27 @@ swap:
     ldl r4, #1              ; Set the element swapping (r4 <- 1)
     jmpd #continue
 
-end:
+; Converts array to char and transmits via UART
+TX_ARRAY_FINAL:
+    
+;   Loops for 50 iterations on IntegerToString function
+    
+    ld r2, r1, r11          ; r2 <- arraySort[transmissionCount]
+    
+    jsrd #IntegerToString   ; Converts integer to string
+    
+    add r2, r0, r14         ; r2 <- Pointer to converted string
+    jsrd #PrintString       ; Prints string on UART transmiter
+    
+    addi r11, #1            ; Increments transmission count
+    
+    sub r5, r10, r11        ; If transmission count == array size, breaks loop, else iterates again
+    
+    jmpzd #halt_bubbleSort
+    jmpd #TX_ARRAY_FINAL
+    
+halt_bubbleSort:
+
     halt                    ; Suspend the execution
 
 
@@ -976,7 +1021,7 @@ end:
 ; CalculaMagicNumberR8:       DONE
 ; CalculaCryptoKey:           DONE
 ; GeraACK:                    DONE
-; LeCaracter:            TODO
+; LeCaracter:            TODO (Enviar para UART)
 
 CalculaMagicNumberR8: ; Retorna em r14 o magicNumber do processador
 

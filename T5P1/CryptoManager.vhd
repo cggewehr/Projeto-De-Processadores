@@ -3,10 +3,10 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 package CryptoManagerPkg is
-    constant CRYPTO_AMOUNT : natural := 4; 
-    constant DATA_WIDTH : natural := 8; 
-    constant WAIT_COUNT : natural := 400; 
-    type DataArray is array (natural range 0 to CRYPTO_AMOUNT-1 ) of std_logic_vector(DATA_WIDTH-1 downto 0);
+    constant CRYPTO_AMOUNT : integer := 4; 
+    constant DATA_WIDTH : integer := 8; 
+    constant WAIT_COUNT : integer := 400; 
+    type DataArray is array (integer range 0 to CRYPTO_AMOUNT-1 ) of std_logic_vector(DATA_WIDTH-1 downto 0);
 end package;
 
 library ieee;
@@ -49,12 +49,12 @@ begin
 
     process(clk, rst)
 
-        variable counter: natural := 0;
+        variable counter: integer := 0;
 
     begin
 
         if rst = '1' then
-            currentState <= waitingITR;
+            currentState <= waitingID;
 
             for i in 0 to CRYPTO_AMOUNT-1 loop
                 ack_crypto(i) <= '0';
@@ -72,9 +72,9 @@ begin
                 data_av_R8 <= '0';
                 eom_R8 <= '0';
 
-                if data_in_R8 >= 251 and dataDD = '0' then
-                    lockedCrypto <= data_in_R8 - 251;           -- 
-                    data_out_R8 <= data_out_crypto(data_in_R8 - 251);
+                if unsigned(data_in_R8) >= 251 and dataDD = '0' then
+                    lockedCrypto <= to_integer(unsigned(data_in_R8)) - 251;
+                    data_out_R8 <= data_out_crypto( to_integer(unsigned(data_in_R8)) - 251);
                     currentState <= waitingMAGICNUMBER;
                 else
                     lockedCrypto <= CRYPTO_AMOUNT;
@@ -160,7 +160,7 @@ begin
 
                 if ack_R8 = '0' then
                     ack_crypto(lockedCrypto) <= '0';
-                    currentState <= waitingITR;
+                    currentState <= waitingID;
                 else
                     currentState <= txACK_EOM;
                 end if;

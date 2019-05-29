@@ -20,7 +20,7 @@ entity R8_uC is
 		clk           : in std_logic; -- 50MHz from DCM
 		rst           : in std_logic; -- Synchronous reset
         port_io       : inout std_logic_vector(15 downto 0);
-        uart_tx :     : out std_logic
+        uart_tx       : out std_logic
 	);
 end R8_uC;
 
@@ -167,7 +167,7 @@ begin
 
     -- Sinais UART
     data_UART_TX <= data_r8_out(7 downto 0);
-    en_UART_TX <= '1' when rw = '0' and ID_PERIFERICO = ADDR_UART_TX and ENABLE_PERIFERICO = '1' else 0;
+    en_UART_TX <= '1' when rw = '0' and ID_PERIFERICO = ADDR_UART_TX and ENABLE_PERIFERICO = '1' else '0';
 
     TX: entity work.UART_TX
         generic map(
