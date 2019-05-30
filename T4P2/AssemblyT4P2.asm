@@ -96,6 +96,7 @@ setup:
     ldh r8, #00h
     ldl r8, #F0h   ; Carrega a Mascara para o PIC [ r8 <= "0000_0000_1111_0000"]
 
+    xor r0, r0, r0
     st r8, r0, r7  ; arrayPIC [MASK] <= "0000_0000_1111_0000"
 
     ; Array de registradores do controlador de interrupções
@@ -108,7 +109,7 @@ setup:
     ld r1, r0, r1
 
     xor r4, r4, r4
-    
+
 ;   Seta PortConfig
     ldl r4, #01h   ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &PortConfig ]
     ldh r5, #FAh   ; r5 <= "11111010_11111111"
@@ -239,6 +240,17 @@ InterruptionServiceRoutine:
 
     jsr r1
 
+;-----------------------------------------Notificar interrupção tratada--------------------------------------
+
+;   r1 <= &IntACK
+    ldh r1, #arrayPIC
+    ldl r1, #arrayPIC
+    addi r1, #1
+    ld r1, r0, r1
+
+;   IntACK <= IrqID
+    st r1, r0, r4
+
 ;-----------------------------------------------Recupera contexto--------------------------------------------
 
     popf
@@ -268,19 +280,19 @@ InterruptionServiceRoutine:
 
 ;-------------------------------------------------HANDLERS---------------------------------------------------
 
-irq0Handler: ; OPEN
+irq0Handler: ; CryptoMessage 0 - OPEN
 
     halt
 
-irq1Handler: ; OPEN
+irq1Handler: ; CryptoMessage 1 - OPEN
 
     halt
 
-irq2Handler: ; OPEN
+irq2Handler: ; CryptoMessage 2 - OPEN
 
     halt
 
-irq3Handler: ; OPEN
+irq3Handler: ; CryptoMessage 3 - OPEN
 
     halt
 
@@ -289,44 +301,37 @@ irq4Handler: ; CryptoMessage 0
 ;   Chama Driver com ID = 0
     xor r2, r2, r2
     jsrd #GenericCryptoDriver
-    
-;-----------------------------------------Notificar interrupção tratada--------------------------------------
+    rts
 
 ;   ACK Interrupçao
     ldh r1, #arrayPIC
     ldl r1, #arrayPIC
     ld r1, r0, r1 ; r1 <= &irqID
     addi r1, #1   ; r1 <= &itrACK
-    
+
     ldh r5, #0
     ldl r5, #4
-    
+
     st r5, r0, r1
-    
-    rts
 
 irq5Handler: ; CryptoMessage 1
-
 
 ;   Chama Driver com ID = 1
     xor r2, r2, r2
     addi r2, #1
     jsrd #GenericCryptoDriver
-   
-;-----------------------------------------Notificar interrupção tratada--------------------------------------
-   
+    rts
+
 ;   ACK Interrupçao
     ldh r1, #arrayPIC
     ldl r1, #arrayPIC
     ld r1, r0, r1 ; r1 <= &irqID
     addi r1, #1   ; r1 <= &itrACK
-    
+
     ldh r5, #0
     ldl r5, #5
-    
+
     st r5, r0, r1
-    
-    rts
 
 irq6Handler: ; CryptoMessage 2
 
@@ -334,21 +339,18 @@ irq6Handler: ; CryptoMessage 2
     xor r2, r2, r2
     addi r2, #2
     jsrd #GenericCryptoDriver
-    
-;-----------------------------------------Notificar interrupção tratada--------------------------------------
+    rts
 
 ;   ACK Interrupçao
     ldh r1, #arrayPIC
     ldl r1, #arrayPIC
     ld r1, r0, r1 ; r1 <= &irqID
     addi r1, #1   ; r1 <= &itrACK
-    
+
     ldh r5, #0
     ldl r5, #6
-    
+
     st r5, r0, r1
-    
-    rts
 
 irq7Handler: ; CryptoMessage 3
 
@@ -356,21 +358,18 @@ irq7Handler: ; CryptoMessage 3
     xor r2, r2, r2
     addi r2, #3
     jsrd #GenericCryptoDriver
-    
-;-----------------------------------------Notificar interrupção tratada--------------------------------------
+    rts
 
 ;   ACK Interrupçao
     ldh r1, #arrayPIC
     ldl r1, #arrayPIC
     ld r1, r0, r1 ; r1 <= &irqID
     addi r1, #1   ; r1 <= &itrACK
-    
+
     ldh r5, #0
     ldl r5, #7
-    
+
     st r5, r0, r1
-    
-    rts
 
 ;-------------------------------------------------DRIVERS----------------------------------------------------
 
@@ -620,86 +619,6 @@ PollingLoop: ; Espera próximo sinal de data_av = '1'
 ;_____________________________________________________________________________________________________________
 
 
-;------------------------------------------- PROGRAMA PRINCIPAL ---------------------------------------------
-
-main:
-
-;; BUBBLE SORT DO CARARA
-
-;* Bubble sort
-
-;*      Sort array in ascending order
-;*
-;*      Used registers:
-;*          r1: points the first element of array
-;*          r2: temporary register
-;*          r3: points the end of array (right after the last element)
-;*          r4: indicates elements swaping (r4 = 1)
-;*          r5: array index
-;*          r6: array index
-;*          r7: element array[r5]
-;*          r8: element array[r8]
-;*
-;*********************************************************************
-
-BubbleSort:
-
-    ;halt ; DEBUG, ignora bubble sort
-
-    ; Initialization code
-    xor r0, r0, r0          ; r0 <- 0
-
-    ldh r1, #arraySort      ;
-    ldl r1, #arraySort      ; r1 <- &array
-
-    ldh r2, #arraySortSize  ;
-    ldl r2, #arraySortSize  ; r2 <- &size
-    ld r2, r2, r0           ; r2 <- size
-
-    add r3, r2, r1          ; r3 points the end of array (right after the last element)
-
-    ldl r4, #0              ;
-    ldh r4, #1              ; r4 <- 1
-
-; Main code
-scan:
-    addi r4, #0             ; Verifies if there was element swapping
-    jmpzd #end              ; If r4 = 0 then no element swapping
-
-    xor r4, r4, r4          ; r4 <- 0 before each pass
-
-    add r5, r1, r0          ; r5 points the first array element
-
-    add r6, r1, r0          ;
-    addi r6, #1             ; r6 points the second array element
-
-; Read two consecutive elements and compares them
-loop:
-    ld r7, r5, r0           ; r7 <- array[r5]
-    ld r8, r6, r0           ; r8 <- array[r6]
-    sub r2, r8, r7          ; If r8 > r7, negative flag is set
-    jmpnd #swap             ; (if array[r5] > array[r6] jump)
-
-; Increments the index registers and verifies if the pass is concluded
-continue:
-    addi r5, #1             ; r5++
-    addi r6, #1             ; r6++
-
-    sub r2, r6, r3          ; Verifies if the end of array was reached (r6 = r3)
-    jmpzd #scan             ; If r6 = r3 jump
-    jmpd #loop              ; else, the next two elements are compared
-
-; Swaps two array elements (memory)
-swap:
-    st r7, r6, r0           ; array[r6] <- r7
-    st r8, r5, r0           ; array[r5] <- r8
-    ldl r4, #1              ; Set the element swapping (r4 <- 1)
-    jmpd #continue
-
-end:
-    halt                    ; Suspend the execution
-
-
 ;------------------------------------------------SUBROTINAS--------------------------------------------------
 
 ; CalculaMagicNumberR8:       DONE
@@ -777,7 +696,7 @@ CalculaMagicNumberR8: ; Retorna em r14 o magicNumber do processador
     jmpd #calculoExponencial
 
 
-  retornaMagicNumber:
+      retornaMagicNumber:
     pop r13
     pop r12
     pop r7
@@ -974,7 +893,7 @@ LeCaracter:           ; Le caracter atual da porta, salva nos arrays, incrementa
     ld r6, r2, r6
     add r6, r0, r6 ; Gera flag
 
-    jmpzd #saveOnLower
+    ;jmpzd #saveOnLower
     jmpd #saveOnHigher
 
   saveOnLower:
@@ -1040,16 +959,103 @@ LeCaracter:           ; Le caracter atual da porta, salva nos arrays, incrementa
 
     rts
 
+
+
+;=============================================================================================================
+;=============================================================================================================
+;=============================================================================================================
+;=============================================================================================================
+;=============================================================================================================
+
+;------------------------------------------- PROGRAMA PRINCIPAL ---------------------------------------------
+
+main:
+
+;; BUBBLE SORT DO CARARA
+
+;* Bubble sort
+
+;*      Sort array in ascending order
+;*
+;*      Used registers:
+;*          r1: points the first element of array
+;*          r2: temporary register
+;*          r3: points the end of array (right after the last element)
+;*          r4: indicates elements swaping (r4 = 1)
+;*          r5: array index
+;*          r6: array index
+;*          r7: element array[r5]
+;*          r8: element array[r8]
+;*
+;*********************************************************************
+
+BubbleSort:
+
+    ;halt ; DEBUG, ignora bubble sort
+
+    ; Initialization code
+    xor r0, r0, r0          ; r0 <- 0
+
+    ldh r1, #arraySort      ;
+    ldl r1, #arraySort      ; r1 <- &array
+
+    ldh r2, #arraySortSize  ;
+    ldl r2, #arraySortSize  ; r2 <- &size
+    ld r2, r2, r0           ; r2 <- size
+
+    add r3, r2, r1          ; r3 points the end of array (right after the last element)
+
+    ldl r4, #0              ;
+    ldh r4, #1              ; r4 <- 1
+
+; Main code
+scan:
+    addi r4, #0             ; Verifies if there was element swapping
+    jmpzd #end              ; If r4 = 0 then no element swapping
+
+    xor r4, r4, r4          ; r4 <- 0 before each pass
+
+    add r5, r1, r0          ; r5 points the first array element
+
+    add r6, r1, r0          ;
+    addi r6, #1             ; r6 points the second array element
+
+; Read two consecutive elements and compares them
+loop:
+    ld r7, r5, r0           ; r7 <- array[r5]
+    ld r8, r6, r0           ; r8 <- array[r6]
+    sub r2, r8, r7          ; If r8 > r7, negative flag is set
+    jmpnd #swap             ; (if array[r5] > array[r6] jump)
+
+; Increments the index registers and verifies if the pass is concluded
+continue:
+    addi r5, #1             ; r5++
+    addi r6, #1             ; r6++
+
+    sub r2, r6, r3          ; Verifies if the end of array was reached (r6 = r3)
+    jmpzd #scan             ; If r6 = r3 jump
+    jmpd #loop              ; else, the next two elements are compared
+
+; Swaps two array elements (memory)
+swap:
+    st r7, r6, r0           ; array[r6] <- r7
+    st r8, r5, r0           ; array[r5] <- r8
+    ldl r4, #1              ; Set the element swapping (r4 <- 1)
+    jmpd #continue
+
+end:
+    halt                    ; Suspend the execution
+
+
+;=============================================================================================================
+;=============================================================================================================
+;=============================================================================================================
+;=============================================================================================================
+;=============================================================================================================
+
 .endcode
 
-;=============================================================================================================
-;=============================================================================================================
-;=============================================================================================================
-;=============================================================================================================
-;=============================================================================================================
-
-
-;; .org #0300h
+.org #0300h
 .data
 
 ; Array de registradores da Porta Bidirecional
@@ -1097,9 +1103,7 @@ saveHighLow3:             db #0001h ; Se = 0, salva caracter na parte baixa, se 
 ; Array para aplicação principal (Bubble Sort) de 50 elementos
 ; Starts in 919 ends 968
 arraySort:                db #0050h, #0049h, #0048h, #0047h, #0046h, #0045h, #0044h, #0043h, #0042h, #0041h, #0040h, #0039h, #0038h, #0037h, #0036h, #0035h, #0034h, #0033h, #0032h, #0031h, #0030h, #0029h, #0028h, #0027h, #0026h, #0025h, #0024h, #0023h, #0022h, #0021h, #0020h, #0019h, #0018h, #0017h, #0016h, #0015h, #0014h, #0013h, #0012h, #0011h, #0010h, #0009h, #0008h, #0007h, #0006h, #0005h, #0004h, #0003h, #0002h, #0001h
-
 ; Tamanho do array p/ bubble sort (50 elementos)
-; Position 969
 arraySortSize:            db #50
 
 .enddata
