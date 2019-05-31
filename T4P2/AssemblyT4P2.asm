@@ -388,12 +388,14 @@ GenericCryptoDriver: ; Espera como parametro o ID do CryptoMessage interrompente
     push r4
     push r5
     push r6
+    push r7
 
     xor r0, r0, r0
     xor r1, r1, r1
     xor r4, r4, r4
     xor r5, r5, r5
     xor r6, r6, r6
+    xor r7, r7, r7
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; ESTADO 2 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -401,6 +403,11 @@ GenericCryptoDriver: ; Espera como parametro o ID do CryptoMessage interrompente
     ldh r1, #arrayPorta
     ldl r1, #arrayPorta
     ld r1, r0, r1
+
+;   Salva o interruptionID
+    ldh r7, #InterruptionID
+    ldl r7, #InterruptionID
+    st r2, r0, r7 ; InterruptionID <= ID
 
 ;   Seta PortConfig
     ldl r4, #01h   ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &PortConfig ]
@@ -511,6 +518,10 @@ GenericCryptoDriver: ; Espera como parametro o ID do CryptoMessage interrompente
 ;   Calcula chave criptografica
     jsrd #CalculaCryptoKey
 
+    ldh r2, #InterruptionID
+    ldl r2, #InterruptionID
+    ld r2, r0, r2
+
 ;   Salva chave criptografica
     ldh r1, #cryptoKey
     ldl r1, #cryptoKey
@@ -602,6 +613,7 @@ PollingLoop: ; Espera próximo sinal de data_av = '1'
     ld r1, r2, r1 ; r1 <= &CryptoPointer(irqID)
     st r0, r0, r1 ; CryptoPointer(irqID) <= 0
 
+    pop r7
     pop r6
     pop r5
     pop r4
@@ -865,7 +877,8 @@ LeCaracter:           ; Le caracter atual da porta, salva nos arrays, incrementa
 ;   r1 <= arrayEncrypted[irqID]
     ldh r1, #arrayDecrypted
     ldl r1, #arrayDecrypted
-    ld r1, r2, r1  ; r1 <= arrayEncrypted(0, 1, 2 ou 3)
+    ld r1, r2, r1  ; r1 <= &arrayEncrypted
+
 
 ;   r4 <= cryptoPointer
     ldh r4, #arrayCryptoPointer
@@ -890,10 +903,17 @@ LeCaracter:           ; Le caracter atual da porta, salva nos arrays, incrementa
 ;   r6 <= saveHighLow
     ldh r6, #arraySaveHighLow
     ldl r6, #arraySaveHighLow
-    ld r6, r2, r6
+
+    ldh r7, #InterruptionID
+    ldl r7, #InterruptionID
+    ld r7, r0, r7  ; r7 <= Conteudo de InterruptionID [0, 1, 2, 3]
+
+    ld r6, r7, r6 ;;; *********************************************************************************************
+    ld r6, r0, r6 ;;; r6 <= valor interrupt ID
+
     add r6, r0, r6 ; Gera flag
 
-    ;jmpzd #saveOnLower
+    jmpzd #saveOnLower
     jmpd #saveOnHigher
 
   saveOnLower:
@@ -901,11 +921,18 @@ LeCaracter:           ; Le caracter atual da porta, salva nos arrays, incrementa
     st r5, r1, r4 ; arrayDecrypted[r4] = Caracter descriptografado
 
 ;   Incrementa saveHighLow (sinaliza proximo caracter a ser salvo na parte alta)
+    xor r1, r1, r1
+    addi r1, #1
+
     ldh r6, #arraySaveHighLow
-    ldl r6, #arraySaveHighLow
-    ld r5, r2, r6
-    addi r5, #1
-    st r5, r2, r6
+    ldl r6, #arraySaveHighLow ; r6 <= Endereço arraySaveHighLow
+
+    ldh r7, #InterruptionID
+    ldl r7, #InterruptionID
+    ld r7, r0, r7  ; r7 <= Conteudo de InterruptionID [0, 1, 2, 3]
+
+    ld r6, r6, r7 ;  Endereço do Highlow
+    st r1, r0, r7 ; Zera o Highlow
 
 ;   Incrementa CryptoPointer
     ldh r4, #arrayCryptoPointer
@@ -942,8 +969,14 @@ LeCaracter:           ; Le caracter atual da porta, salva nos arrays, incrementa
 
 ;   Zera saveHighLow
     ldh r6, #arraySaveHighLow
-    ldl r6, #arraySaveHighLow
-    st r0, r2, r6
+    ldl r6, #arraySaveHighLow ; r6 <= Endereço arraySaveHighLow
+
+    ldh r7, #InterruptionID
+    ldl r7, #InterruptionID
+    ld r7, r0, r7  ; r7 <= Conteudo de InterruptionID [0, 1, 2, 3]
+
+    ld r6, r6, r7 ;  Endereço do Highlow
+    st r0, r0, r7 ; Zera o Highlow
 
     jmpd #returnSaveHighLow
 
@@ -1079,6 +1112,7 @@ contadorMSGS:             db #0000h ; Novo seed para geração de magic number
 arrayDecrypted:           db #arrayDecrypted0, #arrayDecrypted1, #arrayDecrypted2, #arrayDecrypted3
 arrayCryptoPointer:       db #CryptoPointer0, #CryptoPointer1, #CryptoPointer2, #CryptoPointer3
 arraySaveHighLow:         db #SaveHighLow0, #SaveHighLow1, #SaveHighLow2, #SaveHighLow3
+InterruptionID:           db #0000h ; Id of interruption, can be [ 0, 1, 2, 3]
 
 ; Variaveis CryptoMessage 0
 CryptoPointer0:           db #0000h
