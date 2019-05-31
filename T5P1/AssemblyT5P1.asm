@@ -108,7 +108,7 @@ setup:
     ld r1, r0, r1
 
     xor r4, r4, r4
-
+    
 ;   Seta PortConfig
     ldl r4, #01h   ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &PortConfig ]
     ldh r5, #FAh   ; r5 <= "11111010_11111111"
@@ -291,34 +291,34 @@ irq4Handler: ; CryptoMessage 0
     ldl r1, #arrayPorta
     ld r1, r0, r1
     addi r1, #1 ; r1 <= &PortConfig
-
+    
     ldh r5, #FAh
     ldl r5, #00h
-
+    
     st r5, r0, r1 ; Bits de dados como saida
-
+    
     subi r1, #1 ; r1 <= &PortData
-
+    
     ldh r5, #0
     ldl r5, #251
-
+    
     st r5, r0, r1 ; CryptoManager <= ID 0
 
 ;   Chama Driver com ID = 0
     xor r2, r2, r2
     jsrd #GenericCryptoDriver
-
+    
 ;   ACK Interrupçao
     ldh r1, #arrayPIC
     ldl r1, #arrayPIC
     ld r1, r0, r1 ; r1 <= &irqID
     addi r1, #1   ; r1 <= &itrACK
-
+    
     ldh r5, #0
     ldl r5, #4
-
+    
     st r5, r0, r1
-
+    
     rts
 
 irq5Handler: ; CryptoMessage 1
@@ -328,35 +328,35 @@ irq5Handler: ; CryptoMessage 1
     ldl r1, #arrayPorta
     ld r1, r0, r1
     addi r1, #1 ; r1 <= &PortConfig
-
+    
     ldh r5, #FAh
     ldl r5, #00h
-
+    
     st r5, r0, r1 ; Bits de dados como saida
-
+    
     subi r1, #1 ; r1 <= &PortData
-
+    
     ldh r5, #0
     ldl r5, #252
-
+    
     st r5, r0, r1 ; CryptoManager <= ID 0
 
 ;   Chama Driver com ID = 1
     xor r2, r2, r2
     addi r2, #1
     jsrd #GenericCryptoDriver
-
+      
 ;   ACK Interrupçao
     ldh r1, #arrayPIC
     ldl r1, #arrayPIC
     ld r1, r0, r1 ; r1 <= &irqID
     addi r1, #1   ; r1 <= &itrACK
-
+    
     ldh r5, #0
     ldl r5, #5
-
+    
     st r5, r0, r1
-
+    
     rts
 
 irq6Handler: ; CryptoMessage 2
@@ -366,35 +366,35 @@ irq6Handler: ; CryptoMessage 2
     ldl r1, #arrayPorta
     ld r1, r0, r1
     addi r1, #1 ; r1 <= &PortConfig
-
+    
     ldh r5, #FAh
     ldl r5, #00h
-
+    
     st r5, r0, r1 ; Bits de dados como saida
-
+    
     subi r1, #1 ; r1 <= &PortData
-
+    
     ldh r5, #0
     ldl r5, #253
-
+    
     st r5, r0, r1 ; CryptoManager <= ID 0
 
 ;   Chama Driver com ID = 2
     xor r2, r2, r2
     addi r2, #2
     jsrd #GenericCryptoDriver
-
+    
 ;   ACK Interrupçao
     ldh r1, #arrayPIC
     ldl r1, #arrayPIC
     ld r1, r0, r1 ; r1 <= &irqID
     addi r1, #1   ; r1 <= &itrACK
-
+    
     ldh r5, #0
     ldl r5, #6
-
+    
     st r5, r0, r1
-
+    
     rts
 
 irq7Handler: ; CryptoMessage 3
@@ -404,35 +404,35 @@ irq7Handler: ; CryptoMessage 3
     ldl r1, #arrayPorta
     ld r1, r0, r1
     addi r1, #1 ; r1 <= &PortConfig
-
+    
     ldh r5, #FAh
     ldl r5, #00h
-
+    
     st r5, r0, r1 ; Bits de dados como saida
-
+    
     subi r1, #1 ; r1 <= &PortData
-
+    
     ldh r5, #0
     ldl r5, #254
-
+    
     st r5, r0, r1 ; CryptoManager <= ID 0
 
 ;   Chama Driver com ID = 3
     xor r2, r2, r2
     addi r2, #3
     jsrd #GenericCryptoDriver
-
+    
 ;   ACK Interrupçao
     ldh r1, #arrayPIC
     ldl r1, #arrayPIC
     ld r1, r0, r1 ; r1 <= &irqID
     addi r1, #1   ; r1 <= &itrACK
-
+    
     ldh r5, #0
     ldl r5, #7
-
+    
     st r5, r0, r1
-
+    
     rts
 
 ;-------------------------------------------------DRIVERS----------------------------------------------------
@@ -452,14 +452,12 @@ GenericCryptoDriver: ; Espera como parametro o ID do CryptoMessage interrompente
     push r4
     push r5
     push r6
-    push r7
 
     xor r0, r0, r0
     xor r1, r1, r1
     xor r4, r4, r4
     xor r5, r5, r5
     xor r6, r6, r6
-    xor r7, r7, r7
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; ESTADO 2 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -467,11 +465,6 @@ GenericCryptoDriver: ; Espera como parametro o ID do CryptoMessage interrompente
     ldh r1, #arrayPorta
     ldl r1, #arrayPorta
     ld r1, r0, r1
-
-;   Salva o interruptionID
-    ldh r7, #InterruptionID
-    ldl r7, #InterruptionID
-    st r2, r0, r7 ; InterruptionID <= ID
 
 ;   Seta PortConfig
     ldl r4, #01h   ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &PortConfig ]
@@ -582,10 +575,6 @@ GenericCryptoDriver: ; Espera como parametro o ID do CryptoMessage interrompente
 ;   Calcula chave criptografica
     jsrd #CalculaCryptoKey
 
-    ldh r2, #InterruptionID
-    ldl r2, #InterruptionID
-    ld r2, r0, r2
-
 ;   Salva chave criptografica
     ldh r1, #cryptoKey
     ldl r1, #cryptoKey
@@ -677,7 +666,6 @@ PollingLoop: ; Espera próximo sinal de data_av = '1'
     ld r1, r2, r1 ; r1 <= &CryptoPointer(irqID)
     st r0, r0, r1 ; CryptoPointer(irqID) <= 0
 
-    pop r7
     pop r6
     pop r5
     pop r4
@@ -709,41 +697,41 @@ PrintString: ; Espera endereço da string a ser enviada em r2
     ldh r1, #UART_TX
     ldl r1, #UART_TX
     ld r1, r0, r1
-
+    
     xor r0, r0, r0
     xor r3, r3, r3
     xor r5, r5, r5
-
+    
   tx_loop:
-
+    
 ;   r5 <= status do tx
     ld r5, r0, r1
     add r5, r0, r5 ; Gera flag
-
+  
     jmpzd #tx_loop ; Espera transmissor estar disponivel
-
+    
 ;   r5 <= string[r3]
     ld r5, r3, r2
     add r5, r0, r5 ; Gera flag
-
+    
 ;   Se string[r3] = 0 (terminador de string), volta para caller
     jmpzd #PrintStringReturn
-
+    
 ;   UART TX <= r5
     st r5, r0, r1
-
+    
 ;   Incrementa indice
     addi r3, #1
-
+    
 ;   Transmite proximo caracter
     jmpd #tx_loop
-
+    
 PrintStringReturn:
-
+    
     pop r5
     pop r3
     pop r1
-
+    
     rts
 
 IntegerToString: ; Espera inteiro a ser convertido em r2, retorna ponteiro para string em r14
@@ -763,101 +751,101 @@ IntegerToString: ; Espera inteiro a ser convertido em r2, retorna ponteiro para 
     push r5
     push r10
     push r11
-
+    
     xor r0, r0, r0
     xor r2, r2, r2
     xor r3, r3, r3
     xor r4, r4, r4
     xor r10, r10, r10
     xor r11, r11, r11
-
+    
     ldl r10, #10
-
+    
     ldh r14, #IntegerToStringBuffer
     ldl r14, #IntegerToStringBuffer
-
+    
     addi r3, #8
-
+    
 ;   Limpa o buffer
   limpaBufferLoop:
-
+    
 ;   buffer[r3] <= 0
     st r0, r3, r14
-
+    
 ;   Decrementa indice do buffer
     subi r3, #1
-
+    
 ;   Limpa proxima posição do buffer
     jmpnd #IntegerToStringStart
     jmpd #limpaBufferLoop
-
+    
 IntegerToStringStart:
-
+    
     xor r3, r3, r3
-
+    
     add r2, r0, r2 ; Gera flag
-
+    
     jmpnd #IntegerToStringNegativo
     jmpzd #IntegerToStringZero
     jmpd #IntegerToStringPositivo
-
+      
 ConversionLoop:
 
 ;   r2 <= r2 / 10, r11 <= r2 % 10
     div r2, r10
     mfh r11
     mfl r2
-
+    
 ;   r11 <= char[r11]
     addi r11, #48
 
 ;   Salva r11 na pilha (string será reordenada)
     push r11
-
+    
 ;   Incrementa contador de pushes
     addi r3, #1
 
 ;   Gera Flag
     add r2, r0, r2
-
+    
     jmpzd #ReverseLoop
     jmpd #ConversionLoop
 
 ReverseLoop:
-
+    
     pop r5
-
+    
     st r5, r4, r14
-
+    
     addi r4, #1
-
+    
     sub r5, r3, r4
-
+    
     jmpzd #IntegerToStringReturn
     jmpd #ReverseLoop
-
+    
 IntegerToStringReturn:
 
     subi r1, #1
-
+    
     pop r11
     pop r10
     pop r5
     pop r4
     pop r3
     pop r2
-
+    
     rts
-
+    
 IntegerToStringZero:
-
-;   r5 <= '0'
+    
+;   r5 <= '0'   
     ldh r5, #0
     ldl r5, #48
 
 ;   Buffer[0] <= '0'
     st r5, r3, r14
-
+    
 ;   Retorna para caller
     pop r11
     pop r10
@@ -866,40 +854,40 @@ IntegerToStringZero:
     pop r3
     pop r2
     pop r1
-
+    
     rts
-
+    
 IntegerToStringNegativo:
 
 ;   r2 <= Inteiro a ser convertido passa a ser positivo
     not r2, r2
     addi r2, #1
-
+    
 ;   r5 <= '-'
     ldh r5, #0
     ldl r5, #45
-
+    
 ;   Grava sinal negativo na primeira posição do buffer
     st r5, r0, r14
-
+    
 ;   Incrementa ponteiro da string
     addi r14, #1
-
+    
 ;   Retorna para codigo de conversão
     jmpd #ConversionLoop
-
+    
 IntegerToStringPositivo:
 
 ;   r5 <= '+'
     ldh r5, #0
     ldl r5, #43
-
+    
 ;   Grava sinal positivo na primeira posição do buffer
     st r5, r0, r14
-
+    
 ;   Incrementa ponteiro do buffer
     addi r14, #1
-
+    
 ;   Retorna para codigo de conversão
     jmpd #ConversionLoop
 
@@ -949,26 +937,26 @@ BubbleSort:
 
     ldl r4, #0              ;
     ldh r4, #1              ; r4 <- 1
-
+    
 ; Converts array to char and transmits via UART
 TX_ARRAY_INICIAL:
-
+    
 ;   Loops for 50 iterations on IntegerToString function
-
+    
     ld r2, r11, r1          ; r2 <- arraySort[transmissionCount]
-
+    
     jsrd #IntegerToString   ; Converts integer to string
-
+    
     add r2, r0, r14         ; r2 <- Pointer to converted string
     jsrd #PrintString       ; Prints string on UART transmiter
-
+    
     addi r11, #1            ; Increments transmission count
-
+    
     sub r5, r10, r11        ; If transmission count == array size, breaks loop, else iterates again
-
+    
     jmpzd #scan
-    jmpd #TX_ARRAY_INICIAL
-
+    jmpd #TX_ARRAY_INICIAL    
+    
 ; Main code
 scan:
     addi r4, #0             ; Verifies if there was element swapping
@@ -1006,23 +994,23 @@ swap:
 
 ; Converts array to char and transmits via UART
 TX_ARRAY_FINAL:
-
+    
 ;   Loops for 50 iterations on IntegerToString function
-
+    
     ld r2, r1, r11          ; r2 <- arraySort[transmissionCount]
-
+    
     jsrd #IntegerToString   ; Converts integer to string
-
+    
     add r2, r0, r14         ; r2 <- Pointer to converted string
     jsrd #PrintString       ; Prints string on UART transmiter
-
+    
     addi r11, #1            ; Increments transmission count
-
+    
     sub r5, r10, r11        ; If transmission count == array size, breaks loop, else iterates again
-
+    
     jmpzd #halt_bubbleSort
     jmpd #TX_ARRAY_FINAL
-
+    
 halt_bubbleSort:
 
     halt                    ; Suspend the execution
@@ -1295,13 +1283,13 @@ LeCaracter:           ; Le caracter atual da porta, salva nos arrays, incrementa
     and r5, r5, r6
 
 ;   Salva caracter na string a ser enviada
-    ldh r1, #CharString
-    ldl r1, #CharString
+    ldh r1, #CharString 
+    ldl r1, #CharString 
     st r5, r0, r1
-
+    
 ;   Seta argumento para PrintString
     add r2, r0, r1
-
+    
 ;   Envia caracter para transmissor serial
     jsrd #PrintString
 
@@ -1344,7 +1332,7 @@ interruptVector:          db #irq0Handler, #irq1Handler, #irq2Handler, #irq3Hand
 ; IntegerToString
 IntegerToStringBuffer:    db #0, #0, #0, #0, #0, #0, #0, #0
 
-; Primeira posição deve ser o caracter a ser enviado, segunda posição deve ser o terminador de string
+; Primeira posição deve ser o caracter a ser enviado, segunda posição deve ser o terminador de string 
 CharString:               db #0, #0
 
 ; Variaveis p/ criptografia
