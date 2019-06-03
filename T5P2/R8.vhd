@@ -9,13 +9,15 @@
 -- Emilio - v0.12: Reajustes de estruturas e processos
 -- Emilio - v0.13: Criação da ula separada dos estados
 -- Carlos - v0.2: Adicionadas instruçoes PUSHF, POPF e RTI, e suporte para interrupções
+-- Carlos - v0.21: Adicionada instrução LDISRA
+-- Carlos - v0.3: Adicionadas instruções MFC, MFT, SYSCALL, LDTSRA, e suporte para traps
+-- Carlos - v0.31: Recodificação das instruções de jump
 -------------------------------------------------------------------------------------------	   
 
 library IEEE;
 use IEEE.std_logic_1164.all;
 use IEEE.std_logic_unsigned.all;
 use IEEE.numeric_std.all;
---use work.R8_pkg.all;
 
 entity R8 is
     port( 
@@ -33,13 +35,13 @@ entity R8 is
         data_out : out std_logic_vector(15 downto 0);
         address  : out std_logic_vector(15 downto 0);
         ce       : out std_logic;
-        rw       : out std_logic 
+        rw       : out std_logic
     );
 end R8;	 
 
 architecture Behavioural of R8 is
 
-    type State is (Sfetch, Sreg, Shalt, Sula, Swbk, Sld, Sst, Sjmp, Ssbrt, Spush, Srts, Spop, Sldsp, Spushf, Spopf, Srti, Sitr, Smul, Sdiv, Smfh, Smfl, Sldisra, Sldtsra, Smfc, Ssyscall);
+    type State is (Sfetch, Sreg, Shalt, Sula, Swbk, Sld, Sst, Sjmp, Ssbrt, Spush, Srts, Spop, Sldsp, Spushf, Spopf, Srti, Sitr, Smul, Sdiv, Smfh, Smfl, Sldisra, Sldtsra, Smfc, Smft, Ssyscall, Strap);
     type R8Instruction is (
             ADD, SUB, AAND, OOR, XXOR, ADDI, SUBI, NOT_A, 
             SL0, SL1, SR0, SR1,
@@ -59,8 +61,10 @@ architecture Behavioural of R8 is
             -- Nova Instrução T4P2
             LDISRA,
 
-            -- Novas Instruções T5P21
-            MFC, SYSCALL, LDTSRA, INVALID
+            -- Novas Instruções T5P2
+            MFC, MFT, SYSCALL, LDTSRA, 
+
+            INVALID
     ); 
 
     type RegisterArray is array (natural range <>) of std_logic_vector(15 downto 0); 
@@ -83,35 +87,37 @@ architecture Behavioural of R8 is
     signal regISRA                     : std_logic_vector(15 downto 0); -- Registrador que contem o endereço da subrotina de tratamento de interrupção
     signal regTSRA                     : std_logic_vector(15 downto 0); -- Registrador que contem o endereço da subrotina de tratamento de traps
     signal regCAUSE                    : std_logic_vector(15 downto 0); -- Registrador com causa da trap
+    signal regITR                      : std_logic_vector(15 downto 0); -- Registrador com endereço de instrução causante de trap/instrução interrompida
 
 	-- Sinais combinacionais pra ALU
-    signal ALUaux                      : std_logic_vector(16 downto 0); -- Sinal com 17 bits pra lidar com overflow 
+    signal ALUaux                      : std_logic_vector(16 downto 0); -- Sinal com 17 bits pra lidar com overflow (soma de sinais de 16 bits)
     signal outALU                      : std_logic_vector(15 downto 0);  
     signal multiplicador               : std_logic_vector(31 downto 0);
     signal divisor                     : std_logic_vector(31 downto 0);
     
 	-- Registrador de Flags
-    signal regFLAGS : std_logic_vector(3 downto 0);
-    alias n :std_logic is regFLAGS(3);
-    alias z :std_logic is regFLAGS(2);
-    alias c :std_logic is regFLAGS(1);
-    alias v :std_logic is regFLAGS(0);
+    signal regFLAGS                    : std_logic_vector(3 downto 0);
+    alias n                            : std_logic is regFLAGS(3);
+    alias z                            : std_logic is regFLAGS(2);
+    alias c                            : std_logic is regFLAGS(1);
+    alias v                            : std_logic is regFLAGS(0);
 	
     -- Sinais auxiliares para geração de flags, atualizados combinacionalmente na ALU
     signal flagN, flagZ, flagC, flagV  : std_logic; -- Flags ALU| negativo, zero, carry, OVFLW
     
 	-- Campos do registrador de instrução
-	alias OPCODE      : std_logic_vector( 3 downto 0) is regIR(15 downto 12);
-	alias REGTARGET   : std_logic_vector( 3 downto 0) is regIR(11 downto  8);
-	alias REGSOURCE1  : std_logic_vector( 3 downto 0) is regIR( 7 downto  4);
-	alias REGSOURCE2  : std_logic_vector( 3 downto 0) is regIR( 3 downto  0);
-	alias CONSTANTE   : std_logic_vector( 7 downto 0) is regIR( 7 downto  0);
-	alias JMPD_AUX    : std_logic_vector( 1 downto 0) is regIR(11 downto 10);
-	alias JMPD_DESLOC : std_logic_vector( 9 downto 0) is regIR( 9 downto  0);
-	alias JSRD_DESLOC : std_logic_vector(11 downto 0) is regIR(11 downto  0);
+	alias OPCODE                       : std_logic_vector( 3 downto 0) is regIR(15 downto 12);
+	alias REGTARGET                    : std_logic_vector( 3 downto 0) is regIR(11 downto  8);
+	alias REGSOURCE1                   : std_logic_vector( 3 downto 0) is regIR( 7 downto  4);
+	alias REGSOURCE2                   : std_logic_vector( 3 downto 0) is regIR( 3 downto  0);
+	alias CONSTANTE                    : std_logic_vector( 7 downto 0) is regIR( 7 downto  0);
+	alias JMPD_AUX                     : std_logic_vector( 1 downto 0) is regIR(11 downto 10);
+	alias JMPD_DESLOC                  : std_logic_vector( 9 downto 0) is regIR( 9 downto  0);
+	alias JSRD_DESLOC                  : std_logic_vector(11 downto 0) is regIR(11 downto  0);
 	
-	signal interruptFlag : std_logic; -- Signals if processor is currently treating an interruption
-    signal trapFlag      : std_logic; -- Signals if processor is currently treating a trap
+	signal interruptFlag               : std_logic; -- Signals if processor is currently treating an interruption
+    signal treatingTrapFlag            : std_logic; -- Signals if processor is currently treating a trap
+    signal newTrapFlag                 : std_logic; -- Signals if processor generated a new untreated trap
 	
 begin
 	
@@ -166,17 +172,17 @@ begin
                           -- Nova Instrução T4P2
                           LDISRA when OPCODE = x"B" and REGSOURCE2 = x"F" else  -- LOAD ISR ADDR
 
-                          JMPR   when OPCODE = x"C" and REGSOURCE2 = x"0" else
-                          JMPNR  when OPCODE = x"C" and REGSOURCE2 = x"1" else
-                          JMPZR  when OPCODE = x"C" and REGSOURCE2 = x"2" else
-                          JMPCR  when OPCODE = x"C" and REGSOURCE2 = x"3" else
-                          JMPVR  when OPCODE = x"C" and REGSOURCE2 = x"4" else
+                          JMPR   when OPCODE = x"C" and REGTARGET = x"0" and REGSOURCE2 = x"0" else
+                          JMPNR  when OPCODE = x"C" and REGTARGET = x"0" and REGSOURCE2 = x"1" else
+                          JMPZR  when OPCODE = x"C" and REGTARGET = x"0" and REGSOURCE2 = x"2" else
+                          JMPCR  when OPCODE = x"C" and REGTARGET = x"0" and REGSOURCE2 = x"3" else
+                          JMPVR  when OPCODE = x"C" and REGTARGET = x"0" and REGSOURCE2 = x"4" else
 						  
-                          JMP    when OPCODE = x"C" and REGSOURCE2 = x"5" else
-                          JMPN   when OPCODE = x"C" and REGSOURCE2 = x"6" else
-                          JMPZ   when OPCODE = x"C" and REGSOURCE2 = x"7" else
-                          JMPC   when OPCODE = x"C" and REGSOURCE2 = x"8" else
-                          JMPV   when OPCODE = x"C" and REGSOURCE2 = x"9" else
+                          JMP    when OPCODE = x"C" and REGTARGET = x"0" and REGSOURCE2 = x"5" else
+                          JMPN   when OPCODE = x"C" and REGTARGET = x"0" and REGSOURCE2 = x"6" else
+                          JMPZ   when OPCODE = x"C" and REGTARGET = x"0" and REGSOURCE2 = x"7" else
+                          JMPC   when OPCODE = x"C" and REGTARGET = x"0" and REGSOURCE2 = x"8" else
+                          JMPV   when OPCODE = x"C" and REGTARGET = x"0" and REGSOURCE2 = x"9" else
 
                           JMPD   when OPCODE = x"D" and JMPD_AUX = "00" else
                           JMPND  when OPCODE = x"E" and JMPD_AUX = "00" else
@@ -184,8 +190,8 @@ begin
                           JMPCD  when OPCODE = x"E" and JMPD_AUX = "10" else
                           JMPVD  when OPCODE = x"E" and JMPD_AUX = "11" else
 
-                          JSRR   when OPCODE = x"C"  and  REGSOURCE2 = x"A" else
-                          JSR    when OPCODE = x"C"  and  REGSOURCE2 = x"B" else
+                          JSRR   when OPCODE = x"C" and  REGTARGET = x"0" and REGSOURCE2 = x"A" else
+                          JSR    when OPCODE = x"C" and  REGTARGET = x"0" and REGSOURCE2 = x"B" else
                           JSRD   when OPCODE = x"F" else
 
                           -- Novas Instruções T3P2
@@ -194,9 +200,11 @@ begin
 			              RTI    when OPCODE = x"C" and REGSOURCE2 = x"E" else  -- RETORNO DE INTERRUPCAO  
                           
                           -- Novas Instruções T5P2
-                          SYSCALL when OPCODE = x"D" and JMPD_AUX = "01" else
-                          LDTSRA  when OPCODE = x"D" and JMPD_AUX = "10" else
-                          MFC     when OPCODE = x"D" and JMPD_AUX = "11" else
+                          SYSCALL when OPCODE = x"C" and REGTARGET = x"1" else
+                          LDTSRA  when OPCODE = x"C" and REGTARGET = x"2" else
+                          MFC     when OPCODE = x"C" and REGTARGET = x"3" else
+                          MFT     when OPCODE = x"C" and REGTARGET = x"4" else
+
                           
                           INVALID; 
 
@@ -215,23 +223,36 @@ begin
             regISRA  <= (others=>'0'); 
             regTSRA  <= (others=>'0');
             regCAUSE <= (others=>'0'); 
+            regITR   <= (others=>'0');
             
             for i in 0 to 15 loop
                 regBank(i) <= (others => '0');
             end loop;
 			
 			interruptFlag <= '0';
-            trapFlag <= '0';
-            
+            newTrapFlag <= '0';
+            treatingTrapFlag <= '0';
+
             currentState <= Sfetch;
             
 		elsif rising_edge(clk) then
 
 		    if currentState = Sfetch then  -- Requests next instruction from memory
 			
-				if (irq = '1' or trapFlag = '1') and interruptFlag = '0' then
+				if newTrapFlag = '1' then
                     -- Defines next state
-					currentState <= Sitr;
+					currentState <= Strap;
+
+                    -- Saves address of instruction being executed (before interruption/trap)
+                    regITR <= regPC;
+
+                elsif irq = '1' and interruptFlag = '0' then
+                    -- Defines next state
+                    currentState <= Sitr;
+
+                    -- Saves address of instruction being executed (before interruption/trap)
+                    regITR <= regPC;
+
 			    else
 			    	-- Defines next state
 					currentState <= Sreg;
@@ -241,6 +262,21 @@ begin
                     regPC <= regPC + 1;
 				end if;
 
+            elsif currentState = Strap then
+                -- Saves PC on stack
+                regSP <= regSP - 1;
+
+                -- InterruptFlag stays active until RTI instruction is executed (cant be interrupted by peripheral)
+                interruptFlag <= '1';
+                newTrapFlag <= '0';
+                treatingTrapFlag <= '1';
+
+                -- Next instruction is the first instruction on the TSR subroutine
+                regPC <= regTSRA; -- Trap (exception/syscall, generated by software)
+
+                -- Fetches first instruction of TSR subroutine
+                currentState <= Sfetch;
+
             elsif currentState = Sitr then
                 -- Saves PC on stack
                 regSP <= regSP - 1;
@@ -248,38 +284,31 @@ begin
                 -- InterruptFlag stays active until RTI instruction is executed
                 interruptFlag <= '1';
 
-                -- Next instruction is the first instruction on the ISR/TSR subroutine
-                if trapFlag = '1' then
-                    regPC <= regTSRA; -- Trap (exception generated by software)
-                else
-                    regPC <= regISRA; -- Interruption (peripheral)
-                end if;
+                -- Next instruction is the first instruction on the ISR subroutine
+                regPC <= regISRA; -- Interruption (generated by peripheral/hardware)
 
-                -- Fetches first instruction of ISR/TSR subroutine
+                -- Fetches first instruction of ISR subroutine
                 currentState <= Sfetch;
 
         	elsif currentState = Sreg then 
 
                 if currentInstruction = INVALID then
                     regCAUSE <= to_unsigned(std_logic_vector(1, regCAUSE'length));
-                    trapFlag <= '1';
+                    newTrapFlag <= '1';
                     currentState <= Sfetch;
-                end if;
+                elsif (currentInstruction = HALT) then
+                    currentState <= Shalt;
+                else 
+                    -- Reads register bank
+                    regA <= regBank(to_integer(unsigned(REGSOURCE1)));
+                            
+                    if (instType = tipo2 or currentInstruction = PUSH or currentInstruction = MUL or currentInstruction = DIV) then
+                        regB <= regBank(to_integer(unsigned(REGTARGET)));
+                    else
+                        regB <= regBank(to_integer(unsigned(REGSOURCE2)));
+                    end if;
 
-        		-- Reads register bank
-        		regA <= regBank(to_integer(unsigned(REGSOURCE1)));
-                        
-        		if (instType = tipo2 or currentInstruction = PUSH or currentInstruction = MUL or currentInstruction = DIV) then
-                    regB <= regBank(to_integer(unsigned(REGTARGET)));
-        		else
-        			regB <= regBank(to_integer(unsigned(REGSOURCE2)));
-        		end if;
-                        
-        		-- Defines next state
-        		if (currentInstruction = HALT) then
-        			currentState <= Shalt;
-        		else
-        			currentState <= Sula;
+                    currentState <= Sula;
         		end if;
     				
         	elsif currentState = Shalt then
@@ -356,6 +385,8 @@ begin
                     currentState <= Sldtsra;
                 elsif currentInstruction = MFC then
                     currentState <= Smfc;
+                elsif currentInstruction = MFT then
+                    currentState <= Smft;
                 elsif currentInstruction = SYSCALL then
                     currentState <= Ssyscall;
 
@@ -368,7 +399,7 @@ begin
                 if (currentinstruction = ADD or currentinstruction = ADDI or currentinstruction = SUB or currentinstruction = SUBI) then
                     if v = '1' then
                         regCAUSE <= to_unsigned(std_logic_vector(12, regCAUSE'length));
-                        trapFlag <= '1';
+                        newTrapFlag <= '1';
                         currentState <= Sfetch;
                     else 
                         regBank(to_integer(unsigned(REGTARGET))) <= regALU;
@@ -437,11 +468,9 @@ begin
     		elsif currentState = Srti then
     			regSP <= regSP + 1;
     			regPC <= data_in;
-    			interruptFlag <= '0';
 
-                if trapFlag = '1' then
-                    trapFlag <= '0';
-                end if;
+    			interruptFlag <= '0';
+                treatingTrapFlag <= '0';
 
     			currentState <= Sfetch;
 
@@ -457,7 +486,7 @@ begin
     			    regLOW <= divisor(15 downto 0);
                 else
                     regCAUSE <= to_unsigned(std_logic_vector(15, regCAUSE'length));
-                    trapFlag <= '1';
+                    newTrapFlag <= '1';
                 end if;
 
     			currentState <= Sfetch;
@@ -480,13 +509,17 @@ begin
                 regBank(to_integer(unsigned(REGSOURCE1))) <= regCAUSE;
                 currentState <= Sfetch;
 
+            elsif currentState = Smft then
+                regBank(to_integer(unsigned(REGSOURCE1))) <= regITR;
+                currentState <= Sfetch;
+
             elsif currentState = Sldtsra then
                 regTSRA <= regBank(to_integer(unsigned(REGSOURCE1)));
                 currentState <= Sfetch;
 
             elsif currentState = Ssyscall then
                 regCAUSE <= to_unsigned(std_logic_vector(8, regCAUSE'length));
-                trapFlag <= '1';
+                newTrapFlag <= '1';
                 currentState <= Sfetch;
             else
                 currentState <= Shalt;
@@ -502,7 +535,7 @@ begin
 	ALUaux <= ( '0' & regA) + ( '0' & regB) when currentInstruction = ADD else
 			  ( '0' & regA) + ( '0' & ((not(regB))+1)) when currentInstruction = SUB else
 			  ( '0' & regB) + ( '0' & x"00" & CONSTANTE) when currentInstruction = ADDI else
-			  ( '0' & regB) + ((not( '0' & x"00" & CONSTANTE))+1); -- when currentInstruction = SUBI; GENERATES LATCH
+			  ( '0' & regB) + ((not( '0' & x"00" & CONSTANTE))+1); -- when currentInstruction = SUBI; GENERATES LATCH IF UNCOMMENTED
     
     outALU <= ALUaux(15 downto 0) when (currentInstruction = ADD or currentInstruction = SUB or currentInstruction = ADDI or currentInstruction = SUBI) else 
               regA and regB when currentInstruction = AAND else
@@ -534,17 +567,18 @@ begin
     address <= regPC when currentState = Sfetch else
                --outALU when currentState = Sld or currentState = Sst or currentState = Spop or currentState = Srts else
                regALU when currentState = Sld or currentState = Sst or currentState = Spop or currentState = Srts or currentState = Spopf or currentState = Srti else
-               regSP; -- Pra dar salto em uma subrotina e o PUSH (Spushf, Spush, Sitr)
+               regSP; -- Pra dar salto em uma subrotina e o PUSH (Spushf, Spush, Sitr, Strap)
                     
     data_out <= regBank(to_integer(unsigned(REGTARGET))) when currentState = Sst and rst = '0' else
                 regB when currentState = Spush and rst = '0' else
                 regPC when currentState = Ssbrt and rst = '0' else
 				( "000000000000" & regFLAGS ) when currentState = Spushf and rst = '0' else
 				regPC when currentState = Sitr and rst = '0' else
+                regPC when currentState = Strap and rst = '0' else
                 (others=>'0');
 
     ce <= '1' when rst = '0' and (currentState = Sld or currentState = Ssbrt or currentState = Spush or currentState = Sst or currentState = Sfetch or currentState = Srts or currentState = Spop or
-								  currentState = Spopf or currentState = Spushf or currentState = Sitr or currentState = Srti) else '0';
+								  currentState = Spopf or currentState = Spushf or currentState = Sitr or currentState = Strap or currentState = Srti) else '0';
 								  
     rw <= '1' when (currentState = Sfetch or currentState = Spop or currentState = Srts or currentState = Sld or currentState = Spopf or currentState = Srti) else '0';
     
