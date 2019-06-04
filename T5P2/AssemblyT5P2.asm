@@ -71,11 +71,11 @@
     ldh r0, #InterruptionServiceRoutine
     ldl r0, #InterruptionServiceRoutine
     ldisra r0
-    
+
 ;   Seta endereço do tratador de traps
     ldh r0, #TrapServiceRoutine
     ldl r0, #TrapServiceRoutine
-    ldtsra r0  
+    ldtsra r0
 
     xor r0, r0, r0
 
@@ -101,7 +101,7 @@
     ld r1, r0, r1
 
     xor r4, r4, r4
-    
+
 ;   Seta todos os bits de PortConfig como entrada
     ldl r4, #01h   ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &PortConfig ]
     ldh r5, #FFh   ; r5 <= "11111111_11111111"
@@ -244,7 +244,7 @@ InterruptionServiceRoutine:
 ;--------------------------------------------TRATAMENTO DE TRAPS---------------------------------------------
 
 TrapsServiceRoutine:
-    
+
 ; 1. Salvamento de contexto
 ; 2. Ler do reg CAUSE o número da exceção
 ; 3. Indexar jump table e gravar em algum registrador o endereço do handler
@@ -270,7 +270,7 @@ TrapsServiceRoutine:
     push r14
     push r15
     pushf
-    
+
 ;   Le ID da trap
 
 ;   r4 <= registrador de causa
@@ -285,7 +285,7 @@ TrapsServiceRoutine:
 
 ;   Jump para handler
     jsr r1
-    
+
 ;   Recupera contexto
     popf
     pop r15
@@ -325,24 +325,22 @@ irq3Handler: ; OPEN
 
     halt
 
-irq4Handler: ; OPEN 
-    
-    halt
-    
-irq5Handler: ; OPEN 
+irq4Handler: ; OPEN
 
     halt
 
-irq6Handler: ; OPEN 
+irq5Handler: ; OPEN
 
     halt
 
-irq7Handler: ; OPEN 
+irq6Handler: ; OPEN
 
     halt
-    
-    
-    
+
+irq7Handler: ; OPEN
+
+    halt
+
 trap0Handler: ; OPEN
 
     halt
@@ -414,31 +412,29 @@ trap15Handler: ; DIVISION BY ZERO
     jsrd #DivisionByZeroDriver
 
     rts
-    
-    
-    
+
 syscall0Handler: ; PrintString (Transmits a string through UART TX)
 
     jsrd #PrintString
-    
+
     rts
 
 syscall1Handler: ; IntegerToString (Converts a given decimal value to a ASCII character)
 
     jsrd #IntegerToString
-    
+
     rts
 
 syscall2Handler: ; IntegerToHexString (Converts a given hexadecimal value to a ASCII character)
 
     jsrd #IntegerToHexString
-    
+
     rts
 
 ;-------------------------------------------------DRIVERS----------------------------------------------------
 
 InvalidInstructionDriver:
-    
+
 ;   Saves context
     push r2
     push r3
@@ -453,60 +449,60 @@ InvalidInstructionDriver:
     xor r4, r4, r4
     xor r5, r5, r5
     xor r8, r8, r8
-    
-    ldl r3, #4    
+
+    ldl r3, #4
     ldl r8, #8
-    
+
 ;   r2 <= trap ID
     mfc r2
-    
+
 ;   r5 <= trap ID in HEXADECIMAL (1 ASCII character)
     jsrd #IntegerToHexString
     add r5, r0, r14
     ld r5, r0, r5
-    
+
 ;   r2 <= ADDR of trap causing instruction
     mft r2
-    
+
 ;   r14 <= ADDR of trap causing instruction in HEXADECIMAL (4 ASCII characters)
     jsrd #IntegerToHexString
-    
+
 ;   Initializes ErrorCode String
     ldh r2, #ErrorCode
     ldl r2, #ErrorCode
-    
+
 ;   ErrorCode[0] <= ID of trap
     st r5, r2, r0
- 
+
   InvalidInstructionDriverLoop: ; Copies converted HEX string to ErrorCode string (offsets ConvertedString into ErrorCode by 4)
-    
+
     sub r5, r3, r8
     jmpzd #InvalidInstructionDriverReturn
-    
+
 ;   r5 <= ConvertedString[r3]
     ld r5, r3, r14
-    
+
 ;   ErrorCode[r4] <= r5
     st r5, r4, r2
-    
+
 ;   Increments Indexers
     addi r3, #1
     addi r4, #1
-  
+
     jmpd #InvalidInstructionDriverLoop
-  
+
   InvalidInstructionDriverReturn:
-  
+
 ;   Transmits Error Code
     jsrd #PrintString
-  
+
 ;   Return to normal execution flow
     pop r8
     pop r5
     pop r4
     pop r3
     pop r2
-    
+
     rts
 
 SyscallDriver:
@@ -521,15 +517,15 @@ SyscallDriver:
 ;   r1 <= Jump Table
     ldh r1, #syscallJumpTable
     ldl r1, #syscallJumpTable
-    
+
 ;   r1 <= Endereço da função solicitada
     ld r1, r2, r1
-    
+
 ;   PC <= Função Solicitada
     jsr r1
-    
+
     pop r1
-    
+
     rts
 
 OverflowDriver:
@@ -548,60 +544,60 @@ OverflowDriver:
     xor r4, r4, r4
     xor r5, r5, r5
     xor r8, r8, r8
-    
-    ldl r3, #4    
+
+    ldl r3, #4
     ldl r8, #8
-    
+
 ;   r2 <= trap ID
     mfc r2
-    
+
 ;   r5 <= trap ID in HEXADECIMAL (1 ASCII character)
     jsrd #IntegerToHexString
     add r5, r0, r14
     ld r5, r0, r5
-    
+
 ;   r2 <= ADDR of trap causing instruction
     mft r2
-    
+
 ;   r14 <= ADDR of trap causing instruction in HEXADECIMAL (4 ASCII characters)
     jsrd #IntegerToHexString
-    
+
 ;   Initializes ErrorCode String
     ldh r2, #ErrorCode
     ldl r2, #ErrorCode
-    
+
 ;   ErrorCode[0] <= ID of trap
     st r5, r2, r0
- 
+
   OverflowLoop: ; Copies converted HEX string to ErrorCode string (offsets ConvertedString into ErrorCode by 4)
-    
+
     sub r5, r3, r8
     jmpzd #OverflowReturn
-    
+
 ;   r5 <= ConvertedString[r3]
     ld r5, r3, r14
-    
+
 ;   ErrorCode[r4] <= r5
     st r5, r4, r2
-    
+
 ;   Increments Indexers
     addi r3, #1
     addi r4, #1
-  
+
     jmpd #OverflowReturn
-  
+
   OverflowReturn:
-  
+
 ;   Transmits Error Code
     jsrd #PrintString
-  
+
 ;   Return to normal execution flow
     pop r8
     pop r5
     pop r4
     pop r3
     pop r2
-    
+
     rts
 
 DivisionByZeroDriver:
@@ -621,62 +617,62 @@ DivisionByZeroDriver:
     xor r4, r4, r4
     xor r5, r5, r5
     xor r8, r8, r8
-    
-    ldl r3, #4    
+
+    ldl r3, #4
     ldl r8, #8
-    
+
 ;   r2 <= trap ID
     mfc r2
-    
+
 ;   r5 <= trap ID in HEXADECIMAL (1 ASCII character)
     jsrd #IntegerToHexString
     add r5, r0, r14
     ld r5, r0, r5
-    
+
 ;   r2 <= ADDR of trap causing instruction
     mft r2
-    
+
 ;   r14 <= ADDR of trap causing instruction in HEXADECIMAL (4 ASCII characters)
     jsrd #IntegerToHexString
-    
+
 ;   Initializes ErrorCode String
     ldh r2, #ErrorCode
     ldl r2, #ErrorCode
-    
+
 ;   ErrorCode[0] <= ID of trap
     st r5, r2, r0
- 
+
   DivisionByZeroLoop: ; Copies converted HEX string to ErrorCode string (offsets ConvertedString into ErrorCode by 4)
-    
+
     sub r5, r3, r8
     jmpzd #DivisionByZeroReturn
-    
+
 ;   r5 <= ConvertedString[r3]
     ld r5, r3, r14
-    
+
 ;   ErrorCode[r4] <= r5
     st r5, r4, r2
-    
+
 ;   Increments Indexers
     addi r3, #1
     addi r4, #1
-  
+
     jmpd #DivisionByZeroReturn
-  
+
   DivisionByZeroReturn:
-  
+
 ;   Transmits Error Code
     jsrd #PrintString
-  
+
 ;   Return to normal execution flow
     pop r8
     pop r5
     pop r4
     pop r3
     pop r2
-    
+
     rts
-    
+
 ;---------------------------------------------FUNÇÕES DO KERNEL----------------------------------------------
 
 PrintString: ; Espera endereço da string a ser enviada em r2
@@ -693,41 +689,41 @@ PrintString: ; Espera endereço da string a ser enviada em r2
     ldh r1, #UART_TX
     ldl r1, #UART_TX
     ld r1, r0, r1
-    
+
     xor r0, r0, r0
     xor r3, r3, r3
     xor r5, r5, r5
-    
+
   tx_loop:
-    
+
 ;   r5 <= status do tx
     ld r5, r0, r1
     add r5, r0, r5 ; Gera flag
-  
+
     jmpzd #tx_loop ; Espera transmissor estar disponivel
-    
+
 ;   r5 <= string[r3]
     ld r5, r3, r2
     add r5, r0, r5 ; Gera flag
-    
+
 ;   Se string[r3] = 0 (terminador de string), volta para caller
     jmpzd #PrintStringReturn
-    
+
 ;   UART TX <= r5
     st r5, r0, r1
-    
+
 ;   Incrementa indice
     addi r3, #1
-    
+
 ;   Transmite proximo caracter
     jmpd #tx_loop
-    
+
 PrintStringReturn:
-    
+
     pop r5
     pop r3
     pop r1
-    
+
     rts
 
 IntegerToString: ; Espera inteiro a ser convertido em r2, retorna ponteiro para string em r14
@@ -747,101 +743,101 @@ IntegerToString: ; Espera inteiro a ser convertido em r2, retorna ponteiro para 
     push r5
     push r10
     push r11
-    
+
     xor r0, r0, r0
     xor r2, r2, r2
     xor r3, r3, r3
     xor r4, r4, r4
     xor r10, r10, r10
     xor r11, r11, r11
-    
+
     ldl r10, #10
-    
+
     ldh r14, #IntegerToStringBuffer
     ldl r14, #IntegerToStringBuffer
-    
+
     addi r3, #8
-    
+
 ;   Limpa o buffer
   limpaBufferLoop:
-    
+
 ;   buffer[r3] <= 0
     st r0, r3, r14
-    
+
 ;   Decrementa indice do buffer
     subi r3, #1
-    
+
 ;   Limpa proxima posição do buffer
     jmpnd #IntegerToStringStart
     jmpd #limpaBufferLoop
-    
+
 IntegerToStringStart:
-    
+
     xor r3, r3, r3
-    
+
     add r2, r0, r2 ; Gera flag
-    
+
     jmpnd #IntegerToStringNegativo
     jmpzd #IntegerToStringZero
     jmpd #IntegerToStringPositivo
-      
+
 ConversionLoop:
 
 ;   r2 <= r2 / 10, r11 <= r2 % 10
     div r2, r10
     mfh r11
     mfl r2
-    
+
 ;   r11 <= char[r11]
     addi r11, #48
 
 ;   Salva r11 na pilha (string será reordenada)
     push r11
-    
+
 ;   Incrementa contador de pushes
     addi r3, #1
 
 ;   Gera Flag
     add r2, r0, r2
-    
+
     jmpzd #ReverseLoop
     jmpd #ConversionLoop
 
 ReverseLoop:
-    
+
     pop r5
-    
+
     st r5, r4, r14
-    
+
     addi r4, #1
-    
+
     sub r5, r3, r4
-    
+
     jmpzd #IntegerToStringReturn
     jmpd #ReverseLoop
-    
+
 IntegerToStringReturn:
 
     subi r1, #1
-    
+
     pop r11
     pop r10
     pop r5
     pop r4
     pop r3
     pop r2
-    
+
     rts
-    
+
 IntegerToStringZero:
-    
-;   r5 <= '0'   
+
+;   r5 <= '0'
     ldh r5, #0
     ldl r5, #48
 
 ;   Buffer[0] <= '0'
     st r5, r3, r14
-    
+
 ;   Retorna para caller
     pop r11
     pop r10
@@ -850,48 +846,93 @@ IntegerToStringZero:
     pop r3
     pop r2
     pop r1
-    
+
     rts
-    
+
 IntegerToStringNegativo:
 
 ;   r2 <= Inteiro a ser convertido passa a ser positivo
     not r2, r2
     addi r2, #1
-    
+
 ;   r5 <= '-'
     ldh r5, #0
     ldl r5, #45
-    
+
 ;   Grava sinal negativo na primeira posição do buffer
     st r5, r0, r14
-    
+
 ;   Incrementa ponteiro da string
     addi r14, #1
-    
+
 ;   Retorna para codigo de conversão
     jmpd #ConversionLoop
-    
+
 IntegerToStringPositivo:
 
 ;   r5 <= '+'
     ldh r5, #0
     ldl r5, #43
-    
+
 ;   Grava sinal positivo na primeira posição do buffer
     st r5, r0, r14
-    
+
 ;   Incrementa ponteiro do buffer
     addi r14, #1
-    
+
 ;   Retorna para codigo de conversão
     jmpd #ConversionLoop
 
 IntegerToHexString: ; Espera valor a ser convertido em r2, retorna ponteiro para string em r14
+; Tabela de registradores:
+; r2 = Inteiro a ser convertido ( 16 bits)
+; r3 = Constante 16
+; r4 = Numeros a ser Convertidos / Temporário para comparacao
+; r5 = Indexador do Buffer
+; r6 = Endereço da LUT
+; r14 = Endereço do Buffer ( Ponteiro para String)
 
+    push r2
+    push r3
+    push r4
+    push r5
+    push r6
+
+    ldh r3, #00h
+    ldl r3, #10h  ; r3 <= (constante)16
+
+    xor r5, r5, r5 ; Zera o indexador do Buffer
+
+    ldh r6, #IntegerToHexStringLUT
+    ldl r6, #IntegerToHexStringLUT   ; r6 <= & IntegerToHexStringLUT
+
+    ldh r14, #IntegerToHexBuffer
+    ldl r14, #IntegerToHexBuffer   ; r11 <= & IntergerToHexBufer
+
+    FourBitsConverter:
+    add r4, r0, r5  ; r4 <= Indexador
+    subi r4, #04h   ; Comparação é verdadeira quando o indexaro for igual a 4
+    jmpzd #ReturnIntegerToHexString
+
+    div r2, r3    ; r2 / 16  ( Divisao por 16 equivale a 4 shifts)
+    mfl r2        ; r2 <= parte inteira da divisao r2/16
+    mfh r4        ; r4 <= Resto da divisao r2/16 ( 4 bits)
+
+;   Salva em r4 o valor da LUT indexada por r4
+    ld r4, r4, r6   ; r4 <= IntegerToHexStringLUT[ ( r4 = resto da divisao)]
+    st r4, r5, r14  ; IntegerToHexBuffer [r5] = r4 ( Numero convertido)
+
+    addi r5, #01h   ; Incrementa o Indexador
+    jmpd #FourBitsConverter ; Retoma o Loop
+
+    ReturnIntegerToHexString:
+    pop r6
+    pop r5
+    pop r4
+    pop r3
+    pop r2
     
-
-
+    rts
 
 
 
@@ -948,26 +989,26 @@ BubbleSort:
 
     ldl r4, #0              ;
     ldh r4, #1              ; r4 <- 1
-    
+
 ; Converts array to char and transmits via UART
 TX_ARRAY_INICIAL:
-    
+
 ;   Loops for 50 iterations on IntegerToString function
-    
+
     ld r2, r11, r1          ; r2 <- arraySort[transmissionCount]
-    
+
     jsrd #IntegerToString   ; Converts integer to string
-    
+
     add r2, r0, r14         ; r2 <- Pointer to converted string
     jsrd #PrintString       ; Prints string on UART transmiter
-    
+
     addi r11, #1            ; Increments transmission count
-    
+
     sub r5, r10, r11        ; If transmission count == array size, breaks loop, else iterates again
-    
+
     jmpzd #scan
-    jmpd #TX_ARRAY_INICIAL    
-    
+    jmpd #TX_ARRAY_INICIAL
+
 ; Main code
 scan:
     addi r4, #0             ; Verifies if there was element swapping
@@ -1005,23 +1046,23 @@ swap:
 
 ; Converts array to char and transmits via UART
 TX_ARRAY_FINAL:
-    
+
 ;   Loops for 50 iterations on IntegerToString function
-    
+
     ld r2, r1, r11          ; r2 <- arraySort[transmissionCount]
-    
+
     jsrd #IntegerToString   ; Converts integer to string
-    
+
     add r2, r0, r14         ; r2 <- Pointer to converted string
     jsrd #PrintString       ; Prints string on UART transmiter
-    
+
     addi r11, #1            ; Increments transmission count
-    
+
     sub r5, r10, r11        ; If transmission count == array size, breaks loop, else iterates again
-    
+
     jmpzd #end
     jmpd #TX_ARRAY_FINAL
-    
+
 end:
     halt                    ; Suspend the execution
 
@@ -1054,7 +1095,7 @@ UART_TX:                  db #8080h
 interruptVector:          db #irq0Handler, #irq1Handler, #irq2Handler, #irq3Handler, #irq4Handler, #irq5Handler, #irq6Handler, #irq7Handler
 
 ; Vetor com tratadores de traps
-trapVector:               db #trap0Handler, #trap1Handler, #trap2Handler, #trap3Handler, #trap4Handler, #trap5Handler, #trap6Handler, #trap7Handler, #trap8Handler, #trap9Handler, #trap10Handler, #trap11Handler, #trap12Handler, #trap13Handler, #trap14Handler, #trap15Handler, 
+trapVector:               db #trap0Handler, #trap1Handler, #trap2Handler, #trap3Handler, #trap4Handler, #trap5Handler, #trap6Handler, #trap7Handler, #trap8Handler, #trap9Handler, #trap10Handler, #trap11Handler, #trap12Handler, #trap13Handler, #trap14Handler, #trap15Handler,
 
 ; Vetor com endereços das chamadas de sistema
 syscallJumpTable:         db #syscall0Handler, #syscall1Handler, #syscall2Handler
@@ -1065,11 +1106,11 @@ IntegerToStringBuffer:    db #0, #0, #0, #0, #0, #0, #0, #0
 ; IntegerToHexString Look Up Table (returns indexer value in HEXADECIMAL IN UPPERCASE)
 ;                             0    1    2    3    4    5    6    7    8    9    A    B    C    D    E    F
 IntegerToHexStringLUT:    db #48, #49, #50, #51, #52, #53, #54, #55, #56, #57, #65, #66, #67, #68, #69, #70
-
+IntegerToHexBuffer:       db #0, #0, #0, #0
 ; Buffer para transmissao de codigo de erro (8 chars + string trailer)
 ErrorCode:                db #0, #0, #0, #0, #0, #0, #0, #0, #0
 
-; Primeira posição deve ser o caracter a ser enviado, segunda posição deve ser o terminador de string 
+; Primeira posição deve ser o caracter a ser enviado, segunda posição deve ser o terminador de string
 CharString:               db #0, #0
 
 ;-------------------------------------------VARIAVEIS DE APLICAÇÃO-------------------------------------------
