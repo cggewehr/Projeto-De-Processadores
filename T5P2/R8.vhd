@@ -119,6 +119,7 @@ architecture Behavioural of R8 is
     signal trapCount                   : integer;   -- Signals if processor is currently treating a trap
     signal newTrapFlag                 : std_logic; -- Signals if processor generated a new untreated trap
 	
+  signal nullPointerExceptionFlag    : std_logic; -- Signals if processor is trying to read/write data (not reading an instruction) @ memory position 0
 begin
 	
     -- Decodifica o tipo das instruçoes
