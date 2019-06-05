@@ -341,9 +341,11 @@ irq7Handler: ; OPEN
 
     halt
 
-trap0Handler: ; OPEN
+trap0Handler: ; NULL POINTER EXCEPTION
 
-    halt
+    jsrd #NullPointerExceptionDriver
+    
+    rts
 
 trap1Handler: ; INVALID INSTRUCTION
 
@@ -438,6 +440,79 @@ syscall3Handler: ; Delay1ms (Waits for "r2" milliseconds, assumes a clock of 50M
     rts
 
 ;-------------------------------------------------DRIVERS----------------------------------------------------
+
+NullPointerExceptionDriver:
+
+;   Saves context
+    push r2
+    push r3
+    push r4
+    push r5
+    push r8
+
+;   Initializes registers
+    xor r0, r0, r0
+    xor r2, r2, r2
+    xor r3, r3, r3
+    xor r4, r4, r4
+    xor r5, r5, r5
+    xor r8, r8, r8
+
+    ldl r3, #4
+    ldl r8, #8
+
+;   r2 <= trap ID
+    mfc r2
+
+;   r5 <= trap ID in HEXADECIMAL (1 ASCII character)
+    jsrd #IntegerToHexString
+    add r5, r0, r14
+    ld r5, r0, r5
+
+;   r2 <= ADDR of trap causing instruction
+    mft r2
+
+;   r14 <= ADDR of trap causing instruction in HEXADECIMAL (4 ASCII characters)
+    jsrd #IntegerToHexString
+
+;   Initializes ErrorCode String
+    ldh r2, #ErrorCode
+    ldl r2, #ErrorCode
+
+;   ErrorCode[0] <= ID of trap
+    st r5, r2, r0
+
+  NullPointerExceptionLoop: ; Copies converted HEX string to ErrorCode string (offsets ConvertedString into ErrorCode by 4)
+
+    sub r5, r3, r8
+    jmpzd #NullPointerExceptionReturn
+
+;   r5 <= ConvertedString[r3]
+    ld r5, r3, r14
+
+;   ErrorCode[r4] <= r5
+    st r5, r4, r2
+
+;   Increments Indexers
+    addi r3, #1
+    addi r4, #1
+
+    jmpd #NullPointerExceptionLoop
+
+  NullPointerExceptionReturn:
+
+;   Transmits Error Code
+    jsrd #PrintString
+
+;   Return to normal execution flow
+    pop r8
+    pop r5
+    pop r4
+    pop r3
+    pop r2
+
+    rts
+
 
 InvalidInstructionDriver:
 

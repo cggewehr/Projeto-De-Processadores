@@ -294,10 +294,10 @@ begin
         	elsif currentState = Sreg then 
 
                 if currentInstruction = INVALID then
-                    regCAUSE <= to_unsigned(std_logic_vector(1, regCAUSE'length));
+                    regCAUSE <= to_unsigned(std_logic_vector(1, regCAUSE'length)); -- Throws Invalid Instruction
                     newTrapFlag <= '1';
                     currentState <= Sfetch;
-                elsif (currentInstruction = HALT) then
+                elsif currentInstruction = HALT then
                     currentState <= Shalt;
                 else 
                     -- Reads register bank
@@ -412,7 +412,7 @@ begin
 
                 if (currentinstruction = ADD or currentinstruction = ADDI or currentinstruction = SUB or currentinstruction = SUBI) then
                     if v = '1' then
-                        regCAUSE <= to_unsigned(std_logic_vector(12, regCAUSE'length));
+                        regCAUSE <= to_unsigned(std_logic_vector(12, regCAUSE'length)); -- Throws Overflow
                         newTrapFlag <= '1';
                         currentState <= Sfetch;
                     else 
@@ -425,11 +425,23 @@ begin
                 end if;
                     
     		elsif currentState = Sld then -- Ultimo ciclo de load
-    			regBank(to_integer(unsigned(REGTARGET))) <= data_in;
-    			currentState <= Sfetch;
-                    
+          if nullPointerExceptionFlag = '1' then
+            regCAUSE <= to_unsigned(std_logic_vector(0, regCAUSE'length)); -- Throws NullPointerException
+            newTrapFlag <= '1';
+            currentState <= Sfetch;
+          else
+    			 regBank(to_integer(unsigned(REGTARGET))) <= data_in;
+    			 currentState <= Sfetch;
+          end if;
+
     		elsif currentState = Sst then -- Ultimo ciclo de store
-    			currentState <= Sfetch;
+          if nullPointerExceptionFlag = '1' then
+            regCAUSE <= to_unsigned(std_logic_vector(0, regCAUSE'length)); -- Throws NullPointerException
+            newTrapFlag <= '1';
+            currentState <= Sfetch;
+          else
+    			 currentState <= Sfetch;
+          end if;
                     
     		elsif currentState = Sjmp then -- Ultimo ciclo p/ saltos
                 regPC <= regALU; 
@@ -492,7 +504,7 @@ begin
     			    regHIGH <= divisor(31 downto 16);
     			    regLOW <= divisor(15 downto 0);
                 else
-                    regCAUSE <= to_unsigned(std_logic_vector(15, regCAUSE'length));
+                    regCAUSE <= to_unsigned(std_logic_vector(15, regCAUSE'length)); -- Throws Division By Zero
                     newTrapFlag <= '1';
                 end if;
 
@@ -584,9 +596,11 @@ begin
                 regPC when currentState = Strap and rst = '0' else
                 (others=>'0');
 
-    ce <= '1' when rst = '0' and (currentState = Sld or currentState = Ssbrt or currentState = Spush or currentState = Sst or currentState = Sfetch or currentState = Srts or currentState = Spop or
+    ce <= '1' when rst = '0' and ( (currentState = Sld and address /= 0) or currentState = Ssbrt or currentState = Spush or (currentState = Sst and address /= 0) or currentState = Sfetch or currentState = Srts or currentState = Spop or
 								  currentState = Spopf or currentState = Spushf or currentState = Sitr or currentState = Strap or currentState = Srti) else '0';
 								  
     rw <= '1' when (currentState = Sfetch or currentState = Spop or currentState = Srts or currentState = Sld or currentState = Spopf or currentState = Srti) else '0';
+
+    nullPointerExceptionFlag <= '1' when ( (currentState = Sld or currentState = Sst) and address = 0 ) else '0';
     
 end Behavioural;
