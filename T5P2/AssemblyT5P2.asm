@@ -438,6 +438,12 @@ syscall3Handler: ; Delay1ms (Waits for "r2" milliseconds, assumes a clock of 50M
     jsrd #Delay1ms
     
     rts
+    
+syscall4Handler: ; IntegerToSSD (Converts a given integer to Seven Segment Display encoding : abcdefg.)
+
+    jsrd #IntegerToSSD
+    
+    rts
 
 ;-------------------------------------------------DRIVERS----------------------------------------------------
 
@@ -1044,6 +1050,23 @@ Delay1ms: ; Assume que clk = 50MHz
     
     rts
 
+IntegerToSSD:
+
+    push r1
+    
+    xor r1, r1, r1
+    xor r14, r14, r14
+    
+;   r1 <= &arraySSD
+    ldh r1, #arraySSD
+    ldl r1, #arraySSD
+    
+;   r14 <= arraySSD[r3]
+    ld r14, r1, r3
+
+    pop r1
+    
+    rts
 
 ;------------------------------------------- PROGRAMA PRINCIPAL ---------------------------------------------
 
@@ -1199,7 +1222,7 @@ interruptVector:          db #irq0Handler, #irq1Handler, #irq2Handler, #irq3Hand
 trapVector:               db #trap0Handler, #trap1Handler, #trap2Handler, #trap3Handler, #trap4Handler, #trap5Handler, #trap6Handler, #trap7Handler, #trap8Handler, #trap9Handler, #trap10Handler, #trap11Handler, #trap12Handler, #trap13Handler, #trap14Handler, #trap15Handler,
 
 ; Vetor com endereços das chamadas de sistema
-syscallJumpTable:         db #syscall0Handler, #syscall1Handler, #syscall2Handler, #syscall3Handler
+syscallJumpTable:         db #syscall0Handler, #syscall1Handler, #syscall2Handler, #syscall3Handler, #syscall4Handler
 
 ; IntegerToString
 IntegerToStringBuffer:    db #0, #0, #0, #0, #0, #0, #0, #0
@@ -1213,6 +1236,10 @@ ErrorCode:                db #0, #0, #0, #0, #0, #0, #0, #0, #0
 
 ; Primeira posição deve ser o caracter a ser enviado, segunda posição deve ser o terminador de string
 CharString:               db #0, #0
+
+; array SSD representa o array de valores a serem postos nos displays de sete seg
+             ;|  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |  9  |
+arraySSD:   db #03h, #9fh, #25h, #0dh, #99h, #49h, #41h, #1fh, #01h, #09h
 
 ;-------------------------------------------VARIAVEIS DE APLICAÇÃO-------------------------------------------
 
