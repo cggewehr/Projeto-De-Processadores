@@ -1022,7 +1022,10 @@ IntegerToHexString: ; Espera valor a ser convertido em r2, retorna ponteiro para
     rts
 
 
-Delay1ms: ; Assume que clk = 50MHz
+Delay1ms: ; Assumes clk = 50MHz (MIGHT CAUSE PROBELMS IF GIVEN NUMBER IS GREATER THAN 2¹⁵, WHICH IS INTERPRETED AS A NEGATIVE NUMBER)
+; Register table
+; r2 = Number of milliseconds to hold in this function
+; r4 = Loop iterator
 
     push r2
     push r4
@@ -1050,7 +1053,11 @@ Delay1ms: ; Assume que clk = 50MHz
     
     rts
 
-IntegerToSSD:
+IntegerToSSD: ; Returns on r14 given integer (on r3) encoded for 7 Segment Display (abcdefg.)
+; Register table
+; r1 = Address of Look Up Table for conversion
+; r3 = Integer to be encoded
+; r14 = Encoded integer
 
     push r1
     
