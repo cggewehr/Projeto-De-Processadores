@@ -430,6 +430,12 @@ syscall2Handler: ; IntegerToHexString (Converts a given hexadecimal value to a A
     jsrd #IntegerToHexString
 
     rts
+    
+syscall3Handler: ; Delay1ms (Waits for "r2" milliseconds, assumes a clock of 50MHz)
+
+    jsrd #Delay1ms
+    
+    rts
 
 ;-------------------------------------------------DRIVERS----------------------------------------------------
 
@@ -935,13 +941,33 @@ IntegerToHexString: ; Espera valor a ser convertido em r2, retorna ponteiro para
     rts
 
 
+Delay1ms: ; Assume que clk = 50MHz
 
+    push r2
+    push r4
+    
+;   Iterador do loop de 1ms <= 2500
+    ldh r4, #09h
+    ldl r4, #C4h
+  
+  Delay1msloop:             ; Repete 2500 vezes, 20 ciclos
+    subi r4, #1             ;  4 ciclos
+    nop                     ;  7 ciclos
+    nop                     ; 10 ciclos
+    nop                     ; 13 ciclos
+    jmpzd #Delay1msloopExit ; 16 ciclos
+    jmpd #Delay1msloop      ; 20 ciclos
 
-
-
-
-
-
+  Delay1msloopExit:
+    
+    subi r2, #1
+    jmpzd #Delay1msReturn
+    jmpd #Delay1msloop
+    
+    pop r4
+    pop r2
+    
+    rts
 
 
 ;------------------------------------------- PROGRAMA PRINCIPAL ---------------------------------------------
@@ -1098,7 +1124,7 @@ interruptVector:          db #irq0Handler, #irq1Handler, #irq2Handler, #irq3Hand
 trapVector:               db #trap0Handler, #trap1Handler, #trap2Handler, #trap3Handler, #trap4Handler, #trap5Handler, #trap6Handler, #trap7Handler, #trap8Handler, #trap9Handler, #trap10Handler, #trap11Handler, #trap12Handler, #trap13Handler, #trap14Handler, #trap15Handler,
 
 ; Vetor com endereços das chamadas de sistema
-syscallJumpTable:         db #syscall0Handler, #syscall1Handler, #syscall2Handler
+syscallJumpTable:         db #syscall0Handler, #syscall1Handler, #syscall2Handler, #syscall3Handler
 
 ; IntegerToString
 IntegerToStringBuffer:    db #0, #0, #0, #0, #0, #0, #0, #0
