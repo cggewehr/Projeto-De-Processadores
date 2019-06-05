@@ -73,8 +73,8 @@
     ldisra r0
 
 ;   Seta endereço do tratador de traps
-    ldh r0, #TrapServiceRoutine
-    ldl r0, #TrapServiceRoutine
+    ldh r0, #TrapsServiceRoutine
+    ldl r0, #TrapsServiceRoutine
     ldtsra r0
 
     xor r0, r0, r0
@@ -1047,6 +1047,8 @@ Delay1ms: ; Assumes clk = 50MHz (MIGHT CAUSE PROBELMS IF GIVEN NUMBER IS GREATER
     subi r2, #1
     jmpzd #Delay1msReturn
     jmpd #Delay1msloop
+   
+  Delay1msReturn:
     
     pop r4
     pop r2
