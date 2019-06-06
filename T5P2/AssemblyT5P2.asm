@@ -27,6 +27,7 @@
 
 ; REGISTRADORES:
 ; --------------------- r0  = 0
+; --------------------- r1  = SYSCALL ID
 ; --------------------- r2  = PARAMETRO para subrotina
 ; --------------------- r3  = PARAMETRO para subrotina
 ; --------------------- r14 = Retorno de subrotina
@@ -276,15 +277,15 @@ TrapsServiceRoutine:
 ;   r4 <= registrador de causa
     mfc r4
 
-;   r1 <= &trapVector
-    ldh r1, #trapVector
-    ldl r1, #trapVector
+;   r5 <= &trapVector
+    ldh r5, #trapVector
+    ldl r5, #trapVector
 
-;   r1 <= trapVector[trapID]
-    ld r1, r4, r1
+;   r5 <= trapVector[trapID]
+    ld r5, r4, r5
 
 ;   Jump para handler
-    jsr r1
+    jsr r5
 
 ;   Recupera contexto
     popf
@@ -439,7 +440,7 @@ syscall3Handler: ; Delay1ms (Waits for "r2" milliseconds, assumes a clock of 50M
     
     rts
     
-syscall4Handler: ; IntegerToSSD (Converts a given integer to Seven Segment Display encoding : abcdefg.)
+syscall4Handler: ; IntegerToSSD (Converts a given integer (on r2) to Seven Segment Display encoding : abcdefg.)
 
     jsrd #IntegerToSSD
     
@@ -449,267 +450,97 @@ syscall4Handler: ; IntegerToSSD (Converts a given integer to Seven Segment Displ
 
 NullPointerExceptionDriver:
 
-;   Saves context
-    push r2
-    push r3
-    push r4
-    push r5
-    push r8
-
-;   Initializes registers
-    xor r0, r0, r0
-    xor r2, r2, r2
-    xor r3, r3, r3
-    xor r4, r4, r4
-    xor r5, r5, r5
-    xor r8, r8, r8
-
-    ldl r3, #4
-    ldl r8, #8
-
-;   r2 <= trap ID
+;   Calls PrintError with TrapID = 0
     mfc r2
-
-;   r5 <= trap ID in HEXADECIMAL (1 ASCII character)
-    jsrd #IntegerToHexString
-    add r5, r0, r14
-    ld r5, r0, r5
-
-;   r2 <= ADDR of trap causing instruction
-    mft r2
-
-;   r14 <= ADDR of trap causing instruction in HEXADECIMAL (4 ASCII characters)
-    jsrd #IntegerToHexString
-
-;   Initializes ErrorCode String
-    ldh r2, #ErrorCode
-    ldl r2, #ErrorCode
-
-;   ErrorCode[0] <= ID of trap
-    st r5, r2, r0
-
-  NullPointerExceptionLoop: ; Copies converted HEX string to ErrorCode string (offsets ConvertedString into ErrorCode by 4)
-
-    sub r5, r3, r8
-    jmpzd #NullPointerExceptionReturn
-
-;   r5 <= ConvertedString[r3]
-    ld r5, r3, r14
-
-;   ErrorCode[r4] <= r5
-    st r5, r4, r2
-
-;   Increments Indexers
-    addi r3, #1
-    addi r4, #1
-
-    jmpd #NullPointerExceptionLoop
-
-  NullPointerExceptionReturn:
-
-;   Transmits Error Code
-    jsrd #PrintString
-
-;   Return to normal execution flow
-    pop r8
-    pop r5
-    pop r4
-    pop r3
-    pop r2
-
+    mft r3
+    jsrd #PrintError
+    
     rts
 
 
 InvalidInstructionDriver:
 
-;   Saves context
-    push r2
-    push r3
-    push r4
-    push r5
-    push r8
-
-;   Initializes registers
-    xor r0, r0, r0
-    xor r2, r2, r2
-    xor r3, r3, r3
-    xor r4, r4, r4
-    xor r5, r5, r5
-    xor r8, r8, r8
-
-    ldl r3, #4
-    ldl r8, #8
-
-;   r2 <= trap ID
+;   Calls PrintError with TrapID = 1
     mfc r2
-
-;   r5 <= trap ID in HEXADECIMAL (1 ASCII character)
-    jsrd #IntegerToHexString
-    add r5, r0, r14
-    ld r5, r0, r5
-
-;   r2 <= ADDR of trap causing instruction
-    mft r2
-
-;   r14 <= ADDR of trap causing instruction in HEXADECIMAL (4 ASCII characters)
-    jsrd #IntegerToHexString
-
-;   Initializes ErrorCode String
-    ldh r2, #ErrorCode
-    ldl r2, #ErrorCode
-
-;   ErrorCode[0] <= ID of trap
-    st r5, r2, r0
-
-  InvalidInstructionDriverLoop: ; Copies converted HEX string to ErrorCode string (offsets ConvertedString into ErrorCode by 4)
-
-    sub r5, r3, r8
-    jmpzd #InvalidInstructionDriverReturn
-
-;   r5 <= ConvertedString[r3]
-    ld r5, r3, r14
-
-;   ErrorCode[r4] <= r5
-    st r5, r4, r2
-
-;   Increments Indexers
-    addi r3, #1
-    addi r4, #1
-
-    jmpd #InvalidInstructionDriverLoop
-
-  InvalidInstructionDriverReturn:
-
-;   Transmits Error Code
-    jsrd #PrintString
-
-;   Return to normal execution flow
-    pop r8
-    pop r5
-    pop r4
-    pop r3
-    pop r2
-
+    mft r3
+    jsrd #PrintError
+    
     rts
 
 SyscallDriver:
 
-; 1. Ler do reg r2 o número da função solicitada
+; 1. Ler do reg r1 o número da função solicitada
 ; 2. Indexar jump table e gravar em algum registrador o endereço da função
 ; 3. jsr reg (chama função)
 ; 4. rts
 
-    push r1
+    push r0
 
-;   r1 <= Jump Table
-    ldh r1, #syscallJumpTable
-    ldl r1, #syscallJumpTable
+;   r0 <= Jump Table
+    ldh r0, #syscallJumpTable
+    ldl r0, #syscallJumpTable
 
-;   r1 <= Endereço da função solicitada
-    ld r1, r2, r1
+;   r0 <= Endereço da função solicitada
+    ld r0, r1, r0
 
 ;   PC <= Função Solicitada
-    jsr r1
+    jsr r0
 
-    pop r1
+    pop r0
 
     rts
 
 OverflowDriver:
 
-;   Saves context
-    push r2
-    push r3
-    push r4
-    push r5
-    push r8
-
-;   Initializes registers
-    xor r0, r0, r0
-    xor r2, r2, r2
-    xor r3, r3, r3
-    xor r4, r4, r4
-    xor r5, r5, r5
-    xor r8, r8, r8
-
-    ldl r3, #4
-    ldl r8, #8
-
-;   r2 <= trap ID
+;   Calls PrintErro with TrapID = 12
     mfc r2
-
-;   r5 <= trap ID in HEXADECIMAL (1 ASCII character)
-    jsrd #IntegerToHexString
-    add r5, r0, r14
-    ld r5, r0, r5
-
-;   r2 <= ADDR of trap causing instruction
-    mft r2
-
-;   r14 <= ADDR of trap causing instruction in HEXADECIMAL (4 ASCII characters)
-    jsrd #IntegerToHexString
-
-;   Initializes ErrorCode String
-    ldh r2, #ErrorCode
-    ldl r2, #ErrorCode
-
-;   ErrorCode[0] <= ID of trap
-    st r5, r2, r0
-
-  OverflowLoop: ; Copies converted HEX string to ErrorCode string (offsets ConvertedString into ErrorCode by 4)
-
-    sub r5, r3, r8
-    jmpzd #OverflowReturn
-
-;   r5 <= ConvertedString[r3]
-    ld r5, r3, r14
-
-;   ErrorCode[r4] <= r5
-    st r5, r4, r2
-
-;   Increments Indexers
-    addi r3, #1
-    addi r4, #1
-
-    jmpd #OverflowReturn
-
-  OverflowReturn:
-
-;   Transmits Error Code
-    jsrd #PrintString
-
-;   Return to normal execution flow
-    pop r8
-    pop r5
-    pop r4
-    pop r3
-    pop r2
-
+    mft r3
+    jsrd #PrintError
+    
     rts
 
 DivisionByZeroDriver:
 
-;   r2 <= ADDR of trap causing instruction
+;   Calls PrintErro with TrapID = 15
+    mfc r2
+    mft r3
+    jsrd #PrintError
+    
+    rts
+
+;---------------------------------------------FUNÇÕES DO KERNEL----------------------------------------------
+
+PrintError: ; Prints a given error code (on r2) on a given insruction (r3)
+
+; Register Table:
+; r2 = ID of trap
+; r3 = ADDR of trap causing instruction
+; r4 = constant 4
+; r5 = Temporary for load/store
+; r6 = Indexer for error code string and converted string (intToHex)
+; r7 = constant 7
+; r8 = constant 8
+
 ;   Saves context
     push r2
     push r3
     push r4
     push r5
+    push r6
+    push r7
     push r8
 
 ;   Initializes registers
     xor r0, r0, r0
-    xor r2, r2, r2
-    xor r3, r3, r3
     xor r4, r4, r4
     xor r5, r5, r5
+    xor r6, r6, r6
+    xor r7, r7, r7
     xor r8, r8, r8
 
-    ldl r3, #4
+    ldl r4, #4
+    ldl r7, #7
     ldl r8, #8
-
-;   r2 <= trap ID
-    mfc r2
 
 ;   r5 <= trap ID in HEXADECIMAL (1 ASCII character)
     jsrd #IntegerToHexString
@@ -717,7 +548,7 @@ DivisionByZeroDriver:
     ld r5, r0, r5
 
 ;   r2 <= ADDR of trap causing instruction
-    mft r2
+    add r2, r0, r3
 
 ;   r14 <= ADDR of trap causing instruction in HEXADECIMAL (4 ASCII characters)
     jsrd #IntegerToHexString
@@ -726,33 +557,35 @@ DivisionByZeroDriver:
     ldh r2, #ErrorCode
     ldl r2, #ErrorCode
 
-;   ErrorCode[0] <= ID of trap
-    st r5, r2, r0
+;   ErrorCode[7] <= ID of trap
+    st r5, r2, r7
 
-  DivisionByZeroLoop: ; Copies converted HEX string to ErrorCode string (offsets ConvertedString into ErrorCode by 4)
+  PrintErrorLoop: ; Copies converted HEX string to ErrorCode string (offsets ConvertedString into ErrorCode by 4)
 
-    sub r5, r3, r8
-    jmpzd #DivisionByZeroReturn
+;   If string index = 4, returns, else, inserts another character (r4 is always = 4)
+    sub r5, r6, r4 ; r5 is treated as temporary, will be used to read values from converted string and storing them into the final string (to be printed)
+    jmpzd #PrintErrorReturn
 
-;   r5 <= ConvertedString[r3]
-    ld r5, r3, r14
+;   r5 <= Char of ADDR of trap causing instruction[r6]
+    ld r5, r6, r14
 
-;   ErrorCode[r4] <= r5
-    st r5, r4, r2
+;   ErrorCode[r6] <= r5
+    st r5, r6, r2
 
-;   Increments Indexers
-    addi r3, #1
-    addi r4, #1
+;   Increments Indexer
+    addi r6, #1
 
-    jmpd #DivisionByZeroReturn
+    jmpd #PrintErrorReturn
 
-  DivisionByZeroReturn:
+  PrintErrorReturn:
 
-;   Transmits Error Code
-    jsrd #PrintString
+;   Transmits Error Code                      |   7  | 6 5 4 |       3210        |
+    jsrd #PrintString ; Final string will be: (TrapID) 0 0 0 (ADDR of instruction)
 
 ;   Return to normal execution flow
     pop r8
+    pop r7
+    pop r6
     pop r5
     pop r4
     pop r3
@@ -760,12 +593,12 @@ DivisionByZeroDriver:
 
     rts
 
-;---------------------------------------------FUNÇÕES DO KERNEL----------------------------------------------
 
-PrintString: ; Espera endereço da string a ser enviada em r2
+PrintString: ; Transmite por UART uma string. Espera endereço da string a ser enviada em r2
 
 ; Tabela de registradores:
 ; r1 = Endereço do transmissor serial
+; r2 = Endereço da string a ser enviada
 ; r3 = Indexador da string do inteiro convertido (buffer)
 ; r5 = Dado a ser transmitido
 
@@ -1055,10 +888,10 @@ Delay1ms: ; Assumes clk = 50MHz (MIGHT CAUSE PROBELMS IF GIVEN NUMBER IS GREATER
     
     rts
 
-IntegerToSSD: ; Returns on r14 given integer (on r3) encoded for 7 Segment Display (abcdefg.)
+IntegerToSSD: ; Returns on r14 given integer (on r2) encoded for 7 Segment Display (abcdefg.)
 ; Register table
 ; r1 = Address of Look Up Table for conversion
-; r3 = Integer to be encoded
+; r2 = Integer to be encoded
 ; r14 = Encoded integer
 
     push r1
@@ -1070,8 +903,8 @@ IntegerToSSD: ; Returns on r14 given integer (on r3) encoded for 7 Segment Displ
     ldh r1, #arraySSD
     ldl r1, #arraySSD
     
-;   r14 <= arraySSD[r3]
-    ld r14, r1, r3
+;   r14 <= arraySSD[r2]
+    ld r14, r1, r2
 
     pop r1
     
@@ -1126,7 +959,7 @@ BubbleSort:
 ; Converts array to char and transmits via UART
 TX_ARRAY_INICIAL:
 
-;   Loops for 50 iterations on IntegerToString function
+; Loops for 50 iterations on IntegerToString function
 
     ld r2, r11, r1          ; r2 <- arraySort[transmissionCount]
 
@@ -1139,8 +972,20 @@ TX_ARRAY_INICIAL:
 
     sub r5, r10, r11        ; If transmission count == array size, breaks loop, else iterates again
 
-    jmpzd #scan
+    jmpzd #delayBeforeSort
+       
     jmpd #TX_ARRAY_INICIAL
+
+; Delays for 100 ms
+delayBeforeSort:
+
+    ldh r2, #0
+    ldl r2, #3
+    push r3
+    ldh r3, #0
+    ldl r3, #100  
+    syscall
+    pop r3
 
 ; Main code
 scan:
@@ -1180,24 +1025,121 @@ swap:
 ; Converts array to char and transmits via UART
 TX_ARRAY_FINAL:
 
-;   Loops for 50 iterations on IntegerToString function
+    xor r11, r11, r11
+    ldh r1, #arraySort
+    ldl r1, #arraySort
+    
+; Loops for 50 iterations on IntegerToString function
+TX_ARRAY_FINAL_LOOP:
 
     ld r2, r1, r11          ; r2 <- arraySort[transmissionCount]
 
-    jsrd #IntegerToString   ; Converts integer to string
+    ldh r1, #0
+    ldl r1, #1
+    syscall                 ; Converts integer to string 
 
     add r2, r0, r14         ; r2 <- Pointer to converted string
-    jsrd #PrintString       ; Prints string on UART transmiter
-
+    
+    ldh r1, #0
+    ldl r1, #0
+    syscall                 ; Prints string on UART transmiter
+    
     addi r11, #1            ; Increments transmission count
 
     sub r5, r10, r11        ; If transmission count == array size, breaks loop, else iterates again
 
-    jmpzd #end
-    jmpd #TX_ARRAY_FINAL
+    jmpzd #delayAfterSort
+    jmpd #TX_ARRAY_FINAL_LOOP
 
-end:
-    halt                    ; Suspend the execution
+delayAfterSort:
+
+;   Delays for 100 ms
+    ldh r1, #0
+    ldl r1, #3
+    push r2
+    ldh r2, #0
+    ldl r2, #100  
+    syscall
+    pop r2
+
+ForçaExceçaoAdd:
+
+    ldh r5, #7Fh
+    ldl r5, #FFh
+    add r5, r5, r5 
+    
+;   Delays for 100 ms
+    ldh r1, #0
+    ldl r1, #3
+    push r2
+    ldh r2, #0
+    ldl r2, #100  
+    syscall
+    pop r2
+    
+ForçaExceçaoAddi:
+
+    ldh r5, #7Fh
+    ldl r5, #FFh
+    addi r5, #1
+    
+;   Delays for 100 ms
+    ldh r1, #0
+    ldl r1, #3
+    push r2
+    ldh r2, #0
+    ldl r2, #100  
+    syscall
+    pop r2
+    
+ForçaExceçaoSub:
+
+    ldh r4, #FFh
+    ldl r4, #FFh
+    
+    ldh r5, #FFh
+    ldl r5, #FFh
+    
+    sub r5, r4, r5
+
+;   Delays for 100 ms
+    ldh r1, #0
+    ldl r1, #3
+    push r2
+    ldh r2, #0
+    ldl r2, #100  
+    syscall
+    pop r2
+    
+ForçaExceçaoSubi:
+
+    ldh r5, #FFh
+    ldl r5, #FFh
+    subi r5, #1
+    
+;   Delays for 100 ms
+    ldh r1, #0
+    ldl r1, #3
+    push r2
+    ldh r2, #0
+    ldl r2, #100  
+    syscall
+    pop r2
+    
+TrocaOrdemBubbleSort:
+
+    add r12, r12, r0
+    jmpzd #IncAndJump
+    
+;   Next pass order array in Increasing order
+    xor r12, r12, r12
+    jmpd #BubbleSort
+
+IncAndJump:
+   
+;   Next pass order array in Decreasing order
+    addi r12, #1
+    jmpd #BubbleSort
 
 .endcode
 
@@ -1247,8 +1189,14 @@ ErrorCode:                db #0, #0, #0, #0, #0, #0, #0, #0, #0
 CharString:               db #0, #0
 
 ; array SSD representa o array de valores a serem postos nos displays de sete seg
-             ;|  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |  9  |
-arraySSD:   db #03h, #9fh, #25h, #0dh, #99h, #49h, #41h, #1fh, #01h, #09h
+                           ;|  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |  9  |
+arraySSD:                 db #03h, #9fh, #25h, #0dh, #99h, #49h, #41h, #1fh, #01h, #09h
+
+;                            | D  | E | L  | A |  Y |  /0  |
+stringDelay:              db #68, #69, #76, #65, #89, #0
+
+; String contendo caracteres de nova linha e carriage return
+stringNovaLinha:          db #10, #13, #0
 
 ;-------------------------------------------VARIAVEIS DE APLICAÇÃO-------------------------------------------
 
