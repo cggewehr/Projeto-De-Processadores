@@ -11,6 +11,7 @@ architecture behavioral of r8_uC_tb is
     signal port_io : std_logic_vector(15 downto 0);
     signal uart_rx_data_out : std_logic_vector(7 downto 0);
     signal uart_rx_data_av : std_logic;
+	signal uart_tx : std_logic;
 	 
 begin
     R8: entity work.R8_uC_TOPLVL
