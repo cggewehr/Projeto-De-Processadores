@@ -232,7 +232,7 @@ begin
 			
 			interruptFlag <= '0';
             newTrapFlag <= '0';
-            treatingTrapFlag <= '0';
+            trapCount <= 0;
 
             currentState <= Sfetch;
             
@@ -295,7 +295,8 @@ begin
         	elsif currentState = Sreg then 
 
                 if currentInstruction = INVALID then
-                    regCAUSE <= to_unsigned(std_logic_vector(1, regCAUSE'length)); -- Throws Invalid Instruction
+                    --regCAUSE <= to_unsigned(std_logic_vector(1, regCAUSE'length)); -- Throws Invalid Instruction
+                    regCAUSE <= std_logic_vector(to_unsigned(1, regCAUSE'length)); -- Throws Invalid Instruction
                     newTrapFlag <= '1';
                     currentState <= Sfetch;
                 elsif currentInstruction = HALT then
@@ -413,7 +414,7 @@ begin
 
                 if (currentinstruction = ADD or currentinstruction = ADDI or currentinstruction = SUB or currentinstruction = SUBI) then
                     if v = '1' then
-                        regCAUSE <= to_unsigned(std_logic_vector(12, regCAUSE'length)); -- Throws Overflow
+                        regCAUSE <= std_logic_vector(to_unsigned(12, regCAUSE'length)); -- Throws Overflow
                         newTrapFlag <= '1';
                         currentState <= Sfetch;
                     else 
@@ -427,7 +428,7 @@ begin
                     
     		elsif currentState = Sld then -- Ultimo ciclo de load
           if nullPointerExceptionFlag = '1' then
-            regCAUSE <= to_unsigned(std_logic_vector(0, regCAUSE'length)); -- Throws NullPointerException
+            regCAUSE <= std_logic_vector(to_unsigned(0, regCAUSE'length)); -- Throws NullPointerException
             newTrapFlag <= '1';
             currentState <= Sfetch;
           else
@@ -437,7 +438,7 @@ begin
 
     		elsif currentState = Sst then -- Ultimo ciclo de store
           if nullPointerExceptionFlag = '1' then
-            regCAUSE <= to_unsigned(std_logic_vector(0, regCAUSE'length)); -- Throws NullPointerException
+            regCAUSE <= std_logic_vector(to_unsigned(0, regCAUSE'length)); -- Throws NullPointerException
             newTrapFlag <= '1';
             currentState <= Sfetch;
           else
@@ -486,7 +487,7 @@ begin
     			regPC <= data_in;
 
 
-                if trapCount =< 1 then
+                if trapCount <= 1 then
     			    interruptFlag <= '0';
                 end if;
 
@@ -505,7 +506,7 @@ begin
     			    regHIGH <= divisor(31 downto 16);
     			    regLOW <= divisor(15 downto 0);
                 else
-                    regCAUSE <= to_unsigned(std_logic_vector(15, regCAUSE'length)); -- Throws Division By Zero
+                    regCAUSE <= std_logic_vector(to_unsigned(15, regCAUSE'length)); -- Throws Division By Zero
                     newTrapFlag <= '1';
                 end if;
 
@@ -538,7 +539,7 @@ begin
                 currentState <= Sfetch;
 
             elsif currentState = Ssyscall then
-                regCAUSE <= to_unsigned(std_logic_vector(8, regCAUSE'length));
+                regCAUSE <= std_logic_vector(to_unsigned(8, regCAUSE'length));
                 newTrapFlag <= '1';
                 currentState <= Sfetch;
             else
@@ -571,8 +572,9 @@ begin
               '1' & regA(15 downto 1) when currentInstruction = SR1 else
               not(regA) when currentInstruction = NOT_A else
               regSP + 1 when currentInstruction = RTS or currentInstruction = POP or currentInstruction = POPF or currentInstruction = RTI else
-              regPC + regA when currentInstruction = JUMP_R else
-              regPC + (JMPD_DESLOC(9) & JMPD_DESLOC(9) & JMPD_DESLOC(9) & JMPD_DESLOC(9) & JMPD_DESLOC(9) & JMPD_DESLOC(9) & JMPD_DESLOC) when currentInstruction = JUMP_D else
+              regPC + regA when currentInstruction = JMPR or currentInstruction = JMPNR or currentInstruction = JMPZR or currentInstruction = JMPCR or currentInstruction = JMPVR else
+              regPC + (JMPD_DESLOC(9) & JMPD_DESLOC(9) & JMPD_DESLOC(9) & JMPD_DESLOC(9) & JMPD_DESLOC(9) & JMPD_DESLOC(9) & JMPD_DESLOC) when 
+				currentInstruction = JMPD or currentInstruction = JMPND or currentInstruction = JMPZD or currentInstruction = JMPCD or currentInstruction = JMPVD else
               regPC + (JSRD_DESLOC(11) & JSRD_DESLOC(11) & JSRD_DESLOC(11) & JSRD_DESLOC(11) & JSRD_DESLOC) when currentInstruction = JSRD else
               regA when currentInstruction = JSR or currentInstruction = JSRR else
               regA; -- JMP_A, LDSP
@@ -597,11 +599,11 @@ begin
                 regPC when currentState = Strap and rst = '0' else
                 (others=>'0');
 
-    ce <= '1' when rst = '0' and ( (currentState = Sld and address /= 0) or currentState = Ssbrt or currentState = Spush or (currentState = Sst and address /= 0) or currentState = Sfetch or currentState = Srts or currentState = Spop or
+    ce <= '1' when rst = '0' and ( (currentState = Sld and regALU /= 0) or currentState = Ssbrt or currentState = Spush or (currentState = Sst and regALU /= 0) or currentState = Sfetch or currentState = Srts or currentState = Spop or
 								  currentState = Spopf or currentState = Spushf or currentState = Sitr or currentState = Strap or currentState = Srti) else '0';
 								  
     rw <= '1' when (currentState = Sfetch or currentState = Spop or currentState = Srts or currentState = Sld or currentState = Spopf or currentState = Srti) else '0';
 
-    nullPointerExceptionFlag <= '1' when ( (currentState = Sld or currentState = Sst) and address = 0 ) else '0';
+    nullPointerExceptionFlag <= '1' when ( (currentState = Sld or currentState = Sst) and regALU = 0 ) else '0';
     
 end Behavioural;
