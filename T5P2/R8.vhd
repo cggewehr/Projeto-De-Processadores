@@ -5,14 +5,14 @@
 -- Verso Atual: 0.2
 -------------------------------------------------------------------------------------------
 -- Changelog:
--- Carlos - v0.1: Adicionada descrio comportamental do processador R8 
+-- Carlos - v0.1: Adicionada descrio comportamental do processador R8
 -- Emilio - v0.12: Reajustes de estruturas e processos
 -- Emilio - v0.13: Criação da ula separada dos estados
 -- Carlos - v0.2: Adicionadas instruçoes PUSHF, POPF e RTI, e suporte para interrupções
 -- Carlos - v0.21: Adicionada instrução LDISRA
 -- Carlos - v0.3: Adicionadas instruções MFC, MFT, SYSCALL, LDTSRA, e suporte para traps
 -- Carlos - v0.31: Recodificação das instruções de jump
--------------------------------------------------------------------------------------------	   
+-------------------------------------------------------------------------------------------
 
 library IEEE;
 use IEEE.std_logic_1164.all;
@@ -20,16 +20,16 @@ use IEEE.std_logic_signed.all;
 use IEEE.numeric_std.all;
 
 entity R8 is
-    port( 
+    port(
 		-- 50 MHz clock from DCM
         clk      : in std_logic;
-		
+
 		-- From reset synchronizer
         rst      : in std_logic;
-		
+
 		-- Flag de interrupção por periferico
         irq      : in std_logic;
-        
+
         -- Memory interface
         data_in  : in std_logic_vector(15 downto 0);
         data_out : out std_logic_vector(15 downto 0);
@@ -37,20 +37,20 @@ entity R8 is
         ce       : out std_logic;
         rw       : out std_logic
     );
-end R8;	 
+end R8;
 
 architecture Behavioural of R8 is
 
     type State is (Sfetch, Sreg, Shalt, Sula, Swbk, Sld, Sst, Sjmp, Ssbrt, Spush, Srts, Spop, Sldsp, Spushf, Spopf, Srti, Sitr, Smul, Sdiv, Smfh, Smfl, Sldisra, Sldtsra, Smfc, Smft, Ssyscall, Strap);
     type R8Instruction is (
-            ADD, SUB, AAND, OOR, XXOR, ADDI, SUBI, NOT_A, 
+            ADD, SUB, AAND, OOR, XXOR, ADDI, SUBI, NOT_A,
             SL0, SL1, SR0, SR1,
             LDL, LDH, LD, ST, LDSP, POP, PUSH,
             JMPR, JMPNR, JMPZR, JMPCR, JMPVR, --JUMP_R
             JMP, JMPN, JMPZ, JMPC, JMPV,      --JUMP_A
             JMPD, JMPND, JMPZD, JMPCD, JMPVD, --JUMP_D
             JSRR, JSR, JSRD,
-            NOP, HALT,  RTS, 
+            NOP, HALT,  RTS,
 
             -- Novas instruções T3P2
 		    PUSHF, POPF, RTI,
@@ -62,20 +62,20 @@ architecture Behavioural of R8 is
             LDISRA,
 
             -- Novas Instruções T5P2
-            MFC, MFT, SYSCALL, LDTSRA, 
+            MFC, MFT, SYSCALL, LDTSRA,
 
             INVALID
-    ); 
+    );
 
-    type RegisterArray is array (natural range <>) of std_logic_vector(15 downto 0); 
+    type RegisterArray is array (natural range <>) of std_logic_vector(15 downto 0);
     type instrucionType is (tipo1, tipo2, outras);
-	
+
 	signal currentInstruction          : R8Instruction;
 	signal currentState                : State;
 	signal instType                    : instrucionType;                -- Instrução tipo 1, tipo 2 ou outra (instruçoes sem writeback no banco de registradores)
-	
+
 	-- Registradores do Processador
-    signal regBank                     : RegisterArray(0 to 15);        -- Banco de registradores	 
+    signal regBank                     : RegisterArray(0 to 15);        -- Banco de registradores
     signal regPC                       : std_logic_vector(15 downto 0); -- Program Counter
     signal regIR                       : std_logic_vector(15 downto 0); -- Instrução sendo executada
     signal regSP                       : std_logic_vector(15 downto 0); -- Stack Pointer
@@ -91,23 +91,23 @@ architecture Behavioural of R8 is
 
 	-- Sinais combinacionais pra ALU
     signal ALUaux                      : std_logic_vector(16 downto 0); -- Sinal com 17 bits pra lidar com overflow (soma de sinais de 16 bits)
-    signal outALU                      : std_logic_vector(15 downto 0);  
+    signal outALU                      : std_logic_vector(15 downto 0);
     signal multiplicador               : std_logic_vector(31 downto 0);
     signal divisor                     : std_logic_vector(31 downto 0);
 	signal regBComplement              : std_logic_vector(15 downto 0);
 	signal constanteExtended           : std_logic_vector(15 downto 0);
 	signal constanteComplement         : std_logic_vector(15 downto 0);
-    
+
 	-- Registrador de Flags
     signal regFLAGS                    : std_logic_vector(3 downto 0);
     alias n                            : std_logic is regFLAGS(3);
     alias z                            : std_logic is regFLAGS(2);
     alias c                            : std_logic is regFLAGS(1);
     alias v                            : std_logic is regFLAGS(0);
-	
+
     -- Sinais auxiliares para geração de flags, atualizados combinacionalmente na ALU
     signal flagN, flagZ, flagC, flagV  : std_logic; -- Flags ALU| negativo, zero, carry, OVFLW
-    
+
 	-- Campos do registrador de instrução
 	alias OPCODE                       : std_logic_vector( 3 downto 0) is regIR(15 downto 12);
 	alias REGTARGET                    : std_logic_vector( 3 downto 0) is regIR(11 downto  8);
@@ -117,16 +117,16 @@ architecture Behavioural of R8 is
 	alias JMPD_AUX                     : std_logic_vector( 1 downto 0) is regIR(11 downto 10);
 	alias JMPD_DESLOC                  : std_logic_vector( 9 downto 0) is regIR( 9 downto  0);
 	alias JSRD_DESLOC                  : std_logic_vector(11 downto 0) is regIR(11 downto  0);
-	
+
 	signal interruptFlag               : std_logic; -- Signals if processor is currently treating an interruption
     signal trapCount                   : integer;   -- Signals if processor is currently treating a trap
     signal newTrapFlag                 : std_logic; -- Signals if processor generated a new untreated trap
-	
+
   signal nullPointerExceptionFlag    : std_logic; -- Signals if processor is trying to read/write data (not reading an instruction) @ memory position 0
 begin
-	
+
     -- Decodifica o tipo das instruçoes
-    instType <= tipo1 when currentInstruction = ADD  or 
+    instType <= tipo1 when currentInstruction = ADD  or
                            currentInstruction = SUB  or
                            currentInstruction = AAND or
                            currentInstruction = OOR  or
@@ -134,17 +134,17 @@ begin
                            currentInstruction = SL0  or
                            currentInstruction = SL1  or
                            currentInstruction = SR0  or
-                           currentInstruction = SR1  or 
+                           currentInstruction = SR1  or
                            currentInstruction = NOT_A else
-        
+
                 tipo2 when currentInstruction = ADDI or
                            currentInstruction = SUBI or
                            currentInstruction = LDL  or
                            currentInstruction = LDH  else
                 outras;
 
-    -- Decodifica instruçoes                      
-    currentInstruction <= ADD    when OPCODE = x"0" else 
+    -- Decodifica instruçoes
+    currentInstruction <= ADD    when OPCODE = x"0" else
                           SUB    when OPCODE = x"1" else
                           AAND   when OPCODE = x"2" else
                           OOR    when OPCODE = x"3" else
@@ -154,7 +154,7 @@ begin
                           LDL    when OPCODE = x"7" else
                           LDH    when OPCODE = x"8" else
                           LD     when OPCODE = x"9" else
-                          ST     when OPCODE = x"A" else      
+                          ST     when OPCODE = x"A" else
                           SL0    when OPCODE = x"B"  and  REGSOURCE2 = x"0" else
 				          SL1    when OPCODE = x"B"  and  REGSOURCE2 = x"1" else
                           SR0    when OPCODE = x"B"  and  REGSOURCE2 = x"2" else
@@ -166,7 +166,7 @@ begin
 				          RTS    when OPCODE = x"B"  and  REGSOURCE2 = x"8" else
 				          POP    when OPCODE = x"B"  and  REGSOURCE2 = x"9" else
                           PUSH   when OPCODE = x"B"  and  REGSOURCE2 = x"A" else
-						   
+
 						  -- Novas Instruções T4P1
 						  MUL    when OPCODE = x"B" and REGSOURCE2 = x"B" else  -- MULTIPLICAÇÃO
                           DIV    when OPCODE = x"B" and REGSOURCE2 = x"C" else  -- DIVISÃO
@@ -181,7 +181,7 @@ begin
                           JMPZR  when OPCODE = x"C" and REGTARGET = x"0" and REGSOURCE2 = x"2" else
                           JMPCR  when OPCODE = x"C" and REGTARGET = x"0" and REGSOURCE2 = x"3" else
                           JMPVR  when OPCODE = x"C" and REGTARGET = x"0" and REGSOURCE2 = x"4" else
-						  
+
                           JMP    when OPCODE = x"C" and REGTARGET = x"0" and REGSOURCE2 = x"5" else
                           JMPN   when OPCODE = x"C" and REGTARGET = x"0" and REGSOURCE2 = x"6" else
                           JMPZ   when OPCODE = x"C" and REGTARGET = x"0" and REGSOURCE2 = x"7" else
@@ -201,20 +201,20 @@ begin
                           -- Novas Instruções T3P2
                           PUSHF  when OPCODE = x"C" and REGTARGET = x"0" and REGSOURCE2 = x"C" else  -- PUSH FLAGS
 			              POPF   when OPCODE = x"C" and REGTARGET = x"0" and REGSOURCE2 = x"D" else  -- POP FLAGS
-			              RTI    when OPCODE = x"C" and REGTARGET = x"0" and REGSOURCE2 = x"E" else  -- RETORNO DE INTERRUPCAO  
-                          
+			              RTI    when OPCODE = x"C" and REGTARGET = x"0" and REGSOURCE2 = x"E" else  -- RETORNO DE INTERRUPCAO
+
                           -- Novas Instruções T5P2
                           SYSCALL when OPCODE = x"C" and REGTARGET = x"1" else
                           LDTSRA  when OPCODE = x"C" and REGTARGET = x"2" else
                           MFC     when OPCODE = x"C" and REGTARGET = x"3" else
                           MFT     when OPCODE = x"C" and REGTARGET = x"4" else
 
-                          
-                          INVALID; 
+
+                          INVALID;
 
     process(clk, rst) begin
 
-		if rst = '1' then  
+		if rst = '1' then
 			regPC    <= (others=>'0');
 			regSP    <= (others=>'0');
             regALU   <= (others=>'0');
@@ -224,25 +224,25 @@ begin
 			regFLAGS <= (others=>'0');
 			regHIGH  <= (others=>'0');
 			regLOW   <= (others=>'0');
-            regISRA  <= (others=>'0'); 
+            regISRA  <= (others=>'0');
             regTSRA  <= (others=>'0');
-            regCAUSE <= (others=>'0'); 
+            regCAUSE <= (others=>'0');
             regITR   <= (others=>'0');
-            
+
             for i in 0 to 15 loop
                 regBank(i) <= (others => '0');
             end loop;
-			
+
 			interruptFlag <= '0';
             newTrapFlag <= '0';
             trapCount <= 0;
 
             currentState <= Sfetch;
-            
+
 		elsif rising_edge(clk) then
 
 		    if currentState = Sfetch then  -- Requests next instruction from memory
-			
+
 				if newTrapFlag = '1' then
                     -- Defines next state
 					currentState <= Strap;
@@ -262,7 +262,7 @@ begin
 					currentState <= Sreg;
 					regIR <= data_in;
 
-                    -- Increments Program Counter       
+                    -- Increments Program Counter
                     regPC <= regPC + 1;
 
 				end if;
@@ -295,7 +295,7 @@ begin
                 -- Fetches first instruction of ISR subroutine
                 currentState <= Sfetch;
 
-        	elsif currentState = Sreg then 
+        	elsif currentState = Sreg then
 
                 if currentInstruction = INVALID then
                     --regCAUSE <= to_unsigned(std_logic_vector(1, regCAUSE'length)); -- Throws Invalid Instruction
@@ -304,10 +304,10 @@ begin
                     currentState <= Sfetch;
                 elsif currentInstruction = HALT then
                     currentState <= Shalt;
-                else 
+                else
                     -- Reads register bank
                     regA <= regBank(to_integer(unsigned(REGSOURCE1)));
-                            
+
                     if (instType = tipo2 or currentInstruction = PUSH or currentInstruction = MUL or currentInstruction = DIV) then
                         regB <= regBank(to_integer(unsigned(REGTARGET)));
                     else
@@ -316,7 +316,7 @@ begin
 
                     currentState <= Sula;
         		end if;
-    				
+
         	elsif currentState = Shalt then
         		-- Idles until next reset (only leaves this state when signal rst = '1' or irq = '1')
                 if irq = '1' and interruptFlag = '0' then
@@ -329,21 +329,21 @@ begin
         	elsif currentState = Sula then
         		-- Utilização da ALU
                 regALU <= outALU;
-                        
+
                 --Geração de flag
                 if currentInstruction = ADD or currentInstruction = SUB or currentInstruction = ADDI or currentInstruction = SUBI then
                     v <= flagV; -- Flag de overflow
                     c <= flagC; -- Flag de carry
                 end if;
-                        
+
                 if (instType = tipo1) or (currentInstruction = ADDI or currentInstruction = SUBI) then
                     n <= flagN; -- Flag de negativo
                     z <= flagZ; -- Flag de zero
                 end if;
-                        
+
           		--Defines next state
           		if (instType = tipo1) or (instType = tipo2) then
-          			currentState <= Swbk;   
+          			currentState <= Swbk;
           		elsif currentInstruction = LD then
           			currentState <= Sld;
           		elsif currentInstruction = ST then
@@ -353,15 +353,15 @@ begin
                       currentInstruction = JMPD or currentInstruction = JMPND or currentInstruction = JMPZD or currentInstruction = JMPCD or currentInstruction = JMPVD then
 
               		if currentInstruction = JMPR or currentInstruction = JMP or currentInstruction = JMPD then
-                        currentState <= Sjmp; 
+                        currentState <= Sjmp;
                     elsif (currentInstruction = JMPNR or currentInstruction = JMPN or currentInstruction = JMPND) and n = '1' then
-                        currentState <= Sjmp; 
+                        currentState <= Sjmp;
                     elsif (currentInstruction = JMPZR or currentInstruction = JMPZ or currentInstruction = JMPZD) and z = '1' then
-                        currentState <= Sjmp; 
+                        currentState <= Sjmp;
                     elsif (currentInstruction = JMPCR or currentInstruction = JMPC or currentInstruction = JMPCD) and c = '1' then
-                        currentState <= Sjmp; 
+                        currentState <= Sjmp;
                     elsif (currentInstruction = JMPVR or currentInstruction = JMPV or currentInstruction = JMPVD) and v = '1' then
-                        currentState <= Sjmp; 
+                        currentState <= Sjmp;
                     else
                         currentState <= Sfetch;
                     end if;
@@ -376,7 +376,7 @@ begin
           		 	currentState <= Spop;
           		elsif currentInstruction = LDSP then
           			currentState <= Sldsp;
-          					
+
           		-- NOVAS INSTRUÇOES T3P2
           		elsif currentInstruction = PUSHF then
           			currentState <= Spushf;
@@ -412,7 +412,7 @@ begin
           		else
           			currentState <= Sfetch;
           		end if;
-    				
+
     	    elsif currentState = Swbk then -- Ultimo ciclo de instrues logicas e aritmeticas
 
                 if (currentinstruction = ADD or currentinstruction = ADDI or currentinstruction = SUB or currentinstruction = SUBI) then
@@ -420,15 +420,15 @@ begin
                         regCAUSE <= std_logic_vector(to_unsigned(12, regCAUSE'length)); -- Throws Overflow
                         newTrapFlag <= '1';
                         currentState <= Sfetch;
-                    else 
+                    else
                         regBank(to_integer(unsigned(REGTARGET))) <= regALU;
-                        currentState <= Sfetch;                       
+                        currentState <= Sfetch;
                     end if;
                 else
                     regBank(to_integer(unsigned(REGTARGET))) <= regALU;
                     currentState <= Sfetch;
                 end if;
-                    
+
     		elsif currentState = Sld then -- Ultimo ciclo de load
 		        if nullPointerExceptionFlag = '1' then
 		            regCAUSE <= std_logic_vector(to_unsigned(0, regCAUSE'length)); -- Throws NullPointerException
@@ -447,44 +447,44 @@ begin
           		else
     			 	currentState <= Sfetch;
           		end if;
-                    
+
     		elsif currentState = Sjmp then -- Ultimo ciclo p/ saltos
-                regPC <= regALU; 
+                regPC <= regALU;
                 currentState <= Sfetch;
 
     		elsif currentState = Ssbrt then -- Ultimo ciclo Subrotina
                 regPC <= regALU; -- Atualiza o PC
-                regSP <= regSP - 1; 
+                regSP <= regSP - 1;
     			currentState <= Sfetch;
-                    
+
     		elsif currentState = Spush then -- Ultimo ciclo p push
-                regSP <= regSP - 1;      -- Adicionado na apresentação          
+                regSP <= regSP - 1;      -- Adicionado na apresentação
     			currentState <= Sfetch;
-                    
-    		elsif currentState = Srts then -- Ultimo ciclo retorno subronita 
+
+    		elsif currentState = Srts then -- Ultimo ciclo retorno subronita
                 regSP <= regSP + 1;
                 regPC <= data_in; -- Volta o PC da pilha
     			currentState <= Sfetch;
-                    
+
     		elsif currentState = Spop then -- Ultimo ciclo de POP
                 regSP <= regSP + 1;
                 regBank(to_integer(unsigned(REGTARGET))) <= data_in; -- Banco de registradores enderaçado <= mem pelo SP
     			currentState <= Sfetch;
-                    
+
     		elsif currentState = Sldsp then -- Ultimo ciclo de load do SP
                 regSP <= regALU;
     			currentState <= Sfetch;
-    				
+
     		-- NOVAS INSTRUÇOES T3P2
     		elsif currentState = Spushf then
     			regSP <= regSP - 1;
     			currentState <= Sfetch;
-    				
+
     		elsif currentState = Spopf then
     			regSP <= regSP + 1;
     			regFLAGS <= data_in(3 downto 0);
     			currentState <= Sfetch;
-    				
+
     		elsif currentState = Srti then
     			regSP <= regSP + 1;
     			regPC <= data_in;
@@ -546,15 +546,15 @@ begin
                 currentState <= Sfetch;
             else
                 currentState <= Shalt;
-    		end if;			
+    		end if;
     	end if;
     end process;
 
 	multiplicador <= (regA * regB) when currentinstruction = MUL else (others=>'0');
 
-	divisor(31 downto 16) <= STD_LOGIC_VECTOR ( UNSIGNED(regB) mod UNSIGNED(regA) ) when (currentInstruction = DIV and regA/= 0) else (others=>'0');																												  
+	divisor(31 downto 16) <= STD_LOGIC_VECTOR ( UNSIGNED(regB) mod UNSIGNED(regA) ) when (currentInstruction = DIV and regA/= 0) else (others=>'0');
 	divisor(15 downto 0)  <= STD_LOGIC_VECTOR ( SIGNED(regB) / SIGNED(regA) )       when (currentInstruction = DIV and regA/= 0) else (others=>'0');
-	
+
 	--ALUaux <= ( '0' & regA) + ( '0' & regB) when currentInstruction = ADD else
 	--		  ( '0' & regA) + ( '0' & ((not(regB))+1)) when currentInstruction = SUB else
 	--		  ( '0' & regB) + ( '0' & x"00" & CONSTANTE) when currentInstruction = ADDI else
@@ -569,9 +569,9 @@ begin
 	ALUaux <= ( regA(15) & regA ) + ( regB(15) & regB )                                when currentInstruction = ADD else
 			  ( regA(15) & regA ) + ( regBComplement(15) & regBComplement )            when currentinstruction = SUB else
 			  ( regA(15) & regA ) + ( constanteExtended(15) & constanteExtended)       when currentInstruction = ADDI else
-			  ( regA(15) & regA ) + ( constanteComplement(15) & constanteExtended); -- when currentInstruction = SUBI; GENERATES LATCHES IF UNCOMMENTED
-    
-    outALU <= ALUaux(15 downto 0)           when currentInstruction = ADD or currentInstruction = SUB or currentInstruction = ADDI or currentInstruction = SUBI else 
+			  ( regB(15) & regB ) + ( constanteComplement(15) & constanteComplement);-- when currentInstruction = SUBI; GENERATES LATCHES IF UNCOMMENTED
+
+    outALU <= ALUaux(15 downto 0)           when currentInstruction = ADD or currentInstruction = SUB or currentInstruction = ADDI or currentInstruction = SUBI else
               regA and regB                 when currentInstruction = AAND else
               regA or regB                  when currentInstruction = OOR else
               regA xor regB                 when currentInstruction = XXOR else
@@ -586,24 +586,24 @@ begin
               not(regA)                     when currentInstruction = NOT_A else
               regSP + 1                     when currentInstruction = RTS or currentInstruction = POP or currentInstruction = POPF or currentInstruction = RTI else
               regPC + regA                  when currentInstruction = JMPR or currentInstruction = JMPNR or currentInstruction = JMPZR or currentInstruction = JMPCR or currentInstruction = JMPVR else
-              regPC + (JMPD_DESLOC(9) & JMPD_DESLOC(9) & JMPD_DESLOC(9) & JMPD_DESLOC(9) & JMPD_DESLOC(9) & JMPD_DESLOC(9) & JMPD_DESLOC) 
+              regPC + (JMPD_DESLOC(9) & JMPD_DESLOC(9) & JMPD_DESLOC(9) & JMPD_DESLOC(9) & JMPD_DESLOC(9) & JMPD_DESLOC(9) & JMPD_DESLOC)
               								when currentInstruction = JMPD or currentInstruction = JMPND or currentInstruction = JMPZD or currentInstruction = JMPCD or currentInstruction = JMPVD else
               regPC + (JSRD_DESLOC(11) & JSRD_DESLOC(11) & JSRD_DESLOC(11) & JSRD_DESLOC(11) & JSRD_DESLOC) when currentInstruction = JSRD else
               regA                          when currentInstruction = JSR or currentInstruction = JSRR else
               regA; -- JMP_A, LDSP
-              
-    -- Flags para a ULA       
+
+    -- Flags para a ULA
     flagC <= ALUaux(16); --carry
     flagV <= '1' when ( (regA(15) = regB(15) ) and ( regA(15) /= outALU(15) ) ) else '0'; -- overflow
     flagN <= outALU(15); -- negativo
     flagZ <= '1' when outALU = 0 else '0';  -- zero
-	
-    -- SINAIS MEMORIA 
+
+    -- SINAIS MEMORIA
     address <= regPC when currentState = Sfetch else
                --outALU when currentState = Sld or currentState = Sst or currentState = Spop or currentState = Srts else
                regALU when currentState = Sld or currentState = Sst or currentState = Spop or currentState = Srts or currentState = Spopf or currentState = Srti else
                regSP; -- Pra dar salto em uma subrotina e o PUSH (Spushf, Spush, Sitr, Strap)
-                    
+
     data_out <= regBank(to_integer(unsigned(REGTARGET))) when currentState = Sst and rst = '0' else
                 regB when currentState = Spush and rst = '0' else
                 regPC when currentState = Ssbrt and rst = '0' else
@@ -614,9 +614,9 @@ begin
 
     ce <= '1' when rst = '0' and ( (currentState = Sld and regALU /= 0) or currentState = Ssbrt or currentState = Spush or (currentState = Sst and regALU /= 0) or currentState = Sfetch or currentState = Srts or currentState = Spop or
 								  currentState = Spopf or currentState = Spushf or currentState = Sitr or currentState = Strap or currentState = Srti) else '0';
-								  
+
     rw <= '1' when (currentState = Sfetch or currentState = Spop or currentState = Srts or currentState = Sld or currentState = Spopf or currentState = Srti) else '0';
 
     nullPointerExceptionFlag <= '1' when ( (currentState = Sld or currentState = Sst) and regALU = 0 ) else '0';
-    
+
 end Behavioural;
