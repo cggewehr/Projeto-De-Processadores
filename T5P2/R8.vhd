@@ -16,7 +16,7 @@
 
 library IEEE;
 use IEEE.std_logic_1164.all;
-use IEEE.std_logic_unsigned.all;
+use IEEE.std_logic_signed.all;
 use IEEE.numeric_std.all;
 
 entity R8 is
@@ -94,6 +94,9 @@ architecture Behavioural of R8 is
     signal outALU                      : std_logic_vector(15 downto 0);  
     signal multiplicador               : std_logic_vector(31 downto 0);
     signal divisor                     : std_logic_vector(31 downto 0);
+	signal regBComplement              : std_logic_vector(15 downto 0);
+	signal constanteExtended           : std_logic_vector(15 downto 0);
+	signal constanteComplement         : std_logic_vector(15 downto 0);
     
 	-- Registrador de Flags
     signal regFLAGS                    : std_logic_vector(3 downto 0);
@@ -191,14 +194,14 @@ begin
                           JMPCD  when OPCODE = x"E" and JMPD_AUX = "10" else
                           JMPVD  when OPCODE = x"E" and JMPD_AUX = "11" else
 
-                          JSRR   when OPCODE = x"C" and  REGTARGET = x"0" and REGSOURCE2 = x"A" else
-                          JSR    when OPCODE = x"C" and  REGTARGET = x"0" and REGSOURCE2 = x"B" else
+                          JSRR   when OPCODE = x"C" and REGTARGET = x"0" and REGSOURCE2 = x"A" else
+                          JSR    when OPCODE = x"C" and REGTARGET = x"0" and REGSOURCE2 = x"B" else
                           JSRD   when OPCODE = x"F" else
 
                           -- Novas Instruções T3P2
-                          PUSHF  when OPCODE = x"C" and REGSOURCE2 = x"C" else  -- PUSH FLAGS
-			              POPF   when OPCODE = x"C" and REGSOURCE2 = x"D" else  -- POP FLAGS
-			              RTI    when OPCODE = x"C" and REGSOURCE2 = x"E" else  -- RETORNO DE INTERRUPCAO  
+                          PUSHF  when OPCODE = x"C" and REGTARGET = x"0" and REGSOURCE2 = x"C" else  -- PUSH FLAGS
+			              POPF   when OPCODE = x"C" and REGTARGET = x"0" and REGSOURCE2 = x"D" else  -- POP FLAGS
+			              RTI    when OPCODE = x"C" and REGTARGET = x"0" and REGSOURCE2 = x"E" else  -- RETORNO DE INTERRUPCAO  
                           
                           -- Novas Instruções T5P2
                           SYSCALL when OPCODE = x"C" and REGTARGET = x"1" else
@@ -427,23 +430,23 @@ begin
                 end if;
                     
     		elsif currentState = Sld then -- Ultimo ciclo de load
-          if nullPointerExceptionFlag = '1' then
-            regCAUSE <= std_logic_vector(to_unsigned(0, regCAUSE'length)); -- Throws NullPointerException
-            newTrapFlag <= '1';
-            currentState <= Sfetch;
-          else
-    			 regBank(to_integer(unsigned(REGTARGET))) <= data_in;
-    			 currentState <= Sfetch;
-          end if;
+		        if nullPointerExceptionFlag = '1' then
+		            regCAUSE <= std_logic_vector(to_unsigned(0, regCAUSE'length)); -- Throws NullPointerException
+		            newTrapFlag <= '1';
+		            currentState <= Sfetch;
+		        else
+		    		regBank(to_integer(unsigned(REGTARGET))) <= data_in;
+		    		currentState <= Sfetch;
+		        end if;
 
     		elsif currentState = Sst then -- Ultimo ciclo de store
-          if nullPointerExceptionFlag = '1' then
-            regCAUSE <= std_logic_vector(to_unsigned(0, regCAUSE'length)); -- Throws NullPointerException
-            newTrapFlag <= '1';
-            currentState <= Sfetch;
-          else
-    			 currentState <= Sfetch;
-          end if;
+         		if nullPointerExceptionFlag = '1' then
+          			regCAUSE <= std_logic_vector(to_unsigned(0, regCAUSE'length)); -- Throws NullPointerException
+           			newTrapFlag <= '1';
+            		currentState <= Sfetch;
+          		else
+    			 	currentState <= Sfetch;
+          		end if;
                     
     		elsif currentState = Sjmp then -- Ultimo ciclo p/ saltos
                 regPC <= regALU; 
@@ -485,7 +488,6 @@ begin
     		elsif currentState = Srti then
     			regSP <= regSP + 1;
     			regPC <= data_in;
-
 
                 if trapCount <= 1 then
     			    interruptFlag <= '0';
@@ -551,37 +553,48 @@ begin
 	multiplicador <= (regA * regB) when currentinstruction = MUL else (others=>'0');
 
 	divisor(31 downto 16) <= STD_LOGIC_VECTOR ( UNSIGNED(regB) mod UNSIGNED(regA) ) when (currentInstruction = DIV and regA/= 0) else (others=>'0');																												  
-	divisor(15 downto 0)  <= STD_LOGIC_VECTOR ( SIGNED(regB) / SIGNED(regA) ) when (currentInstruction = DIV and regA/= 0) else (others=>'0');
+	divisor(15 downto 0)  <= STD_LOGIC_VECTOR ( SIGNED(regB) / SIGNED(regA) )       when (currentInstruction = DIV and regA/= 0) else (others=>'0');
 	
-	ALUaux <= ( '0' & regA) + ( '0' & regB) when currentInstruction = ADD else
-			  ( '0' & regA) + ( '0' & ((not(regB))+1)) when currentInstruction = SUB else
-			  ( '0' & regB) + ( '0' & x"00" & CONSTANTE) when currentInstruction = ADDI else
-			  ( '0' & regB) + ((not( '0' & x"00" & CONSTANTE))+1); -- when currentInstruction = SUBI; GENERATES LATCH IF UNCOMMENTED
+	--ALUaux <= ( '0' & regA) + ( '0' & regB) when currentInstruction = ADD else
+	--		  ( '0' & regA) + ( '0' & ((not(regB))+1)) when currentInstruction = SUB else
+	--		  ( '0' & regB) + ( '0' & x"00" & CONSTANTE) when currentInstruction = ADDI else
+	--		  ( '0' & regB) + ((not( '0' & x"00" & CONSTANTE))+1); -- when currentInstruction = SUBI; GENERATES LATCH IF UNCOMMENTED
+
+	constanteExtended(15 downto 8) <= (others=>CONSTANTE(7));
+	constanteExtended(7 downto 0)  <= (CONSTANTE);
+	constanteComplement <= ( ( not constanteExtended ) + 1 );
+
+	regBComplement <= ( (not regB) + 1 ); -- Twos complement of regB
+
+	ALUaux <= ( regA(15) & regA ) + ( regB(15) & regB )                                when currentInstruction = ADD else
+			  ( regA(15) & regA ) + ( regBComplement(15) & regBComplement )            when currentinstruction = SUB else
+			  ( regA(15) & regA ) + ( constanteExtended(15) & constanteExtended)       when currentInstruction = ADDI else
+			  ( regA(15) & regA ) + ( constanteComplement(15) & constanteExtended); -- when currentInstruction = SUBI; GENERATES LATCHES IF UNCOMMENTED
     
-    outALU <= ALUaux(15 downto 0) when (currentInstruction = ADD or currentInstruction = SUB or currentInstruction = ADDI or currentInstruction = SUBI) else 
-              regA and regB when currentInstruction = AAND else
-              regA or regB when currentInstruction = OOR else
-              regA xor regB when currentInstruction = XXOR else
+    outALU <= ALUaux(15 downto 0)           when currentInstruction = ADD or currentInstruction = SUB or currentInstruction = ADDI or currentInstruction = SUBI else 
+              regA and regB                 when currentInstruction = AAND else
+              regA or regB                  when currentInstruction = OOR else
+              regA xor regB                 when currentInstruction = XXOR else
               regB(15 downto 8) & CONSTANTE when currentInstruction = LDL else
-              CONSTANTE & regB(7 downto 0) when currentInstruction = LDH else
-              regA + regB when currentInstruction = LD else --rt <= PMEM (Rs1 + Rs2)
-              regA + regB when currentInstruction = ST else -- PMEM (Rs1 + Rs2) <- rt
-              regA(14 downto 0) & '0' when currentInstruction = SL0 else
-              regA(14 downto 0) & '1' when currentInstruction = SL1 else
-              '0' & regA(15 downto 1) when currentInstruction = SR0 else
-              '1' & regA(15 downto 1) when currentInstruction = SR1 else
-              not(regA) when currentInstruction = NOT_A else
-              regSP + 1 when currentInstruction = RTS or currentInstruction = POP or currentInstruction = POPF or currentInstruction = RTI else
-              regPC + regA when currentInstruction = JMPR or currentInstruction = JMPNR or currentInstruction = JMPZR or currentInstruction = JMPCR or currentInstruction = JMPVR else
-              regPC + (JMPD_DESLOC(9) & JMPD_DESLOC(9) & JMPD_DESLOC(9) & JMPD_DESLOC(9) & JMPD_DESLOC(9) & JMPD_DESLOC(9) & JMPD_DESLOC) when 
-				currentInstruction = JMPD or currentInstruction = JMPND or currentInstruction = JMPZD or currentInstruction = JMPCD or currentInstruction = JMPVD else
+              CONSTANTE & regB(7 downto 0)  when currentInstruction = LDH else
+              regA + regB                   when currentInstruction = LD else -- rt <= PMEM (Rs1 + Rs2)
+              regA + regB                   when currentInstruction = ST else -- PMEM (Rs1 + Rs2) <- rt
+              regA(14 downto 0) & '0'       when currentInstruction = SL0 else
+              regA(14 downto 0) & '1'       when currentInstruction = SL1 else
+              '0' & regA(15 downto 1)       when currentInstruction = SR0 else
+              '1' & regA(15 downto 1)       when currentInstruction = SR1 else
+              not(regA)                     when currentInstruction = NOT_A else
+              regSP + 1                     when currentInstruction = RTS or currentInstruction = POP or currentInstruction = POPF or currentInstruction = RTI else
+              regPC + regA                  when currentInstruction = JMPR or currentInstruction = JMPNR or currentInstruction = JMPZR or currentInstruction = JMPCR or currentInstruction = JMPVR else
+              regPC + (JMPD_DESLOC(9) & JMPD_DESLOC(9) & JMPD_DESLOC(9) & JMPD_DESLOC(9) & JMPD_DESLOC(9) & JMPD_DESLOC(9) & JMPD_DESLOC) 
+              								when currentInstruction = JMPD or currentInstruction = JMPND or currentInstruction = JMPZD or currentInstruction = JMPCD or currentInstruction = JMPVD else
               regPC + (JSRD_DESLOC(11) & JSRD_DESLOC(11) & JSRD_DESLOC(11) & JSRD_DESLOC(11) & JSRD_DESLOC) when currentInstruction = JSRD else
-              regA when currentInstruction = JSR or currentInstruction = JSRR else
+              regA                          when currentInstruction = JSR or currentInstruction = JSRR else
               regA; -- JMP_A, LDSP
               
     -- Flags para a ULA       
     flagC <= ALUaux(16); --carry
-    flagV <= '1' when ((regA(15) = regB(15)) and (regA(15) /= outALU(15))) else '0'; -- overflow
+    flagV <= '1' when ( (regA(15) = regB(15) ) and ( regA(15) /= outALU(15) ) ) else '0'; -- overflow
     flagN <= outALU(15); -- negativo
     flagZ <= '1' when outALU = 0 else '0';  -- zero
 	
