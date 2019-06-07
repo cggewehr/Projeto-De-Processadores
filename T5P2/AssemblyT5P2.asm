@@ -981,7 +981,7 @@ TX_ARRAY_INICIAL:
     jmpzd #delayBeforeSort
     jmpd #TX_ARRAY_INICIAL
 
-; Delays for 100 ms
+; Delays for 4 ms
 delayBeforeSort:
 
     push r1
@@ -989,7 +989,7 @@ delayBeforeSort:
     ldh r1, #0
     ldl r1, #3
     ldh r2, #0
-    ldl r2, #100
+    ldl r2, #4
     syscall
     pop r2
     pop r1
@@ -1072,13 +1072,13 @@ TX_ARRAY_FINAL_LOOP:
 
 delayAfterSort:
 
-;   Delays for 100 ms
+;   Delays for 4 ms
     push r1
     push r2
     ldh r1, #0
     ldl r1, #3
     ldh r2, #0
-    ldl r2, #100
+    ldl r2, #4
     syscall
     pop r2
     pop r1
@@ -1089,13 +1089,13 @@ ForçaExceçaoAdd:
     ldl r5, #FFh
     add r5, r5, r5
 
-;   Delays for 100 ms
+;   Delays for 4 ms
     push r1
     push r2
     ldh r1, #0
     ldl r1, #3
     ldh r2, #0
-    ldl r2, #100
+    ldl r2, #4
     syscall
     pop r2
     pop r1
@@ -1106,13 +1106,13 @@ ForçaExceçaoAddi:
     ldl r5, #FFh
     addi r5, #1
 
-;   Delays for 100 ms
+;   Delays for 4 ms
     push r1
     push r2
     ldh r1, #0
     ldl r1, #3
     ldh r2, #0
-    ldl r2, #100
+    ldl r2, #4
     syscall
     pop r2
     pop r1
@@ -1127,13 +1127,13 @@ ForçaExceçaoSub:
 
     sub r5, r4, r5
 
-;   Delays for 100 ms
+;   Delays for 4 ms
     push r1
     push r2
     ldh r1, #0
     ldl r1, #3
     ldh r2, #0
-    ldl r2, #100
+    ldl r2, #4
     syscall
     pop r2
     pop r1
@@ -1144,13 +1144,13 @@ ForçaExceçaoSubi:
     ldl r5, #FFh
     subi r5, #1
 
-;   Delays for 100 ms
+;   Delays for 4 ms
     push r1
     push r2
     ldh r1, #0
     ldl r1, #3
     ldh r2, #0
-    ldl r2, #100
+    ldl r2, #4
     syscall
     pop r2
     pop r1
