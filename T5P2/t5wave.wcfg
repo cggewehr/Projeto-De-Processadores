@@ -20,7 +20,7 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="38" />
+   <WVObjectSize size="39" />
    <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/rst" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">rst</obj_property>
       <obj_property name="ObjectShortName">rst</obj_property>
@@ -81,7 +81,7 @@
    <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/address" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">address[15:0]</obj_property>
       <obj_property name="ObjectShortName">address[15:0]</obj_property>
-      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regpc" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">regpc[15:0]</obj_property>
@@ -91,7 +91,7 @@
    <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regsp" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">regsp[15:0]</obj_property>
       <obj_property name="ObjectShortName">regsp[15:0]</obj_property>
-      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regir" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">regir[15:0]</obj_property>
@@ -250,6 +250,11 @@
       <obj_property name="ElementShortName">regb[15:0]</obj_property>
       <obj_property name="ObjectShortName">regb[15:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regbcomplement" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">regbcomplement[15:0]</obj_property>
+      <obj_property name="ObjectShortName">regbcomplement[15:0]</obj_property>
+      <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/flagv" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">flagv</obj_property>

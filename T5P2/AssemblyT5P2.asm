@@ -1066,6 +1066,9 @@ TX_ARRAY_FINAL_LOOP:
     addi r11, #1            ; Increments transmission count
 
     sub r5, r10, r11        ; If transmission count == array size, breaks loop, else iterates again
+    
+    ldh r1, #arraySort
+    ldl r1, #arraySort      ; r1 <- &array
 
     jmpzd #delayAfterSort
     jmpd #TX_ARRAY_FINAL_LOOP
