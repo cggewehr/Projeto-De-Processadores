@@ -345,7 +345,7 @@ irq7Handler: ; OPEN
 trap0Handler: ; NULL POINTER EXCEPTION
 
     jsrd #NullPointerExceptionDriver
-    
+
     rts
 
 trap1Handler: ; INVALID INSTRUCTION
@@ -433,17 +433,17 @@ syscall2Handler: ; IntegerToHexString (Converts a given hexadecimal value to a A
     jsrd #IntegerToHexString
 
     rts
-    
+
 syscall3Handler: ; Delay1ms (Waits for "r2" milliseconds, assumes a clock of 50MHz)
 
     jsrd #Delay1ms
-    
+
     rts
-    
+
 syscall4Handler: ; IntegerToSSD (Converts a given integer (on r2) to Seven Segment Display encoding : abcdefg.)
 
     jsrd #IntegerToSSD
-    
+
     rts
 
 ;-------------------------------------------------DRIVERS----------------------------------------------------
@@ -454,7 +454,7 @@ NullPointerExceptionDriver:
     mfc r2
     mft r3
     jsrd #PrintError
-    
+
     rts
 
 
@@ -464,7 +464,7 @@ InvalidInstructionDriver:
     mfc r2
     mft r3
     jsrd #PrintError
-    
+
     rts
 
 SyscallDriver:
@@ -496,7 +496,7 @@ OverflowDriver:
     mfc r2
     mft r3
     jsrd #PrintError
-    
+
     rts
 
 DivisionByZeroDriver:
@@ -505,7 +505,7 @@ DivisionByZeroDriver:
     mfc r2
     mft r3
     jsrd #PrintError
-    
+
     rts
 
 ;---------------------------------------------FUNÇÕES DO KERNEL----------------------------------------------
@@ -621,7 +621,10 @@ PrintString: ; Transmite por UART uma string. Espera endereço da string a ser e
     add r5, r0, r5 ; Gera flag
 
     jmpzd #tx_loop ; Espera transmissor estar disponivel
+    ;jmpzd #tx_disp ; Espera transmissor estar disponivel
+    ;jmpd #tx_loop  ; Transmissor indisponivel
 
+  tx_disp:
 ;   r5 <= string[r3]
     ld r5, r3, r2
     add r5, r0, r5 ; Gera flag
@@ -637,6 +640,7 @@ PrintString: ; Transmite por UART uma string. Espera endereço da string a ser e
 
 ;   Transmite proximo caracter
     jmpd #tx_loop
+    ;jmpd #tx_disp
 
 PrintStringReturn:
 
@@ -665,7 +669,7 @@ IntegerToString: ; Espera inteiro a ser convertido em r2, retorna ponteiro para 
     push r11
 
     xor r0, r0, r0
-    xor r2, r2, r2
+    ;xor r2, r2, r2
     xor r3, r3, r3
     xor r4, r4, r4
     xor r10, r10, r10
@@ -676,7 +680,7 @@ IntegerToString: ; Espera inteiro a ser convertido em r2, retorna ponteiro para 
     ldh r14, #IntegerToStringBuffer
     ldl r14, #IntegerToStringBuffer
 
-    addi r3, #8
+    addi r3, #07h
 
 ;   Limpa o buffer
   limpaBufferLoop:
@@ -685,7 +689,7 @@ IntegerToString: ; Espera inteiro a ser convertido em r2, retorna ponteiro para 
     st r0, r3, r14
 
 ;   Decrementa indice do buffer
-    subi r3, #1
+    subi r3, #01h
 
 ;   Limpa proxima posição do buffer
     jmpnd #IntegerToStringStart
@@ -765,7 +769,7 @@ IntegerToStringZero:
     pop r4
     pop r3
     pop r2
-    pop r1
+    ;pop r1
 
     rts
 
@@ -851,7 +855,7 @@ IntegerToHexString: ; Espera valor a ser convertido em r2, retorna ponteiro para
     pop r4
     pop r3
     pop r2
-    
+
     rts
 
 
@@ -862,11 +866,11 @@ Delay1ms: ; Assumes clk = 50MHz (MIGHT CAUSE PROBELMS IF GIVEN NUMBER IS GREATER
 
     push r2
     push r4
-    
+
 ;   Iterador do loop de 1ms <= 2500
     ldh r4, #09h
     ldl r4, #C4h
-  
+
   Delay1msloop:             ; Repete 2500 vezes, 20 ciclos
     subi r4, #1             ;  4 ciclos
     nop                     ;  7 ciclos
@@ -876,16 +880,16 @@ Delay1ms: ; Assumes clk = 50MHz (MIGHT CAUSE PROBELMS IF GIVEN NUMBER IS GREATER
     jmpd #Delay1msloop      ; 20 ciclos
 
   Delay1msloopExit:
-    
+
     subi r2, #1
     jmpzd #Delay1msReturn
     jmpd #Delay1msloop
-   
+
   Delay1msReturn:
-    
+
     pop r4
     pop r2
-    
+
     rts
 
 IntegerToSSD: ; Returns on r14 given integer (on r2) encoded for 7 Segment Display (abcdefg.)
@@ -895,25 +899,25 @@ IntegerToSSD: ; Returns on r14 given integer (on r2) encoded for 7 Segment Displ
 ; r14 = Encoded integer
 
     push r1
-    
+
     xor r1, r1, r1
     xor r14, r14, r14
-    
+
 ;   r1 <= &arraySSD
     ldh r1, #arraySSD
     ldl r1, #arraySSD
-    
+
 ;   r14 <= arraySSD[r2]
     ld r14, r1, r2
 
     pop r1
-    
+
     rts
 
 ;------------------------------------------- PROGRAMA PRINCIPAL ---------------------------------------------
 
 main:
-    xor r12, r12, r12  ; Sets Order for sort 
+    xor r12, r12, r12  ; Sets Order for sort
 ;; BUBBLE SORT DO CARARA
 
 ;* Bubble sort
@@ -950,7 +954,8 @@ BubbleSort:
     ldh r2, #arraySortSize  ;
     ldl r2, #arraySortSize  ; r2 <- &size
     ld r2, r2, r0           ; r2 <- size
-    add r10, r0, r2         ; r10 <- size (to be used on Serial Transmission)
+
+    add r10, r0, r2         ; r10 <- arraySortsize (to be used on Serial Transmission)
 
     add r3, r2, r1          ; r3 points the end of array (right after the last element)
 
@@ -974,7 +979,7 @@ TX_ARRAY_INICIAL:
     sub r5, r10, r11        ; If transmission count == array size, breaks loop, else iterates again
 
     jmpzd #delayBeforeSort
-       
+
     jmpd #TX_ARRAY_INICIAL
 
 ; Delays for 100 ms
@@ -984,7 +989,7 @@ delayBeforeSort:
     ldl r2, #3
     push r3
     ldh r3, #0
-    ldl r3, #100  
+    ldl r3, #100
     syscall
     pop r3
 
@@ -1005,19 +1010,19 @@ loop:
     ld r7, r5, r0           ; r7 <- array[r5]
     ld r8, r6, r0           ; r8 <- array[r6]
 
-    add r12, r0, r12        ; Generate flag for order of array 
-    jmpzd #crescent 
-    jmpd #decrescent 
- 
-crescent: 
-    sub r2, r8, r7          ; If r8 > r7, negative flag is set 
-    jmpnd #swap             ; (if array[r5] > array[r6] jump) 
-    jmpd #continue 
-    
-decrescent: 
-    sub r2, r7, r8          ; If r8 < r7, negative flag is set 
-    jmpnd #swap             ; (if array[r5] < array[r6] jump) 
-    jmpd #continue 
+    add r12, r0, r12        ; Generate flag for order of array
+    jmpzd #crescent
+    jmpd #decrescent
+
+crescent:
+    sub r2, r8, r7          ; If r8 > r7, negative flag is set
+    jmpnd #swap             ; (if array[r5] > array[r6] jump)
+    jmpd #continue
+
+decrescent:
+    sub r2, r7, r8          ; If r8 < r7, negative flag is set
+    jmpnd #swap             ; (if array[r5] < array[r6] jump)
+    jmpd #continue
 
 ; Increments the index registers and verifies if the pass is concluded
 continue:
@@ -1041,7 +1046,7 @@ TX_ARRAY_FINAL:
     xor r11, r11, r11
     ldh r1, #arraySort
     ldl r1, #arraySort
-    
+
 ; Loops for 50 iterations on IntegerToString function
 TX_ARRAY_FINAL_LOOP:
 
@@ -1049,14 +1054,14 @@ TX_ARRAY_FINAL_LOOP:
 
     ldh r1, #0
     ldl r1, #1
-    syscall                 ; Converts integer to string 
+    syscall                 ; Converts integer to string
 
     add r2, r0, r14         ; r2 <- Pointer to converted string
-    
+
     ldh r1, #0
     ldl r1, #0
     syscall                 ; Prints string on UART transmiter
-    
+
     addi r11, #1            ; Increments transmission count
 
     sub r5, r10, r11        ; If transmission count == array size, breaks loop, else iterates again
@@ -1071,7 +1076,7 @@ delayAfterSort:
     ldl r1, #3
     push r2
     ldh r2, #0
-    ldl r2, #100  
+    ldl r2, #100
     syscall
     pop r2
 
@@ -1079,40 +1084,40 @@ ForçaExceçaoAdd:
 
     ldh r5, #7Fh
     ldl r5, #FFh
-    add r5, r5, r5 
-    
+    add r5, r5, r5
+
 ;   Delays for 100 ms
     ldh r1, #0
     ldl r1, #3
     push r2
     ldh r2, #0
-    ldl r2, #100  
+    ldl r2, #100
     syscall
     pop r2
-    
+
 ForçaExceçaoAddi:
 
     ldh r5, #7Fh
     ldl r5, #FFh
     addi r5, #1
-    
+
 ;   Delays for 100 ms
     ldh r1, #0
     ldl r1, #3
     push r2
     ldh r2, #0
-    ldl r2, #100  
+    ldl r2, #100
     syscall
     pop r2
-    
+
 ForçaExceçaoSub:
 
     ldh r4, #FFh
     ldl r4, #FFh
-    
+
     ldh r5, #FFh
     ldl r5, #FFh
-    
+
     sub r5, r4, r5
 
 ;   Delays for 100 ms
@@ -1120,36 +1125,36 @@ ForçaExceçaoSub:
     ldl r1, #3
     push r2
     ldh r2, #0
-    ldl r2, #100  
+    ldl r2, #100
     syscall
     pop r2
-    
+
 ForçaExceçaoSubi:
 
     ldh r5, #FFh
     ldl r5, #FFh
     subi r5, #1
-    
+
 ;   Delays for 100 ms
     ldh r1, #0
     ldl r1, #3
     push r2
     ldh r2, #0
-    ldl r2, #100  
+    ldl r2, #100
     syscall
     pop r2
-    
+
 TrocaOrdemBubbleSort:
 
     add r12, r12, r0
     jmpzd #IncAndJump
-    
+
 ;   Next pass order array in Increasing order
     xor r12, r12, r12
     jmpd #BubbleSort
 
-IncAndJump:
-   
+    IncAndJump:
+
 ;   Next pass order array in Decreasing order
     addi r12, #1
     jmpd #BubbleSort
@@ -1161,9 +1166,7 @@ IncAndJump:
 ;=============================================================================================================
 ;=============================================================================================================
 ;=============================================================================================================
-
-
-;; .org #0300h
+.org #0258h
 .data
 
 ;--------------------------------------------VARIAVEIS DO KERNEL---------------------------------------------
