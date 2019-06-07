@@ -913,7 +913,7 @@ IntegerToSSD: ; Returns on r14 given integer (on r2) encoded for 7 Segment Displ
 ;------------------------------------------- PROGRAMA PRINCIPAL ---------------------------------------------
 
 main:
-
+    xor r12, r12, r12  ; Sets Order for sort 
 ;; BUBBLE SORT DO CARARA
 
 ;* Bubble sort
@@ -932,6 +932,7 @@ main:
 ;*          r9: send count
 ;*          r10: array size
 ;*          r11: transmission count
+;*          r12: Array sort order (0 = Cresc, 1 = Decres)
 ;*
 ;*********************************************************************
 
@@ -1003,8 +1004,20 @@ scan:
 loop:
     ld r7, r5, r0           ; r7 <- array[r5]
     ld r8, r6, r0           ; r8 <- array[r6]
-    sub r2, r8, r7          ; If r8 > r7, negative flag is set
-    jmpnd #swap             ; (if array[r5] > array[r6] jump)
+
+    add r12, r0, r12        ; Generate flag for order of array 
+    jmpzd #crescent 
+    jmpd #decrescent 
+ 
+crescent: 
+    sub r2, r8, r7          ; If r8 > r7, negative flag is set 
+    jmpnd #swap             ; (if array[r5] > array[r6] jump) 
+    jmpd #continue 
+    
+decrescent: 
+    sub r2, r7, r8          ; If r8 < r7, negative flag is set 
+    jmpnd #swap             ; (if array[r5] < array[r6] jump) 
+    jmpd #continue 
 
 ; Increments the index registers and verifies if the pass is concluded
 continue:

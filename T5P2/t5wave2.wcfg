@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="/home/carlos/Desktop/Projetos ISE/T5P2/r8_uC_tb_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="numeric_std" />
+            <top_module name="r8_uc_tb" />
+            <top_module name="std_logic_1164" />
+            <top_module name="std_logic_arith" />
+            <top_module name="std_logic_unsigned" />
+            <top_module name="textio" />
+            <top_module name="util_package" />
+            <top_module name="vcomponents" />
+            <top_module name="vital_primitives" />
+            <top_module name="vital_timing" />
+            <top_module name="vpkg" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="22" />
+   <wvobject fp_name="/r8_uc_tb/clk" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clk</obj_property>
+      <obj_property name="ObjectShortName">clk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/rst" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rst</obj_property>
+      <obj_property name="ObjectShortName">rst</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/port_io" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">port_io[15:0]</obj_property>
+      <obj_property name="ObjectShortName">port_io[15:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/uart_rx_data_out" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">uart_rx_data_out[7:0]</obj_property>
+      <obj_property name="ObjectShortName">uart_rx_data_out[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/uart_rx_data_av" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">uart_rx_data_av</obj_property>
+      <obj_property name="ObjectShortName">uart_rx_data_av</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/uart_tx" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">uart_tx</obj_property>
+      <obj_property name="ObjectShortName">uart_tx</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/data_out" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">data_out[15:0]</obj_property>
+      <obj_property name="ObjectShortName">data_out[15:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/address" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">address[15:0]</obj_property>
+      <obj_property name="ObjectShortName">address[15:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/data_in" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">data_in[15:0]</obj_property>
+      <obj_property name="ObjectShortName">data_in[15:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/clk" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clk</obj_property>
+      <obj_property name="ObjectShortName">clk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/rst" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rst</obj_property>
+      <obj_property name="ObjectShortName">rst</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/currentinstruction" type="other" db_ref_id="1">
+      <obj_property name="ElementShortName">currentinstruction</obj_property>
+      <obj_property name="ObjectShortName">currentinstruction</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/currentstate" type="other" db_ref_id="1">
+      <obj_property name="ElementShortName">currentstate</obj_property>
+      <obj_property name="ObjectShortName">currentstate</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regpc" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">regpc[15:0]</obj_property>
+      <obj_property name="ObjectShortName">regpc[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regsp" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">regsp[15:0]</obj_property>
+      <obj_property name="ObjectShortName">regsp[15:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regcause" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">regcause[15:0]</obj_property>
+      <obj_property name="ObjectShortName">regcause[15:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regtsra" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">regtsra[15:0]</obj_property>
+      <obj_property name="ObjectShortName">regtsra[15:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/TX/data_in" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">data_in[7:0]</obj_property>
+      <obj_property name="ObjectShortName">data_in[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/TX/data_av" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">data_av</obj_property>
+      <obj_property name="ObjectShortName">data_av</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/TX/ready" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">ready</obj_property>
+      <obj_property name="ObjectShortName">ready</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/TX/tx" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">tx</obj_property>
+      <obj_property name="ObjectShortName">tx</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/trapcount" type="other" db_ref_id="1">
+      <obj_property name="ElementShortName">trapcount</obj_property>
+      <obj_property name="ObjectShortName">trapcount</obj_property>
+   </wvobject>
+</wave_config>
