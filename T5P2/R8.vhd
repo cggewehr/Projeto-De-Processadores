@@ -568,7 +568,7 @@ begin
 
 	ALUaux <= ( regA(15) & regA ) + ( regB(15) & regB )                                when currentInstruction = ADD else
 			  ( regA(15) & regA ) + ( regBComplement(15) & regBComplement )            when currentinstruction = SUB else
-			  ( regA(15) & regA ) + ( constanteExtended(15) & constanteExtended)       when currentInstruction = ADDI else
+			  ( regB(15) & regB ) + ( constanteExtended(15) & constanteExtended)       when currentInstruction = ADDI else
 			  ( regB(15) & regB ) + ( constanteComplement(15) & constanteComplement);-- when currentInstruction = SUBI; GENERATES LATCHES IF UNCOMMENTED
 
     outALU <= ALUaux(15 downto 0)           when currentInstruction = ADD or currentInstruction = SUB or currentInstruction = ADDI or currentInstruction = SUBI else
