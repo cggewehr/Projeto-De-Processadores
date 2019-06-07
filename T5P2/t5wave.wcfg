@@ -81,7 +81,7 @@
    <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/address" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">address[15:0]</obj_property>
       <obj_property name="ObjectShortName">address[15:0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regpc" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">regpc[15:0]</obj_property>
@@ -91,7 +91,7 @@
    <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regsp" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">regsp[15:0]</obj_property>
       <obj_property name="ObjectShortName">regsp[15:0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regir" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">regir[15:0]</obj_property>

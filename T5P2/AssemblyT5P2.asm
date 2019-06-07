@@ -959,8 +959,6 @@ BubbleSort:
 ; Converts array to char and transmits via UART
 TX_ARRAY_INICIAL:
 
-; Loops for 50 iterations on IntegerToString function
-
     ld r2, r11, r1          ; r2 <- arraySort[transmissionCount]
 
     ldh r1, #0
@@ -976,6 +974,9 @@ TX_ARRAY_INICIAL:
     addi r11, #1            ; Increments transmission count
 
     sub r5, r10, r11        ; If transmission count == array size, breaks loop, else iterates again
+    
+    ldh r1, #arraySort
+    ldl r1, #arraySort      ; r1 <- &array
 
     jmpzd #delayBeforeSort
     jmpd #TX_ARRAY_INICIAL
