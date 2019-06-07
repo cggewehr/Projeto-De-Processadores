@@ -30,7 +30,7 @@ begin
     -- UART RX
     UART_RX: entity work.UART_RX
         generic map(
-            RATE_FREQ_BAUD => 10416
+            RATE_FREQ_BAUD => 8
         )
 
         port map(

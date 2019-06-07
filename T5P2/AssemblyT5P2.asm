@@ -59,14 +59,14 @@
 ;-----------------------------------------------------BOOT---------------------------------------------------
 
 ;   Inicializa ponteiro da pilha para 0x"7FFF" (ultimo endereço no espaço de endereçamento da memoria)
-    ldh r0, #7Fh
-    ldl r0, #FFh
-    ldsp r0
+;    ldh r0, #7Fh
+;    ldl r0, #FFh
+;    ldsp r0
 
 ;   Inicializa ponteiro da pilha para 0x"03E6" (ultimo endereço no espaço de endereçamento da memoria)
-;    ldh r0, #03h
-;    ldl r0, #E6h
-;    ldsp r0
+    ldh r0, #03h
+    ldl r0, #E6h
+    ldsp r0
 
 ;   Seta endereço do tratador de interrupção
     ldh r0, #InterruptionServiceRoutine
@@ -194,8 +194,6 @@ InterruptionServiceRoutine:
     push r11
     push r12
     push r13
-    push r14
-    push r15
     pushf
 
     xor r0, r0, r0
@@ -223,8 +221,6 @@ InterruptionServiceRoutine:
 
 ;   Recupera contexto
     popf
-    pop r15
-    pop r14
     pop r13
     pop r12
     pop r11
@@ -268,8 +264,6 @@ TrapsServiceRoutine:
     push r11
     push r12
     push r13
-    push r14
-    push r15
     pushf
 
 ;   Le ID da trap
@@ -289,8 +283,6 @@ TrapsServiceRoutine:
 
 ;   Recupera contexto
     popf
-    pop r15
-    pop r14
     pop r13
     pop r12
     pop r11
@@ -605,14 +597,14 @@ PrintString: ; Transmite por UART uma string. Espera endereço da string a ser e
     push r1
     push r3
     push r5
+    
+    xor r0, r0, r0
+    xor r3, r3, r3
+    xor r5, r5, r5
 
     ldh r1, #UART_TX
     ldl r1, #UART_TX
     ld r1, r0, r1
-
-    xor r0, r0, r0
-    xor r3, r3, r3
-    xor r5, r5, r5
 
   tx_loop:
 
@@ -742,7 +734,7 @@ ReverseLoop:
 
 IntegerToStringReturn:
 
-    subi r1, #1
+    subi r14, #1
 
     pop r11
     pop r10
@@ -866,6 +858,8 @@ Delay1ms: ; Assumes clk = 50MHz (MIGHT CAUSE PROBELMS IF GIVEN NUMBER IS GREATER
 
     push r2
     push r4
+    
+  Delay1msloopReset:
 
 ;   Iterador do loop de 1ms <= 2500
     ldh r4, #09h
@@ -883,7 +877,7 @@ Delay1ms: ; Assumes clk = 50MHz (MIGHT CAUSE PROBELMS IF GIVEN NUMBER IS GREATER
 
     subi r2, #1
     jmpzd #Delay1msReturn
-    jmpd #Delay1msloop
+    jmpd #Delay1msloopReset
 
   Delay1msReturn:
 
@@ -969,29 +963,35 @@ TX_ARRAY_INICIAL:
 
     ld r2, r11, r1          ; r2 <- arraySort[transmissionCount]
 
-    jsrd #IntegerToString   ; Converts integer to string
+    ldh r1, #0
+    ldl r1, #1
+    syscall                 ; Converts integer to string 
 
     add r2, r0, r14         ; r2 <- Pointer to converted string
-    jsrd #PrintString       ; Prints string on UART transmiter
+
+    ldh r1, #0
+    ldl r1, #0
+    syscall                 ; Prints string on UART transmiter
 
     addi r11, #1            ; Increments transmission count
 
     sub r5, r10, r11        ; If transmission count == array size, breaks loop, else iterates again
 
     jmpzd #delayBeforeSort
-
     jmpd #TX_ARRAY_INICIAL
 
 ; Delays for 100 ms
 delayBeforeSort:
 
+    push r1
+    push r2
+    ldh r1, #0
+    ldl r1, #3
     ldh r2, #0
-    ldl r2, #3
-    push r3
-    ldh r3, #0
-    ldl r3, #100
+    ldl r2, #100
     syscall
-    pop r3
+    pop r2
+    pop r1
 
 ; Main code
 scan:
@@ -1072,13 +1072,15 @@ TX_ARRAY_FINAL_LOOP:
 delayAfterSort:
 
 ;   Delays for 100 ms
+    push r1
+    push r2
     ldh r1, #0
     ldl r1, #3
-    push r2
     ldh r2, #0
     ldl r2, #100
     syscall
     pop r2
+    pop r1
 
 ForçaExceçaoAdd:
 
@@ -1087,13 +1089,15 @@ ForçaExceçaoAdd:
     add r5, r5, r5
 
 ;   Delays for 100 ms
+    push r1
+    push r2
     ldh r1, #0
     ldl r1, #3
-    push r2
     ldh r2, #0
     ldl r2, #100
     syscall
     pop r2
+    pop r1
 
 ForçaExceçaoAddi:
 
@@ -1102,13 +1106,15 @@ ForçaExceçaoAddi:
     addi r5, #1
 
 ;   Delays for 100 ms
+    push r1
+    push r2
     ldh r1, #0
     ldl r1, #3
-    push r2
     ldh r2, #0
     ldl r2, #100
     syscall
     pop r2
+    pop r1
 
 ForçaExceçaoSub:
 
@@ -1121,13 +1127,15 @@ ForçaExceçaoSub:
     sub r5, r4, r5
 
 ;   Delays for 100 ms
+    push r1
+    push r2
     ldh r1, #0
     ldl r1, #3
-    push r2
     ldh r2, #0
     ldl r2, #100
     syscall
     pop r2
+    pop r1
 
 ForçaExceçaoSubi:
 
@@ -1136,13 +1144,15 @@ ForçaExceçaoSubi:
     subi r5, #1
 
 ;   Delays for 100 ms
+    push r1
+    push r2
     ldh r1, #0
     ldl r1, #3
-    push r2
     ldh r2, #0
     ldl r2, #100
     syscall
     pop r2
+    pop r1
 
 TrocaOrdemBubbleSort:
 

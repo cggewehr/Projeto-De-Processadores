@@ -171,7 +171,8 @@ begin
 
     TX: entity work.UART_TX
         generic map(
-            RATE_FREQ_BAUD => 5208 -- 9600 baud @ 50MHz
+            --RATE_FREQ_BAUD => 5208 -- 9600 baud @ 50MHz
+            RATE_FREQ_BAUD => 4 -- Simulation
         )
         port map (
             clk     => clk,
