@@ -594,7 +594,10 @@ begin
 
     -- Flags para a ULA
     flagC <= ALUaux(16); --carry
-    flagV <= '1' when ( (regA(15) = regB(15) ) and ( regA(15) /= outALU(15) ) ) else '0'; -- overflow
+    flagV <= '1' when ( ( ( currentInstruction = ADD  or currentInstruction = SUB)  and ( ( regA(15) = regB(15) ) and ( regA(15) /= outALU(15))))  or
+                        ( ( currentInstruction = ADDI or currentInstruction = SUBI) and ( ( constanteComplement(15) = regB(15) ) and ( constanteComplement(15) /= outALU(15)))))
+                        else '0';
+    --flagV <= '1' when ( (regA(15) = regB(15) ) and ( regA(15) /= outALU(15) ) ) else '0'; -- overflow
     flagN <= outALU(15); -- negativo
     flagZ <= '1' when outALU = 0 else '0';  -- zero
 
