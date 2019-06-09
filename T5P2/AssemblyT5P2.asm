@@ -510,8 +510,8 @@ PrintError: ; Prints a given error code (on r2) on a given insruction (r3)
 ; r4 = constant 4
 ; r5 = Temporary for load/store
 ; r6 = Indexer for error code string and converted string (intToHex)
-; r7 = constant 7
-; r8 = constant 8
+; r7 = ErrorCodeIndex
+; r8 = Temp
 
 ;   Saves context
     push r2
@@ -530,19 +530,18 @@ PrintError: ; Prints a given error code (on r2) on a given insruction (r3)
     xor r7, r7, r7
     xor r8, r8, r8
 
-    ldl r4, #4
-    ldl r7, #7
-    ldl r8, #8
+    ldl r4, #3
 
 ;   r5 <= trap ID in HEXADECIMAL (1 ASCII character)
     jsrd #IntegerToHexString
-    add r5, r0, r14
+    add r5, r4, r14 ; Gets IntegerToHexBuffer [3]
     ld r5, r0, r5
 
 ;   r2 <= ADDR of trap causing instruction
     add r2, r0, r3
+    subi r2, #01h ; ADDR of trap its get one positon after
 
-;   r14 <= ADDR of trap causing instruction in HEXADECIMAL (4 ASCII characters)
+;   r14 <= &String with trap causing instruction ADDR in HEXADECIMAL (4 ASCII characters)
     jsrd #IntegerToHexString
 
 ;   Initializes ErrorCode String
@@ -550,29 +549,61 @@ PrintError: ; Prints a given error code (on r2) on a given insruction (r3)
     ldl r2, #ErrorCode
 
 ;   ErrorCode[7] <= ID of trap
-    st r5, r2, r7
+    ;st r5, r2, r7
 
   PrintErrorLoop: ; Copies converted HEX string to ErrorCode string (offsets ConvertedString into ErrorCode by 4)
+; Setup first 2 char '0' & 'x'
+    xor r7, r7, r7  ; String Index <= 0
+    ldh r8, #00h
+    ldl r8, #48    ; r8 <= char '0'
 
-;   If string index = 4, returns, else, inserts another character (r4 is always = 4)
-    sub r5, r6, r4 ; r5 is treated as temporary, will be used to read values from converted string and storing them into the final string (to be printed)
-    jmpzd #PrintErrorReturn
+;   r2 is &ErrorCode
+    st r8, r2, r7 ; ErrorCode[0] = '0'
 
-;   r5 <= Char of ADDR of trap causing instruction[r6]
-    ld r5, r6, r14
+    ldh r8, #00h
+    ldl r8, #78h ; r8 <= char 'x' ASCII[120]
 
-;   ErrorCode[r6] <= r5
-    st r5, r6, r2
+    addi r7, #01h ; Increment ErrorCodeIndex | r7 = 1
+    st r8, r2, r7 ; Errocode[1] = 'x'
 
-;   Increments Indexer
-    addi r6, #1
+;String ErrorCode has "0x_______"
+;Set trapID
+    addi r7, #01h ; Increment ErrorCodeIndex | r7 = 2
+    st r5, r2, r7 ; Errocode[2] = 'trapID' in HEXstring
 
-    jmpd #PrintErrorReturn
+;String ErrorCode has "0xID ______"
+; Set ' |' char spacement
+    ldh r8, #00h
+    ldl r8, #7ch ; r8 <= char '|' ASCII[124]
+    addi r7, #01h ; Increment ErrorCodeIndex | r7 = 3
+    st r8, r2, r7 ; Errocode[3] =  '|'
+
+;String ErrorCode has "0xID|______"
+    ldh r8, #IntegerToHexBuffer
+    ldl r8, #IntegerToHexBuffer ; r8 <= &IntegerToHexBuffer
+
+AddrsLoop:
+    addi r7, #01h ; Increment ErrorCodeIndex | r7 = 4
+
+    ld r5, r0, r8 ; r5 <= Value IntegerToHexBuffer
+
+    st r5, r2, r7 ; Errocode[4] =  Addrs of error instruction in Hexadecimal
+
+    add r5, r0, r5 ; Generates Flag
+
+    jmpzd #PrintErrorReturn ; When char = 0, end of String
+
+    addi r8, #01h ; r8 <= &IntergerToHexBufer + 1
+
+    jmpd #AddrsLoop ; Jump Over
 
   PrintErrorReturn:
 
 ;   Transmits Error Code                      |   7  | 6 5 4 |       3210        |
-    jsrd #PrintString ; Final string will be: (TrapID) 0 0 0 (ADDR of instruction)
+;   jsrd #PrintString ; Final string will be: (TrapID) 0 0 0 (ADDR of instruction)
+
+;   Transmits Error Code                      | 0 | 1 |   2   | 3 |        4567        |  8
+    jsrd #PrintString ; Final string will be:  '0' 'x'(trapID) '|' (ADDR of instruction)  0
 
 ;   Return to normal execution flow
     pop r8
@@ -597,7 +628,7 @@ PrintString: ; Transmite por UART uma string. Espera endereço da string a ser e
     push r1
     push r3
     push r5
-    
+
     xor r0, r0, r0
     xor r3, r3, r3
     xor r5, r5, r5
@@ -800,6 +831,7 @@ IntegerToStringPositivo:
     jmpd #ConversionLoop
 
 IntegerToHexString: ; Espera valor a ser convertido em r2, retorna ponteiro para string em r14
+; Serve Somente para o Erro do pc, Sempre devolve uma string de 4 posições
 ; Tabela de registradores:
 ; r2 = Inteiro a ser convertido ( 16 bits)
 ; r3 = Constante 16
@@ -817,7 +849,9 @@ IntegerToHexString: ; Espera valor a ser convertido em r2, retorna ponteiro para
     ldh r3, #00h
     ldl r3, #10h  ; r3 <= (constante)16
 
-    xor r5, r5, r5 ; Zera o indexador do Buffer
+    ;xor r5, r5, r5 ; Zera o indexador do Buffer
+    ldh r5, #00h
+    ldl r5, #04h   ; Buffer index starts in the last position
 
     ldh r6, #IntegerToHexStringLUT
     ldl r6, #IntegerToHexStringLUT   ; r6 <= & IntegerToHexStringLUT
@@ -825,10 +859,14 @@ IntegerToHexString: ; Espera valor a ser convertido em r2, retorna ponteiro para
     ldh r14, #IntegerToHexBuffer
     ldl r14, #IntegerToHexBuffer   ; r11 <= & IntergerToHexBufer
 
+    xor r4, r4, r4  ; r4 <= ASCII [ 0 ] = NULL = End of string
+    st r4, r5, r14  ; IntegerToHexBuffer [r5] = r4
+    subi r5, #01h   ; Buffer index <= last -1 Position
+
     FourBitsConverter:
     add r4, r0, r5  ; r4 <= Indexador
-    subi r4, #04h   ; Comparação é verdadeira quando o indexaro for igual a 4
-    jmpzd #ReturnIntegerToHexString
+    ;subi r4, #04h   ; Comparação é verdadeira quando o indexador for igual a 4
+    jmpnd #ReturnIntegerToHexString ; It's true when r4 is -1
 
     div r2, r3    ; r2 / 16  ( Divisao por 16 equivale a 4 shifts)
     mfl r2        ; r2 <= parte inteira da divisao r2/16
@@ -836,9 +874,10 @@ IntegerToHexString: ; Espera valor a ser convertido em r2, retorna ponteiro para
 
 ;   Salva em r4 o valor da LUT indexada por r4
     ld r4, r4, r6   ; r4 <= IntegerToHexStringLUT[ ( r4 = resto da divisao)]
+
     st r4, r5, r14  ; IntegerToHexBuffer [r5] = r4 ( Numero convertido)
 
-    addi r5, #01h   ; Incrementa o Indexador
+    subi r5, #01h   ; Decrementa o Indexador
     jmpd #FourBitsConverter ; Retoma o Loop
 
     ReturnIntegerToHexString:
@@ -850,7 +889,6 @@ IntegerToHexString: ; Espera valor a ser convertido em r2, retorna ponteiro para
 
     rts
 
-
 Delay1ms: ; Assumes clk = 50MHz (MIGHT CAUSE PROBELMS IF GIVEN NUMBER IS GREATER THAN 2¹⁵, WHICH IS INTERPRETED AS A NEGATIVE NUMBER)
 ; Register table
 ; r2 = Number of milliseconds to hold in this function
@@ -858,7 +896,7 @@ Delay1ms: ; Assumes clk = 50MHz (MIGHT CAUSE PROBELMS IF GIVEN NUMBER IS GREATER
 
     push r2
     push r4
-    
+
   Delay1msloopReset:
 
 ;   Iterador do loop de 1ms <= 2500
@@ -963,7 +1001,7 @@ TX_ARRAY_INICIAL:
 
     ldh r1, #0
     ldl r1, #1
-    syscall                 ; Converts integer to string 
+    syscall                 ; Converts integer to string
 
     add r2, r0, r14         ; r2 <- Pointer to converted string
 
@@ -974,7 +1012,7 @@ TX_ARRAY_INICIAL:
     addi r11, #1            ; Increments transmission count
 
     sub r5, r10, r11        ; If transmission count == array size, breaks loop, else iterates again
-    
+
     ldh r1, #arraySort
     ldl r1, #arraySort      ; r1 <- &array
 
@@ -990,7 +1028,7 @@ delayBeforeSort:
     ldl r1, #3
     ldh r2, #0
     ldl r2, #4
-    syscall
+    ;syscall
     pop r2
     pop r1
 
@@ -1066,7 +1104,7 @@ TX_ARRAY_FINAL_LOOP:
     addi r11, #1            ; Increments transmission count
 
     sub r5, r10, r11        ; If transmission count == array size, breaks loop, else iterates again
-    
+
     ldh r1, #arraySort
     ldl r1, #arraySort      ; r1 <- &array
 
@@ -1122,10 +1160,10 @@ ForçaExceçaoAddi:
 
 ForçaExceçaoSub:
 
-    ldh r4, #FFh
-    ldl r4, #FFh
+    ldh r4, #F0h
+    ldl r4, #00h
 
-    ldh r5, #FFh
+    ldh r5, #7Fh
     ldl r5, #FFh
 
     sub r5, r4, r5
@@ -1143,8 +1181,8 @@ ForçaExceçaoSub:
 
 ForçaExceçaoSubi:
 
-    ldh r5, #FFh
-    ldl r5, #FFh
+    ldh r5, #80h
+    ldl r5, #00h
     subi r5, #1
 
 ;   Delays for 4 ms
@@ -1157,6 +1195,23 @@ ForçaExceçaoSubi:
     syscall
     pop r2
     pop r1
+
+ForçaExceçaoInstInv:
+    ldh r5, #00h
+    ldl r5, #0Ah
+    div r5, r0
+
+;   Delays for 4 ms
+    push r1
+    push r2
+    ldh r1, #0
+    ldl r1, #3
+    ldh r2, #0
+    ldl r2, #4
+    syscall
+    pop r2
+    pop r1
+
 
 TrocaOrdemBubbleSort:
 
@@ -1211,7 +1266,8 @@ IntegerToStringBuffer:    db #0, #0, #0, #0, #0, #0, #0, #0
 ; IntegerToHexString Look Up Table (returns indexer value in HEXADECIMAL IN UPPERCASE)
 ;                             0    1    2    3    4    5    6    7    8    9    A    B    C    D    E    F
 IntegerToHexStringLUT:    db #48, #49, #50, #51, #52, #53, #54, #55, #56, #57, #65, #66, #67, #68, #69, #70
-IntegerToHexBuffer:       db #0, #0, #0, #0
+IntegerToHexBuffer:       db #0, #0, #0, #0, #0
+
 ; Buffer para transmissao de codigo de erro (8 chars + string trailer)
 ErrorCode:                db #0, #0, #0, #0, #0, #0, #0, #0, #0
 
