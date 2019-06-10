@@ -604,6 +604,12 @@ AddrsLoop:
 
 ;   Transmits Error Code                      | 0 | 1 |   2   | 3 |        4567        |  8
     jsrd #PrintString ; Final string will be:  '0' 'x'(trapID) '|' (ADDR of instruction)  0
+    
+    ldh r2, #stringNovaLinha
+    ldl r2, #stringNovaLinha
+    
+;   Sends '/n' and '/l'
+    jsrd #PrintString
 
 ;   Return to normal execution flow
     pop r8
@@ -666,12 +672,6 @@ PrintString: ; Transmite por UART uma string. Espera endereço da string a ser e
     ;jmpd #tx_disp
 
 PrintStringReturn:
-
-    ldh r2, #stringNovaLinha
-    ldl r2, #stringNovaLinha
-    
-;   Sends '/n' and '/l'
-    jsrd #PrintString
 
     pop r5
     pop r3
@@ -1025,16 +1025,24 @@ TX_ARRAY_INICIAL:
     jmpzd #delayBeforeSort
     jmpd #TX_ARRAY_INICIAL
 
-; Delays for 4 ms
+; Delays for 100 ms
 delayBeforeSort:
 
     push r1
     push r2
+    
     ldh r1, #0
     ldl r1, #3
     ldh r2, #0
     ldl r2, #100
-    syscall
+    syscall ; Delay
+
+    ldh r1, #0
+    ldh r1, #0
+    ldh r2, #stringNovaLinha
+    ldl r2, #stringNovaLinha
+    syscall ; Nova Linha
+    
     pop r2
     pop r1
 
