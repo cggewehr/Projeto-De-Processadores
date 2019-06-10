@@ -1,0 +1,3 @@
+net "clock" loc = V10;
+net "reset" loc = T10;
+net "uart_tx" loc = N18;
