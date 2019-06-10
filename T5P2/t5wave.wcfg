@@ -20,7 +20,7 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="39" />
+   <WVObjectSize size="40" />
    <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/rst" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">rst</obj_property>
       <obj_property name="ObjectShortName">rst</obj_property>
@@ -191,6 +191,11 @@
    <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regisra" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">regisra[15:0]</obj_property>
       <obj_property name="ObjectShortName">regisra[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regitr" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">regitr[15:0]</obj_property>
+      <obj_property name="ObjectShortName">regitr[15:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/TX/currentstate" type="other" db_ref_id="1">
@@ -3612,42 +3617,42 @@
       <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/Memory/ram[666]" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">[666]</obj_property>
          <obj_property name="ObjectShortName">ram[666]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
+         <obj_property name="Radix">ASCIIRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/Memory/ram[667]" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">[667]</obj_property>
          <obj_property name="ObjectShortName">ram[667]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
+         <obj_property name="Radix">ASCIIRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/Memory/ram[668]" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">[668]</obj_property>
          <obj_property name="ObjectShortName">ram[668]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
+         <obj_property name="Radix">ASCIIRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/Memory/ram[669]" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">[669]</obj_property>
          <obj_property name="ObjectShortName">ram[669]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
+         <obj_property name="Radix">ASCIIRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/Memory/ram[670]" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">[670]</obj_property>
          <obj_property name="ObjectShortName">ram[670]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
+         <obj_property name="Radix">ASCIIRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/Memory/ram[671]" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">[671]</obj_property>
          <obj_property name="ObjectShortName">ram[671]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
+         <obj_property name="Radix">ASCIIRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/Memory/ram[672]" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">[672]</obj_property>
          <obj_property name="ObjectShortName">ram[672]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
+         <obj_property name="Radix">ASCIIRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/Memory/ram[673]" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">[673]</obj_property>
          <obj_property name="ObjectShortName">ram[673]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
+         <obj_property name="Radix">ASCIIRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/Memory/ram[674]" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">[674]</obj_property>
