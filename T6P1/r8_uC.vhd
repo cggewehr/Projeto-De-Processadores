@@ -11,37 +11,39 @@ use IEEE.numeric_std.all;
 
 entity R8_uC is
     generic (
-        ASSEMBLY_FILE : string;
+        RAM_IMAGE     : string;
+        ROM_IMAGE     : string;
         ADDR_PORT     : std_logic_vector(3 downto 0);
         ADDR_PIC      : std_logic_vector(3 downto 0);
         ADDR_UART_TX  : std_logic_vector(3 downto 0);
         ADDR_UART_RX  : std_logic_vector(3 downto 0)
     );
 	port (
-		clk           : in std_logic; -- 50MHz from DCM
-		rst           : in std_logic; -- Synchronous reset
-        port_io       : inout std_logic_vector(15 downto 0);
-        uart_tx       : out std_logic;
-        uart_rx       : in std_logic
+		clk           : in std_logic;                        -- 50MHz from DCM
+		rst           : in std_logic;                        -- Synchronous reset
+        port_io       : inout std_logic_vector(15 downto 0); -- Communication port (IN/OUT, set by software)
+        uart_tx       : out std_logic;                       -- Serial transmitter
+        uart_rx       : in std_logic;                        -- Serial receiver
+        prog_mode     : in std_logic                         -- 0 for execution, 1 for programming (loading RAM)
 	);
 end R8_uC;
 
 architecture behavioral of R8_uC is
    
-    signal ce, rw                                : std_logic;                      -- Auxiliary signals for R8 processor instantiation
-    signal rw_MEM, clk_MEM, en_MEM, en_PORT      : std_logic;                      -- Auxiliary signals for R8 processor instantiation
+    signal ce, rw                                   : std_logic;                      -- I/O operation being carried out
+    signal rw_MEM, clk_MEM, en_RAM, en_ROM, en_PORT : std_logic;                      -- Enables for I/O operation targets
 
-    signal data_PORT, data_MEM_in, data_mem_out  : std_logic_vector(15 downto 0); 
-    signal data_r8_in, data_r8_out, address      : std_logic_vector(15 downto 0);
+    signal data_PORT, data_ROM_out, data_RAM_out    : std_logic_vector(15 downto 0);  -- Peripherals/Memory interface
+    signal data_r8_in, data_r8_out, address         : std_logic_vector(15 downto 0);  -- Processor interface
 
-    alias address_PORT                           : std_logic_vector(1 downto 0) is address(1 downto 0);
-    alias mem_address                            : std_logic_vector(14 downto 0)is address(14 downto 0);
-    alias ID_PERIFERICO                          : std_logic_vector(3 downto 0) is address(7 downto  4);  -- Perf. ID
-    alias REG_PERIFERICO                         : std_logic_vector(3 downto 0) is address(3 downto  0);  -- Perf. Address
-    alias ENABLE_PERIFERICO                      : std_logic is address(15); 							  -- Perf. Enable (I/O operation to be carried out on peripheral)
+    alias address_PORT                              : std_logic_vector(1 downto 0) is address(1 downto 0);   -- Address for I/O Port registers ( Data, Config, Enable or InterruptEnable)
+    alias mem_address                               : std_logic_vector(14 downto 0)is address(14 downto 0);  -- Memory (RAM and ROM) address space (15th bit is reserved for I/O operations (I/O port, PIC, UART)
+    alias ID_PERIFERICO                             : std_logic_vector(3 downto 0) is address(7 downto  4);  -- Peripheral ID
+    alias REG_PERIFERICO                            : std_logic_vector(3 downto 0) is address(3 downto  0);  -- Peripheral Address
+    alias ENABLE_PERIFERICO                         : std_logic is address(15); 							 -- Perfipheral Enable (I/O operation to be carried out on peripheral)
 
-    alias address_PIC                            : std_logic_vector(1 downto 0) is address(1 downto 0);
-    signal data_PIC                              : std_logic_vector(7 downto 0);
+    alias address_PIC                               : std_logic_vector(1 downto 0) is address(1 downto 0);
+    signal data_PIC                                 : std_logic_vector(7 downto 0);
 	
     -- Tristate for bidirectional bus between processor and I/O port
 	signal TRISTATE_PORT_EN   : std_logic;
@@ -70,11 +72,12 @@ architecture behavioral of R8_uC is
 begin
 		
     -- Processor signals
-    data_r8_in <= data_PORT when ENABLE_PERIFERICO = '1' and ID_PERIFERICO = ADDR_PORT else
-                  ("00000000" & data_PIC) when ENABLE_PERIFERICO = '1' and ID_PERIFERICO = ADDR_PIC else
-                  data_out_UART_TX when ENABLE_PERIFERICO = '1' and ID_PERIFERICO = ADDR_UART_TX else
-                  data_out_UART_RX when ENABLE_PERIFERICO = '1' and ID_PERIFERICO = ADDR_UART_RX else
-                  data_MEM_out;
+    data_r8_in <= data_PORT               when ENABLE_PERIFERICO = '1' and ID_PERIFERICO = ADDR_PORT    else
+                  ("00000000" & data_PIC) when ENABLE_PERIFERICO = '1' and ID_PERIFERICO = ADDR_PIC     else
+                  data_out_UART_TX        when ENABLE_PERIFERICO = '1' and ID_PERIFERICO = ADDR_UART_TX else
+                  data_out_UART_RX        when ENABLE_PERIFERICO = '1' and ID_PERIFERICO = ADDR_UART_RX else
+                  data_ROM_out            when ENABLE_PERIFERICO = '0' and prog_mode = '1'              else
+                  data_RAM_out;
 
     -- Processor
     R8Processor: entity work.R8 
@@ -89,27 +92,46 @@ begin
             rw       => rw                 -- Write : 0, Read : 1
         );
 		
-    -- Memory signals
+    -- RAM signals
     clk_MEM <= not clk;   -- Makes memory sensitive to falling edge
     rw_MEM  <= not rw;    -- Writes when 1, Reads when 0
-    en_MEM  <= '1' when (ce = '1' and ENABLE_PERIFERICO = '0') else '0'; -- address(15)      
+    en_RAM  <= '1' when (ce = '1' and ENABLE_PERIFERICO = '0' and (prog_mode = '0' or (prog_mode = '1' and rw_MEM = '1') else '0'; -- Enabled when programming mode is off, or when programming mode is on and storing (stores on RAM)    
     
-    -- Memory
-    Memory: entity work.Memory 
+    -- RAM
+    RAM: entity work.Memory 
         generic map(
             DATA_WIDTH => 16,
             ADDR_WIDTH => 15,
-            IMAGE => ASSEMBLY_FILE -- Assembly code (must be in same directory)
+            IMAGE => RAM_IMAGE -- Assembly code (must be in same directory)
         )
         port map(
             clk => clk_MEM,
             wr  => rw_MEM,
-            en  => en_MEM,
+            en  => en_RAM,
             address  => mem_address, 
             data_in  => data_r8_out,
-            data_out => data_MEM_out    
+            data_out => data_RAM_out
         );
-		
+
+    -- ROM signals
+    en_ROM  <= '1' when (ce = '1' and ENABLE_PERIFERICO = '0' and prog_mode = '1' and rw_MEM = '0') else '0'; -- Enabled when programming mode is on and reading     
+
+    -- ROM
+    ROM: entity work.Memory 
+        generic map(
+            DATA_WIDTH => 16,
+            ADDR_WIDTH => 15,
+            IMAGE => ROM_IMAGE -- Assembly code (must be in same directory)
+        )
+        port map(
+            clk => clk_MEM,
+            wr  => rw_MEM,
+            en  => en_ROM,
+            address  => mem_address, 
+            data_in  => data_r8_out,
+            data_out => data_ROM_out    
+        );
+
     -- Port signals
     en_PORT <= '1' when (ce = '1' and ENABLE_PERIFERICO = '1' and ID_PERIFERICO = ADDR_PORT) else '0';   
         
