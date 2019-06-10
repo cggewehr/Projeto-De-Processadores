@@ -1120,7 +1120,7 @@ delayAfterSort:
     ldl r1, #3
     ldh r2, #0
     ldl r2, #4
-    syscall
+    ;syscall
     pop r2
     pop r1
 
@@ -1137,7 +1137,7 @@ ForçaExceçaoAdd:
     ldl r1, #3
     ldh r2, #0
     ldl r2, #4
-    syscall
+    ;syscall
     pop r2
     pop r1
 
@@ -1154,7 +1154,7 @@ ForçaExceçaoAddi:
     ldl r1, #3
     ldh r2, #0
     ldl r2, #4
-    syscall
+    ;syscall
     pop r2
     pop r1
 
@@ -1175,7 +1175,7 @@ ForçaExceçaoSub:
     ldl r1, #3
     ldh r2, #0
     ldl r2, #4
-    syscall
+    ;syscall
     pop r2
     pop r1
 
@@ -1192,15 +1192,14 @@ ForçaExceçaoSubi:
     ldl r1, #3
     ldh r2, #0
     ldl r2, #4
-    syscall
+    ;syscall
     pop r2
     pop r1
 
 ForçaExceçaoInstInv:
-    ldh r5, #00h
-    ldl r5, #0Ah
-    div r5, r0
-
+    ;CCCC
+    INVALID
+    halt
 ;   Delays for 4 ms
     push r1
     push r2
@@ -1208,7 +1207,7 @@ ForçaExceçaoInstInv:
     ldl r1, #3
     ldh r2, #0
     ldl r2, #4
-    syscall
+    ;syscall
     pop r2
     pop r1
 
