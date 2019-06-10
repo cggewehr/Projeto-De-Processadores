@@ -1113,13 +1113,13 @@ TX_ARRAY_FINAL_LOOP:
 
 delayAfterSort:
 
-;   Delays for 4 ms
+;   Delays for 100 ms
     push r1
     push r2
     ldh r1, #0
     ldl r1, #3
     ldh r2, #0
-    ldl r2, #4
+    ldl r2, #100
     syscall
     pop r2
     pop r1
@@ -1130,13 +1130,13 @@ ForçaExceçaoAdd:
     ldl r5, #FFh
     add r5, r5, r5
 
-;   Delays for 4 ms
+;   Delays for 100 ms
     push r1
     push r2
     ldh r1, #0
     ldl r1, #3
     ldh r2, #0
-    ldl r2, #4
+    ldl r2, #100
     syscall
     pop r2
     pop r1
@@ -1147,13 +1147,13 @@ ForçaExceçaoAddi:
     ldl r5, #FFh
     addi r5, #1
 
-;   Delays for 4 ms
+;   Delays for 100 ms
     push r1
     push r2
     ldh r1, #0
     ldl r1, #3
     ldh r2, #0
-    ldl r2, #4
+    ldl r2, #100
     syscall
     pop r2
     pop r1
@@ -1168,13 +1168,13 @@ ForçaExceçaoSub:
 
     sub r5, r4, r5
 
-;   Delays for 4 ms
+;   Delays for 100 ms
     push r1
     push r2
     ldh r1, #0
     ldl r1, #3
     ldh r2, #0
-    ldl r2, #4
+    ldl r2, #100
     syscall
     pop r2
     pop r1
@@ -1185,7 +1185,7 @@ ForçaExceçaoSubi:
     ldl r5, #00h
     subi r5, #1
 
-;   Delays for 4 ms
+;   Delays for 100 ms
     push r1
     push r2
     ldh r1, #0
@@ -1198,7 +1198,7 @@ ForçaExceçaoSubi:
 
 ForçaExceçaoInstInv:
     INVALID ;  Apenas no ARQ
-;   Delays for 4 ms
+;   Delays for 100 ms
     push r1
     push r2
     ldh r1, #0
@@ -1284,7 +1284,8 @@ stringNovaLinha:          db #10, #13, #0
 ;-------------------------------------------VARIAVEIS DE APLICAÇÃO-------------------------------------------
 
 ; Array para aplicação principal (Bubble Sort) de 50 elementos
-arraySort:                db #0050h, #0049h, #0048h, #0047h, #0046h, #0045h, #0044h, #0043h, #0042h, #0041h, #0040h, #0039h, #0038h, #0037h, #0036h, #0035h, #0034h, #0033h, #0032h, #0031h, #0030h, #0029h, #0028h, #0027h, #0026h, #0025h, #0024h, #0023h, #0022h, #0021h, #0020h, #0019h, #0018h, #0017h, #0016h, #0015h, #0014h, #0013h, #0012h, #0011h, #0010h, #0009h, #0008h, #0007h, #0006h, #0005h, #0004h, #0003h, #0002h, #0001h
+arraySort:                db #50, #49, #48, #47, #46, #45, #44, #43, #42, #41, #40, #39, #38, #37, #36, #35, #34, #33, #32, #31, #30, #29, #28, #27, #26, #25, #24, #23, #22, #21, #20, #19, #18, #17, #16, #15, #14, #13, #12, #11, #10, #9, #8, #7, #6, #5, #4, #3, #2, #1  
+;arraySort:                db #0050h, #0049h, #0048h, #0047h, #0046h, #0045h, #0044h, #0043h, #0042h, #0041h, #0040h, #0039h, #0038h, #0037h, #0036h, #0035h, #0034h, #0033h, #0032h, #0031h, #0030h, #0029h, #0028h, #0027h, #0026h, #0025h, #0024h, #0023h, #0022h, #0021h, #0020h, #0019h, #0018h, #0017h, #0016h, #0015h, #0014h, #0013h, #0012h, #0011h, #0010h, #0009h, #0008h, #0007h, #0006h, #0005h, #0004h, #0003h, #0002h, #0001h
 
 ; Tamanho do array p/ bubble sort (50 elementos)
 arraySortSize:            db #50
