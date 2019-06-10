@@ -1197,9 +1197,7 @@ ForçaExceçaoSubi:
     pop r1
 
 ForçaExceçaoInstInv:
-    ;CCCC
-    INVALID
-    halt
+    INVALID ;  Apenas no ARQ
 ;   Delays for 4 ms
     push r1
     push r2
