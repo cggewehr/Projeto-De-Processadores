@@ -667,6 +667,12 @@ PrintString: ; Transmite por UART uma string. Espera endereço da string a ser e
 
 PrintStringReturn:
 
+    ldh r2, #stringNovaLinha
+    ldl r2, #stringNovaLinha
+    
+;   Sends '/n' and '/l'
+    jsrd #PrintString
+
     pop r5
     pop r3
     pop r1
@@ -1027,8 +1033,8 @@ delayBeforeSort:
     ldh r1, #0
     ldl r1, #3
     ldh r2, #0
-    ldl r2, #4
-    ;syscall
+    ldl r2, #100
+    syscall
     pop r2
     pop r1
 
@@ -1191,7 +1197,7 @@ ForçaExceçaoSubi:
     ldh r1, #0
     ldl r1, #3
     ldh r2, #0
-    ldl r2, #4
+    ldl r2, #100
     syscall
     pop r2
     pop r1
@@ -1204,7 +1210,7 @@ ForçaExceçaoInstInv:
     ldh r1, #0
     ldl r1, #3
     ldh r2, #0
-    ldl r2, #4
+    ldl r2, #100
     syscall
     pop r2
     pop r1
