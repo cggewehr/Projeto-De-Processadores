@@ -36,23 +36,24 @@ architecture behavioral of R8_uC is
     signal data_PORT, data_ROM_out, data_RAM_out    : std_logic_vector(15 downto 0);  -- Peripherals/Memory interface
     signal data_r8_in, data_r8_out, address         : std_logic_vector(15 downto 0);  -- Processor interface
 
+    signal rst_R8                                   : std_logic;
+    signal prog_mode_change_flag                    : std_logic;
+
     alias address_PORT                              : std_logic_vector(1 downto 0) is address(1 downto 0);   -- Address for I/O Port registers ( Data, Config, Enable or InterruptEnable)
     alias mem_address                               : std_logic_vector(14 downto 0)is address(14 downto 0);  -- Memory (RAM and ROM) address space (15th bit is reserved for I/O operations (I/O port, PIC, UART)
     alias ID_PERIFERICO                             : std_logic_vector(3 downto 0) is address(7 downto  4);  -- Peripheral ID
     alias REG_PERIFERICO                            : std_logic_vector(3 downto 0) is address(3 downto  0);  -- Peripheral Address
     alias ENABLE_PERIFERICO                         : std_logic is address(15); 							 -- Perfipheral Enable (I/O operation to be carried out on peripheral)
-
-    alias address_PIC                               : std_logic_vector(1 downto 0) is address(1 downto 0);
 	
     -- Tristate for bidirectional bus between processor and I/O port
 	signal TRISTATE_PORT_EN   : std_logic;
     signal TRISTATE_PIC_EN    : std_logic;
 	
-	 -- Interruption Interface
+	-- Interruption Interface
 	signal irq_R8             : std_logic;
 	signal irq_PORT           : std_logic_vector(15 downto 0);
 	
-	 -- Pic signals
+	-- Pic signals
 	signal en_pic             : std_logic;
 	signal intr_pic           : std_logic;
 	signal irq_pic            : std_logic_vector(7 downto 0);
@@ -82,12 +83,37 @@ begin
                   data_out_UART_RX        when ENABLE_PERIFERICO = '1' and ID_PERIFERICO = ADDR_UART_RX else
                   data_ROM_out            when ENABLE_PERIFERICO = '0' and prog_mode = '1'              else
                   data_RAM_out;
+                      
+    rst_R8 <= '1' when rst = '1' or prog_mode_change_flag = '1' else '0';
 
+    R8_RESET_HANDLER: process(clk, rst)
+        variable prog_mode_current, prog_mode_prev : std_logic;               
+    begin
+        
+        if rst = '1' then
+            
+            prog_mode_current := '0';
+            prog_mode_prev := '0';
+
+        elsif rising_edge(clk) then
+            
+            prog_mode_prev := prog_mode_current;
+            prog_mode_current := prog_mode; -- From entity interface
+            
+            if prog_mode_current /= prog_mode_prev then -- Switch flipped, reset processor (start transfering program to RAM through UART or executing code in RAM)
+                prog_mode_change_flag <= '1';
+            else
+                prog_mode_change_flag <= '0';
+            end if;
+                
+        end if;
+    end process;
+                      
     -- Processor
     R8Processor: entity work.R8 
         port map(
             clk      => clk,
-            rst      => rst,
+            rst      => rst_R8,
 			irq      => intr_PIC,
             address  => address,
             data_out => data_r8_out,
