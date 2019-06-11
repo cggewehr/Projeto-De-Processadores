@@ -1,0 +1,7 @@
+///////////////////////////////////////////////////////////////////////////////
+net "clock"     loc = V10; // 100 MHz board clock
+net "reset"     loc = T5;  // Asynchronous reset (Switch 7, left-most)
+net "uart_tx"   loc = N18; // Serial transmitter 
+net "uart_rx"   loc = N17; // Serial receiver
+net "prog_mode" loc = T10; // Processor mode selector (Programming RAM or executing code on RAM)
+///////////////////////////////////////////////////////////////////////////////

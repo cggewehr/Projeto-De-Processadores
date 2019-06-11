@@ -43,7 +43,6 @@ architecture behavioral of R8_uC is
     alias ENABLE_PERIFERICO                         : std_logic is address(15); 							 -- Perfipheral Enable (I/O operation to be carried out on peripheral)
 
     alias address_PIC                               : std_logic_vector(1 downto 0) is address(1 downto 0);
-    signal data_PIC                                 : std_logic_vector(7 downto 0);
 	
     -- Tristate for bidirectional bus between processor and I/O port
 	signal TRISTATE_PORT_EN   : std_logic;
@@ -57,14 +56,19 @@ architecture behavioral of R8_uC is
 	signal en_pic             : std_logic;
 	signal intr_pic           : std_logic;
 	signal irq_pic            : std_logic_vector(7 downto 0);
+    signal data_PIC           : std_logic_vector(7 downto 0);
 
     -- UART TX signals
+    signal en_UART_TX         : std_logic;
+    signal ce_UART_TX         : std_logic;
     signal data_av_UART_TX    : std_logic;
     signal data_in_UART_TX    : std_logic_vector(15 downto 0);
     signal data_out_UART_TX   : std_logic_vector(15 downto 0);
     signal ready_UART_TX      : std_logic;
 
     -- UART RX signal
+    signal en_UART_RX         : std_logic;
+    signal ce_UART_RX         : std_logic;
     signal data_av_UART_RX    : std_logic;
     signal data_in_UART_RX    : std_logic_vector(15 downto 0);
     signal data_out_UART_RX   : std_logic_vector(15 downto 0);
@@ -95,9 +99,9 @@ begin
     -- RAM signals
     clk_MEM <= not clk;   -- Makes memory sensitive to falling edge
     rw_MEM  <= not rw;    -- Writes when 1, Reads when 0
-    en_RAM  <= '1' when (ce = '1' and ENABLE_PERIFERICO = '0' and (prog_mode = '0' or (prog_mode = '1' and rw_MEM = '1') else '0'; -- Enabled when programming mode is off, or when programming mode is on and storing (stores on RAM)    
+    en_RAM  <= '1' when (ce = '1' and ENABLE_PERIFERICO = '0' and (prog_mode = '0' or (prog_mode = '1' and rw_MEM = '1'))) else '0'; -- Enabled when programming mode is off, or when programming mode is on and storing (stores on RAM)    
     
-    -- RAM
+    -- RAM (software programmable)
     RAM: entity work.Memory 
         generic map(
             DATA_WIDTH => 16,
@@ -114,9 +118,9 @@ begin
         );
 
     -- ROM signals
-    en_ROM  <= '1' when (ce = '1' and ENABLE_PERIFERICO = '0' and prog_mode = '1' and rw_MEM = '0') else '0'; -- Enabled when programming mode is on and reading     
+    en_ROM <= '1' when (ce = '1' and ENABLE_PERIFERICO = '0' and prog_mode = '1' and rw_MEM = '0') else '0'; -- Enabled when programming mode is on and reading     
 
-    -- ROM
+    -- ROM (contains RAM programming routine)
     ROM: entity work.Memory 
         generic map(
             DATA_WIDTH => 16,
@@ -184,15 +188,16 @@ begin
     -- Peripheral Interrupt Controller:
     PIC: entity work.InterruptController
         generic map(
-            IRQ_ID_ADDR    => "00",
-            INT_ACK_ADDR   => "01",
-            MASK_ADDR      => "10"
+            IRQ_ID_ADDR    => "0000",
+            INT_ACK_ADDR   => "0001",
+            MASK_ADDR      => "0010",
+            IRQ_REG_ADDR   => "0011"
         )   
         port map(
             clk       => clk,
             rst       => rst,
             data      => data_PIC,
-            address   => address_PIC,
+            address   => REG_PERIFERICO,
             rw        => rw_MEM,         -- 0: read; 1: write
             ce        => en_PIC,
             intr      => intr_PIC,       -- To processor
@@ -200,10 +205,10 @@ begin
         );
 
     -- Sinais UART TX
-    data_in_UART_TX <= data_r8_out(7 downto 0);
-    data_av_UART_TX <= '1' when rw = '0' and ID_PERIFERICO = ADDR_UART_TX and REG_PERIFERICO = TX_DATA_ADDR and ENABLE_PERIFERICO = '1' else '0';
     en_UART_TX <= '1' when (ce = '1' and ENABLE_PERIFERICO = '1' and ID_PERIFERICO = ADDR_UART_TX) else '0';
-
+    data_in_UART_TX <= data_r8_out;                                                      --(TX_DATA_ADDR)
+    data_av_UART_TX <= '1' when rw = '0' and ID_PERIFERICO = ADDR_UART_TX and REG_PERIFERICO = "0000" and ENABLE_PERIFERICO = '1' else '0';
+                                                                                         
     -- Transmissor Serial
     TX: entity work.UART_TX
         generic map(
@@ -217,6 +222,7 @@ begin
             ce       => ce_UART_TX,
             rw       => rw_MEM,
             tx       => uart_tx,
+            address  => REG_PERIFERICO,
             data_in  => data_in_UART_TX,
             data_out => data_out_UART_TX,
             data_av  => data_av_UART_TX,
@@ -239,6 +245,7 @@ begin
             ce       => ce_UART_RX,
             rw       => rw_MEM,
             rx       => uart_rx,
+            address  => REG_PERIFERICO,
             data_in  => data_in_UART_RX,
             data_out => data_out_UART_RX,
             data_av  => data_av_UART_RX

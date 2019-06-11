@@ -10,6 +10,7 @@
 
 library ieee;
 use IEEE.std_logic_1164.all;
+use IEEE.std_logic_unsigned.all;
 use IEEE.numeric_std.all;
 
 entity UART_RX is
@@ -22,17 +23,17 @@ entity UART_RX is
         rst         : in std_logic;
         ce          : in std_logic; -- Control Read/Write on registers (doesnt affect serial communication)
         rw          : in std_logic; -- 0: read; 1: write
-        rx          : in std_logic;
+        rx          : in std_logic; -- Serial data in
         address     : in std_logic_vector(3 downto 0); 
         data_in     : in std_logic_vector(15 downto 0);
         data_out    : out std_logic_vector(15 downto 0);
-        data_av     : out std_logic
+        data_av     : out std_logic -- When '1', module signals that new data is available
     );
 end UART_RX;
 
 architecture behavioral of UART_RX is
 
-     signal clkCounter: integer range 0 to RATE_FREQ_BAUD;
+     signal clkCounter: integer;
      signal bitCounter: integer range 0 to 8;
      signal sampling: std_logic;
          
@@ -41,7 +42,7 @@ architecture behavioral of UART_RX is
      
      signal rx_data: std_logic_vector(7 downto 0);
 
-     signal RATE_FREQ_BAUD: std_logic_vector(15 downto 0);
+     signal RATE_FREQ_BAUD: integer;
 
      -- Frequence entering the clk input in Hz / Baud rate (bits per sencond)
      -- Considering clk = 100MHz
@@ -62,7 +63,7 @@ begin
             RATE_FREQ_BAUD <= 0;
         elsif rising_edge(clk) then
             if address = RATE_FREQ_BAUD_ADDR and ce = '1' and rw = '1' then
-                RATE_FREQ_BAUD <= data_in;
+                RATE_FREQ_BAUD <= to_integer(unsigned(data_in));
             end if;
         end if;
     end process;
@@ -135,8 +136,8 @@ begin
     
     data_av <= sampling when currentState = STOP_BIT else '0';
 
-    data_out <= x"00" & rx_data when address = RX_DATA_ADDR        and ce = '1' and rw = '0' else
-                RATE_FREQ_BAUD  when address = RATE_FREQ_BAUD_ADDR and ce = '1' and rw = '0' else '0';
+    data_out <= x"00" & rx_data                              when address = RX_DATA_ADDR        and ce = '1' and rw = '0' else
+                std_logic_vector(to_unsigned(RATE_FREQ_BAUD, data_out'length)) when address = RATE_FREQ_BAUD_ADDR and ce = '1' and rw = '0' else (others=>'0');
     
 end behavioral;
 

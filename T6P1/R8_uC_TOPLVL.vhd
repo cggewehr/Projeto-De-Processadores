@@ -9,28 +9,20 @@ use IEEE.std_logic_1164.all;
 
 entity R8_uC_TOPLVL is
 	port (
-		clock      : in std_logic; -- 100MHz board clock
-		reset      : in std_logic;  -- Asynchronous reset
-		port_io_uc : inout std_logic_vector(15 downto 0);
-		uart_tx    : out std_logic
+		clock      : in std_logic;                        -- 100MHz board clock (Pin V10)
+		reset      : in std_logic;                        -- Asynchronous reset (Board reset button, Switch 7 (left-most), pin T5
+		port_io_uc : inout std_logic_vector(15 downto 0); -- OPEN (Must be configured according to application)
+		uart_tx    : out std_logic;                       -- Serial transmitter (Pin N17)
+        uart_rx    : in std_logic;                        -- Serial receiver (Pin N18)
+        prog_mode  : in std_logic                         -- Processor mode selector (1 for programming RAM, 0 for executing code on RAM, Switch 0 (right-most), pin T10)
 	);
 end R8_uC_TOPLVL;
 
 architecture Behavioural of R8_uC_TOPLVL is
 
-    --type DataArray is array (natural range <>) of std_logic_vector(7 downto 0);
-
     -- Basic signals
 	signal clk_2, clk_4               : std_logic; -- 50MHz clock for uC
 	signal reset_sync                 : std_logic; -- Synchronous reset
-
-	-- Microcontroller signals
-	--signal port_io_uC                 : std_logic_vector(15 downto 0);
-    --signal uart_tx                    : std_logic;
-
-    --UART RX signals
-    signal data_out_rx                : std_logic_vector(7 downto 0);
-    signal data_av_rx                 : std_logic;
 
 begin
 
@@ -50,32 +42,23 @@ begin
             rst_out => reset_sync
         );
 
-    -- R8 Microcontroller (Processor, Memory, I/O Port and PIC)
+    -- R8 Microcontroller (R8 Processor, Memory, I/O Port, PIC, UART TX and RX)
     Microcontroller: entity work.R8_uC
     	generic map (
-    	    ASSEMBLY_FILE => "AssemblyT5P2_BRAM.txt",
+    	    RAM_IMAGE     => "AssemblyT5P2_RAM_BRAM.txt",
+    	    ROM_IMAGE     => "AssemblyT5P2_ROM_BRAM.txt",
             ADDR_PORT     => "0000",
             ADDR_PIC      => "1111",
-            ADDR_UART_TX  => "1000"
+            ADDR_UART_TX  => "1000",
+            ADDR_UART_RX  => "1010"
     	)
 		port map (
-    	    clk     => clk_2,
-    		rst     => reset_sync,
-    		port_io => port_io_uC,
-            uart_tx => uart_tx
+    	    clk       => clk_2,
+    		rst       => reset_sync,
+    		port_io   => port_io_uC,
+            uart_tx   => uart_tx,
+            uart_rx   => uart_rx,
+            prog_mode => prog_mode
     	);
 
-    -- Serial Receiver
---    UART_RX: entity work.UART_RX
---        generic map(
---            RATE_FREQ_BAUD  => 5208 -- 9600 baud @ 50 MHz
---        )
---        port map(
---            clk      => clk_2,
---            rst      => reset_sync,
---            rx       => uart_tx,
---            data_out => data_out_rx,
---            data_av  => data_av_rx
---        );
-	
 end architecture Behavioural;

@@ -18,16 +18,16 @@ use IEEE.numeric_std.all;
 
 entity InterruptController  is
     generic (
-        IRQ_ID_ADDR  : std_logic_vector(1 downto 0); -- Interruption request number (vector)
-        INT_ACK_ADDR : std_logic_vector(1 downto 0); -- Interrupt acknowledgement address
-        MASK_ADDR    : std_logic_vector(1 downto 0); -- Mask register address
-        IRQ_REG_ADDR : std_logic_vector(1 downto 0)  -- Interruption request register
+        IRQ_ID_ADDR  : std_logic_vector(3 downto 0); -- Interruption request number (vector)
+        INT_ACK_ADDR : std_logic_vector(3 downto 0); -- Interrupt acknowledgement address
+        MASK_ADDR    : std_logic_vector(3 downto 0); -- Mask register address
+        IRQ_REG_ADDR : std_logic_vector(3 downto 0)  -- Interruption request register
     );
     port (  
         clk          : in std_logic;
         rst          : in std_logic; 
         data         : inout std_logic_vector (7 downto 0); -- Bidirectional 
-        address      : in std_logic_vector (1 downto 0);
+        address      : in std_logic_vector (3 downto 0);
         rw           : in std_logic;                        -- rw = 0: Read; rw = 1: Write
         ce           : in std_logic;
         intr         : out std_logic;                       -- To processor

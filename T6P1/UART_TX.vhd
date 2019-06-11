@@ -10,6 +10,7 @@
 
 library ieee;
 use IEEE.std_logic_1164.all;
+use IEEE.std_logic_unsigned.all;
 use IEEE.numeric_std.all;
 
 entity UART_TX is
@@ -21,22 +22,28 @@ entity UART_TX is
     port(
         clk         : in std_logic;
         rst         : in std_logic;
-        tx          : out std_logic;
+        ce          : in std_logic;  -- Control Read/Write on registers (doesnt affect serial communication)
+        rw          : in std_logic;  -- 0: read; 1: write
+        tx          : out std_logic; -- Serial data out
+        address     : in std_logic_vector(3 downto 0);
         data_in     : in std_logic_vector(15 downto 0);
+        data_out    : out std_logic_vector(15 downto 0);
         data_av     : in std_logic;
-        ready       : out std_logic     -- When '1', module is available to send a new byte
+        ready       : out std_logic  -- When '1', module is available to send a new byte
     );
 end UART_TX;
 
 architecture behavioral of UART_TX is
 
-     signal clkCounter: integer range 0 to RATE_FREQ_BAUD;
+     signal clkCounter: integer;
      signal bitCounter: integer range 0 to 8;
         
      type State is (IDLE, START_BIT, DATA_BITS, STOP_BIT);
      signal currentState: State;
      
      signal tx_data: std_logic_vector(7 downto 0);
+     signal ready_temp: std_logic;
+     signal RATE_FREQ_BAUD: std_logic_vector(15 downto 0);
 
      -- Frequence entering the clk input in Hz / Baud rate (bits per sencond)
      -- Considering clk = 100MHz
@@ -54,7 +61,7 @@ begin
     REG_RATE_FREQ_BAUD: process(clk, rst)
     begin
         if rst = '1' then
-            RATE_FREQ_BAUD <= 0;
+            RATE_FREQ_BAUD <= (others=>'0');
         elsif rising_edge(clk) then
             if address = RATE_FREQ_BAUD_ADDR and ce = '1' and rw = '1' then
                 RATE_FREQ_BAUD <= data_in;
@@ -63,7 +70,7 @@ begin
     end process;
 
     -- CLK_COUNTER
-    process(clk,rst)
+    CLK_COUNTER: process(clk,rst)
     begin
         if rst = '1' then
             clkCounter <= 0;
@@ -132,11 +139,12 @@ begin
             tx_data(0) when currentState = DATA_BITS else
             '1';    -- IDLE, STOP_BIT
             
-    ready <= '1' when currentState = IDLE else '0';
-   
-    data_out <= x"00" & tx_data           when address = TX_DATA_ADDR        and ce = '1' and rw = '0' else
-                RATE_FREQ_BAUD            when address = RATE_FREQ_BAUD_ADDR and ce = '1' and rw = '0' else 
-                "000000000000000" & ready when address = READY_ADDR          and ce = '1' and rw = '0' else '0';
+    ready_temp <= '1' when currentState = IDLE else '0';
+    ready <= ready_temp;
+        
+    data_out <= x"00" & tx_data                when address = TX_DATA_ADDR        and ce = '1' and rw = '0' else
+                RATE_FREQ_BAUD                 when address = RATE_FREQ_BAUD_ADDR and ce = '1' and rw = '0' else 
+                "000000000000000" & ready_temp when address = READY_ADDR          and ce = '1' and rw = '0' else (others=>'0');
 
 
 end behavioral;
