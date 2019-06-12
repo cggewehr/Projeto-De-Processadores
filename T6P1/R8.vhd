@@ -489,11 +489,13 @@ begin
     			regSP <= regSP + 1;
     			regPC <= data_in;
 
-                if trapCount <= 1 then
-    			    interruptFlag <= '0';
+                if trapCount > 0 then
+                    trapCount <= trapCount - 1;  -- Decreases trap stack
                 end if;
-
-                trapCount <= trapCount - 1;
+                                                             
+                if trapCount <= 1 then
+                    interruptFlag <= '0';        -- Enables I/O interruptions again if trap stack is = 0 (accounting for asynchronous decrease made above)
+                end if;
 
     			currentState <= Sfetch;
 

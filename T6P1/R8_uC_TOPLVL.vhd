@@ -21,7 +21,7 @@ end R8_uC_TOPLVL;
 architecture Behavioural of R8_uC_TOPLVL is
 
     -- Basic signals
-	signal clk_2, clk_4               : std_logic; -- 50MHz clock for uC
+	signal clk_2, clk_4               : std_logic; -- 50MHz clock for uC and 25 MHz clock (unused)
 	signal reset_sync                 : std_logic; -- Synchronous reset
 
 begin
@@ -45,8 +45,8 @@ begin
     -- R8 Microcontroller (R8 Processor, Memory, I/O Port, PIC, UART TX and RX)
     Microcontroller: entity work.R8_uC
     	generic map (
-    	    RAM_IMAGE     => "AssemblyT5P2_RAM_BRAM.txt",
-    	    ROM_IMAGE     => "AssemblyT5P2_ROM_BRAM.txt",
+    	    RAM_IMAGE     => "App1_BRAM.txt",
+    	    ROM_IMAGE     => "AssemblyT6P1_ROM_BRAM.txt",
             ADDR_PORT     => "0000",
             ADDR_PIC      => "1111",
             ADDR_UART_TX  => "1000",
