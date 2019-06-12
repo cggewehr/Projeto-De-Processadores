@@ -53,7 +53,7 @@ begin
     -- R8 Microcontroller (Processor, Memory, I/O Port and PIC)
     Microcontroller: entity work.R8_uC
     	generic map (
-    	    ASSEMBLY_FILE => "AssemblyT5P2_BRAM.txt",
+    	    ASSEMBLY_FILE => "NovoAssemblyT3P2_BRAM.txt",
             ADDR_PORT     => "0000",
             ADDR_PIC      => "1111",
             ADDR_UART_TX  => "1000"
