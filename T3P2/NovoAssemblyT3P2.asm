@@ -390,7 +390,7 @@ Delay2ms:
     ldh r4, #13h
     ldl r4, #88h
   
-  loopDentro:        ; Repete 2500 vezes, 20 ciclos
+  loop:              ; Repete 2500 vezes, 20 ciclos
     subi r4, #1      ;  4 ciclos
     nop              ;  7 ciclos
     nop              ; 10 ciclos

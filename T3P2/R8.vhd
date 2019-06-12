@@ -389,7 +389,7 @@ begin
     -- SINAIS MEMORIA 
     address <= regPC when currentState = Sfetch else
                --outALU when currentState = Sld or currentState = Sst or currentState = Spop or currentState = Srts else
-               regALU when currentState = Sld or currentState = Sst or currentState = Spop or currentState = Srts or currentState = Spopf or Srti else
+               regALU when currentState = Sld or currentState = Sst or currentState = Spop or currentState = Srts or currentState = Spopf or currentState = Srti else
                regSP; -- Pra dar salto em uma subrotina e o PUSH (Spushf, Spush, Sitr)
                     
     data_out <= regBank(to_integer(unsigned(REGTARGET))) when currentState = Sst and rst = '0' else

@@ -89,7 +89,7 @@ begin
         generic map(
             DATA_WIDTH => 16,
             ADDR_WIDTH => 15,
-            IMAGE => "AssemblyT3P2_BRAM.txt" -- Arquivo assembly
+            IMAGE => "NovoAssemblyT3P2_BRAM.txt" -- Arquivo assembly
         )
         port map(
             clk => clk_MEM,
