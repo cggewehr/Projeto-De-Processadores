@@ -60,7 +60,6 @@ architecture behavioral of R8_uC is
     signal data_PIC           : std_logic_vector(7 downto 0);
 
     -- UART TX signals
-    signal en_UART_TX         : std_logic;
     signal ce_UART_TX         : std_logic;
     signal data_av_UART_TX    : std_logic;
     signal data_in_UART_TX    : std_logic_vector(15 downto 0);
@@ -68,7 +67,6 @@ architecture behavioral of R8_uC is
     signal ready_UART_TX      : std_logic;
 
     -- UART RX signal
-    signal en_UART_RX         : std_logic;
     signal ce_UART_RX         : std_logic;
     signal data_av_UART_RX    : std_logic;
     signal data_in_UART_RX    : std_logic_vector(15 downto 0);
@@ -232,7 +230,7 @@ begin
         );
 
     -- Sinais UART TX
-    en_UART_TX <= '1' when (ce = '1' and ENABLE_PERIFERICO = '1' and ID_PERIFERICO = ADDR_UART_TX) else '0';
+    ce_UART_TX <= '1' when (ce = '1' and ENABLE_PERIFERICO = '1' and ID_PERIFERICO = ADDR_UART_TX) else '0';
     data_in_UART_TX <= data_r8_out;                                                      --(TX_DATA_ADDR)
     data_av_UART_TX <= '1' when rw = '0' and ID_PERIFERICO = ADDR_UART_TX and REG_PERIFERICO = "0000" and ENABLE_PERIFERICO = '1' else '0';
                                                                                          
@@ -258,7 +256,7 @@ begin
 
     -- Sinais UART RX
     data_in_UART_RX <= data_r8_out;
-    en_UART_RX <= '1' when (ce = '1' and ENABLE_PERIFERICO = '1' and ID_PERIFERICO = ADDR_UART_RX) else '0';
+    ce_UART_RX <= '1' when (ce = '1' and ENABLE_PERIFERICO = '1' and ID_PERIFERICO = ADDR_UART_RX) else '0';
 
     -- Receptor Serial
     RX: entity work.UART_RX
