@@ -29,7 +29,7 @@ begin
     clk <= not clk after 5 ns; -- 100 MHz
     rst <= '1', '0' after 15 ns;
 	port_io <= "00ZZZZZZZZZZZZZZ", "01ZZZZZZZZZZZZZZ" after 9ms, "00ZZZZZZZZZZZZZZ" after 18ms;
-    prog_mode <= '0';
+    prog_mode <= '1', '0' after 11 us;
 
 --
 --    -- UART RX

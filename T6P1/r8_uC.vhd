@@ -112,14 +112,15 @@ begin
     -- Processor
     R8Processor: entity work.R8 
         port map(
-            clk      => clk,
-            rst      => rst_R8,
-			irq      => intr_PIC,
-            address  => address,
-            data_out => data_r8_out,
-            data_in  => data_r8_in,
-            ce       => ce,
-            rw       => rw                 -- Write : 0, Read : 1
+            clk       => clk,
+            rst       => rst_R8,
+			irq       => intr_PIC,
+            prog_mode => prog_mode,
+            address   => address,
+            data_out  => data_r8_out,
+            data_in   => data_r8_in,
+            ce        => ce,
+            rw        => rw                 -- Write : 0, Read : 1
         );
 		
     -- RAM signals

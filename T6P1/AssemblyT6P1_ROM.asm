@@ -119,12 +119,6 @@
     st r5, r0, r1
 
 ;   Inicializa registradores
-    
-;   r1 <= &irqREG
-    ldh r1, #arrayPIC
-    ldl r1, #arrayPIC
-    addi r1, #3
-    ld r1, r0, r1
 
 ;   r6 <= &intACK    
     ldh r1, #arrayPIC
@@ -132,12 +126,24 @@
     addi r1, #1
     ld r6, r0, r1
     
-;   Line and Offset start @ 0 (first memory position, save new byte on lower part)
+;   r1 <= &irqREG
+    ldh r1, #arrayPIC
+    ldl r1, #arrayPIC
+    addi r1, #3
+    ld r1, r0, r1
+    
+;   Line and Offset start @ 0 (first RAM position, save new byte on lower part)
+    xor r0, r0, r0
     xor r2, r2, r2
     xor r3, r3, r3
     
+;   r7 <= "xxxx_xxxx_0000_0010" (irq(1) mask)
     ldh r7, #0
     ldl r7, #2
+    
+;   r8 <= "0000_0000_1111_1111" (mask for erasing higher part)
+    ldl r8, #0
+    ldh r8, #FFh
 
     jmpd #main
 
@@ -155,47 +161,45 @@ UartRxDataAVPollingLoop:
     ld r5, r0, r1
     and r5, r7, r5
 
+;   if irq(1) = 1 (UART RX DATA AV), transfer UART RX data to RAM, else, waits for data to be available
     jmpzd #UartRxDataAVPollingLoop
+    jmpd #TransferByte
 
 TransferByte:
 ; Register Table:
 ; r1 = &irqREG
-; r2 = Current Line Offset
-; r3 = Current Line
-; r4 = Current Byte (being transfered)
-; r5 = Completed Instruction (byte being saved on higher part)
+; r2 = Current RAM position Offset (0 signals byte being transfered to be saved on 0-7, 1 signals byte to be saved on 8-15)
+; r3 = Current RAM position (RAM pointer)
+; r4 = Current Byte (being transfered from UART RX)
+; r5 = Completed Instruction (byte from UART RX being saved on higher part of current RAM position)
 ; r6 = &IntACK
 ; r7 = Irq(1) Mask
-    
-    xor r0, r0, r0
-    xor r2, r2, r2
-    xor r4, r4, r4
-    xor r5, r5, r5
-    
+; r8 = Offset mask
+
 ;   r4 <= Nova parte da instrução
     ldh r4, #arrayUART_RX
     ldl r4, #arrayUART_RX
-    ld r4, r0, r4
-    ld r4, r0, r4
+    ld r4, r0, r4 ; r4 <= &RX_DATA
+    ld r4, r0, r4 ; r4 <= RX_DATA
 
     add r2, r0, r2 ; Gera flag
     jmpzd #appTransferSaveOnLower
     jmpd #appTransferSaveOnHigher
-    
+
   AppTransferSaveOnLower:
-  
-;   App[r3] <= Nova parte da instrução
-    st r4, r3, r1
-    
-;   Proximo byte a ser salvo na parte alta
+
+;   RAM[r3] <= Nova parte da instrução (salva byte vindo de UART RX na parte baixa)
+    st r4, r0, r3
+
+;   Proximo byte a ser salvo na parte alta 
     ldl r2, #1
-   
+
 ;   Retorna
     jmpd #UartRXDataAVACK
 
   AppTransferSaveOnHigher:
-  
-;   Shifta byte atual até sua posição
+
+;   Shifta byte atual até sua posição (a ser salvo na parte alta)
     sl0 r4, r4 ; MSB @ 8
     sl0 r4, r4 ; MSB @ 9
     sl0 r4, r4 ; MSB @ 10
@@ -204,25 +208,28 @@ TransferByte:
     sl0 r4, r4 ; MSB @ 13
     sl0 r4, r4 ; MSB @ 14
     sl0 r4, r4 ; MSB @ 15
-    
+
 ;   Carrega byte atual (ja está na memoria, na parte baixa)
-    ld r5, r1, r3
-    
-;   Combina os dois bytes
+    ld r5, r0, r3 ; r5 <= RAM[Current RAM position]
+
+;   Apaga parte alta do byte atual
+    and r5, r5, r8 ; r5 <= "00000000_(Byte Atual)"
+
+;   Combina os dois bytes (Atual e novo (UART RX))
     xor r5, r4, r5
-    
-;   Salva a instrução pronta
-    st r5, r3, r1
-    
-;   Incrementa Ponteiro
+
+;   Salva a instrução pronta ( RAM[r3] <= byte atual + novo )
+    st r5, r0, r3
+
+;   Incrementa Ponteiro da RAM
     addi r3, #1
 
 ;   Proximo byte a ser salvo na parte baixa
-    xor r2, r2, r2  
-    
+    xor r2, r2, r2 ; r2 <= 0
+
 ;   Retorna
     jmpd #UartRXDataAVACK 
-    
+
   UartRXDataAVACK:   
 
 ;   intACK <= 1 (UART RX)

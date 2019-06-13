@@ -22,20 +22,23 @@ use IEEE.numeric_std.all;
 entity R8 is
     port(
 		-- 50 MHz clock from DCM
-        clk      : in std_logic;
+        clk       : in std_logic;
 
 		-- From reset synchronizer
-        rst      : in std_logic;
+        rst       : in std_logic;
 
-		-- Flag de interrupção por periferico
-        irq      : in std_logic;
+		-- Peripheral interrupt flag
+        irq       : in std_logic;
+        
+        -- RAM programming flag
+        prog_mode : in std_logic;
 
         -- Memory interface
-        data_in  : in std_logic_vector(15 downto 0);
-        data_out : out std_logic_vector(15 downto 0);
-        address  : out std_logic_vector(15 downto 0);
-        ce       : out std_logic;
-        rw       : out std_logic
+        data_in   : in std_logic_vector(15 downto 0);
+        data_out  : out std_logic_vector(15 downto 0);
+        address   : out std_logic_vector(15 downto 0);
+        ce        : out std_logic;
+        rw        : out std_logic
     );
 end R8;
 
@@ -631,6 +634,6 @@ begin
 
     rw <= '1' when (currentState = Sfetch or currentState = Spop or currentState = Srts or currentState = Sld or currentState = Spopf or currentState = Srti) else '0';
 
-    nullPointerExceptionFlag <= '1' when ( (currentState = Sld or currentState = Sst) and regALU = 0 ) else '0';
+    nullPointerExceptionFlag <= '1' when ( (currentState = Sld or currentState = Sst) and regALU = 0 and prog_mode = '0') else '0'; -- Active when Loading/Storing into/to first memory position in execution mode
 
 end Behavioural;
