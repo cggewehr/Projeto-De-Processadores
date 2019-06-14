@@ -629,8 +629,8 @@ begin
                 regPC when currentState = Strap and rst = '0' else
                 (others=>'0');
 
-    ce <= '1' when rst = '0' and ( (currentState = Sld and regALU /= 0) or currentState = Ssbrt or currentState = Spush or (currentState = Sst and regALU /= 0) or currentState = Sfetch or currentState = Srts or currentState = Spop or
-								  currentState = Spopf or currentState = Spushf or currentState = Sitr or currentState = Strap or currentState = Srti) else '0';
+    ce <= '1' when rst = '0' and ( ( currentState = Sld and ( ( regALU /= 0 and prog_mode = '0' ) or ( prog_mode = '1' ) ) ) or currentState = Ssbrt or currentState = Spush or 
+      ( currentState = Sst and ( ( regALU /= 0 and prog_mode = '0' ) or ( prog_mode = '1' ) ) ) or currentState = Sfetch or currentState = Srts or currentState = Spop or currentState = Spopf or currentState = Spushf or currentState = Sitr or currentState = Strap or currentState = Srti ) else '0';
 
     rw <= '1' when (currentState = Sfetch or currentState = Spop or currentState = Srts or currentState = Sld or currentState = Spopf or currentState = Srti) else '0';
 

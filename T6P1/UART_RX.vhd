@@ -42,7 +42,7 @@ architecture behavioral of UART_RX is
      
      signal rx_data: std_logic_vector(7 downto 0);
 
-     signal RATE_FREQ_BAUD: integer;
+     signal RATE_FREQ_BAUD: std_logic_vector(15 downto 0); --integer;
 
      -- Frequence entering the clk input in Hz / Baud rate (bits per sencond)
      -- Considering clk = 100MHz
@@ -60,10 +60,10 @@ begin
     REG_RATE_FREQ_BAUD: process(clk, rst)
     begin
         if rst = '1' then
-            RATE_FREQ_BAUD <= 0;
+            RATE_FREQ_BAUD <= (others=>'0');
         elsif rising_edge(clk) then
             if address = RATE_FREQ_BAUD_ADDR and ce = '1' and rw = '1' then
-                RATE_FREQ_BAUD <= to_integer(unsigned(data_in));
+                RATE_FREQ_BAUD <= data_in;
             end if;
         end if;
     end process;
@@ -86,7 +86,7 @@ begin
          end if;
     end process;
     
-    sampling <= '1' when clkCounter = RATE_FREQ_BAUD/2 else '0';  
+    sampling <= '1' when clkCounter = to_integer(unsigned(RATE_FREQ_BAUD))/2 else '0';  
     
     process(clk,rst)
     begin
@@ -136,8 +136,8 @@ begin
     
     data_av <= sampling when currentState = STOP_BIT else '0';
 
-    data_out <= x"00" & rx_data                              when address = RX_DATA_ADDR        and ce = '1' and rw = '0' else
-                std_logic_vector(to_unsigned(RATE_FREQ_BAUD, data_out'length)) when address = RATE_FREQ_BAUD_ADDR and ce = '1' and rw = '0' else (others=>'0');
+    data_out <= x"00" & rx_data when address = RX_DATA_ADDR        and ce = '1' and rw = '0' else
+                RATE_FREQ_BAUD  when address = RATE_FREQ_BAUD_ADDR and ce = '1' and rw = '0' else (others=>'0');
     
 end behavioral;
 

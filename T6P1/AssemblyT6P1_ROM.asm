@@ -115,7 +115,8 @@
     ldl r1, #arrayUART_RX
     addi r1, #1
     ld r1, r0, r1
-    ldl r5, #5208
+    ldh r5, #14h
+    ldl r5, #58h
     st r5, r0, r1
 
 ;   Inicializa registradores
@@ -142,8 +143,8 @@
     ldl r7, #2
     
 ;   r8 <= "0000_0000_1111_1111" (mask for erasing higher part)
-    ldl r8, #0
-    ldh r8, #FFh
+    ldh r8, #0
+    ldl r8, #FFh
 
     jmpd #main
 
@@ -175,6 +176,7 @@ TransferByte:
 ; r6 = &IntACK
 ; r7 = Irq(1) Mask
 ; r8 = Offset mask
+; r9 = SaveOnLower backup (used on SaveOnHgher in order to not execute a load instruction) 
 
 ;   r4 <= Nova parte da instrução
     ldh r4, #arrayUART_RX
@@ -190,6 +192,9 @@ TransferByte:
 
 ;   RAM[r3] <= Nova parte da instrução (salva byte vindo de UART RX na parte baixa)
     st r4, r0, r3
+    
+;   Salva byte em r4 (elimina necessidade de instruçao de load quando estiver carregado parte baixa)
+    add r9, r0, r4
 
 ;   Proximo byte a ser salvo na parte alta 
     ldl r2, #1
@@ -210,7 +215,10 @@ TransferByte:
     sl0 r4, r4 ; MSB @ 15
 
 ;   Carrega byte atual (ja está na memoria, na parte baixa)
-    ld r5, r0, r3 ; r5 <= RAM[Current RAM position]
+;   ld r5, r0, r3 ; r5 <= RAM[Current RAM position] ; AQUI TA O PROBLEMA, DEVE SALVAR PARTE BAIXA ANTES EM REGISTRADOR P/ NAO ACESSAR MEMORIA
+
+;   Carrega byte atual (salvo em r9 em SaveOnLower)
+    add r5, r0, r9
 
 ;   Apaga parte alta do byte atual
     and r5, r5, r8 ; r5 <= "00000000_(Byte Atual)"
