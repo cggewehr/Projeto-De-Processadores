@@ -46,7 +46,7 @@ begin
     Microcontroller: entity work.R8_uC
     	generic map (
     	    RAM_IMAGE     => "T6P1_APP2_ECHO_BRAM.txt",
-    	    ROM_IMAGE     => "AssemblyT6P1_ROM_BRAM.txt",
+    	    ROM_IMAGE     => "RomSalvandoParteAltaPrimeiro_BRAM.txt",
             ADDR_PORT     => "0000",
             ADDR_PIC      => "1111",
             ADDR_UART_TX  => "1000",

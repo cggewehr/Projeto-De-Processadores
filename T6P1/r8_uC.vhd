@@ -131,7 +131,8 @@ begin
         generic map(
             DATA_WIDTH => 16,
             ADDR_WIDTH => 15,
-            IMAGE => RAM_IMAGE -- Assembly code (must be in same directory)
+            IMAGE => RAM_IMAGE, -- Assembly code (must be in same directory)
+            SIZE => 32768
         )
         port map(
             clk => clk_MEM,
@@ -150,7 +151,8 @@ begin
         generic map(
             DATA_WIDTH => 16,
             ADDR_WIDTH => 15,
-            IMAGE => ROM_IMAGE -- Assembly code (must be in same directory)
+            IMAGE => ROM_IMAGE, -- Assembly code (must be in same directory)
+            SIZE => 100
         )
         port map(
             clk => clk_MEM,

@@ -16,7 +16,8 @@ entity Memory is
     generic (
         DATA_WIDTH  : integer := 8;         -- Data bus width
         ADDR_WIDTH  : integer := 8;         -- Address bus width
-        IMAGE       : string := "UNUSED"    -- Memory content to be loaded    (text file)
+        IMAGE       : string := "UNUSED";   -- Memory content to be loaded    (text file)
+        SIZE        : integer
     );
     port (  
         clk         : in std_logic;
@@ -31,7 +32,8 @@ end Memory;
 architecture BlockRAM of Memory is
     
     --type RamType is array (0 to (2**ADDR_WIDTH)-1) of std_logic_vector(DATA_WIDTH-1 downto 0); -- Tamanho máximo de memoria
-    type RamType is array (0 to 999) of std_logic_vector(DATA_WIDTH-1 downto 0); -- Tamanho reduzido de memoria
+    --type RamType is array (0 to 999) of std_logic_vector(DATA_WIDTH-1 downto 0); -- Tamanho reduzido de memoria
+    type RamType is array (0 to SIZE - 1) of std_logic_vector(DATA_WIDTH-1 downto 0); -- Tamanho reduzido de memoria
     
     impure function InitRamFromFile (RamFileName : in string) return RamType is
         --FILE RamFile : text is in RamFileName;

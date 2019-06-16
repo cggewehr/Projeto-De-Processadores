@@ -8,6 +8,7 @@ end r8_uC_tb;
 architecture behavioral of r8_uC_tb is
 
     signal clk : std_logic := '0';
+    signal clk_2 : std_logic := '0';
     signal rst : std_logic;
     signal port_io : std_logic_vector(15 downto 0);
     signal uart_rx_data_out : std_logic_vector(7 downto 0);
@@ -40,6 +41,7 @@ begin
         );
 
     clk <= not clk after 5 ns; -- 100 MHz
+    clk_2 <= not clk_2 after 10 ns; -- 50 MHz
     rst <= '1', '0' after 15 ns;
 	port_io <= "00ZZZZZZZZZZZZZZ", "01ZZZZZZZZZZZZZZ" after 9ms, "00ZZZZZZZZZZZZZZ" after 18ms;
     prog_mode <= '1';--, '0' after 11 us;
@@ -63,8 +65,8 @@ begin
 	ce_tx <= '1';
 	rw_tx <= '1';
 	addr_tx <= "0001", "0000" after 50 ns;
-	data_in_tx <= std_logic_vector(to_unsigned(5208, data_in_tx'length)), std_logic_vector(to_unsigned(data_sim, data_in_tx'length)) after 50 ns;
-	data_av_tx <= av_sim;
+	data_in_tx <= std_logic_vector(to_unsigned(data_sim, data_in_tx'length));
+	--data_av_tx <= av_sim;
 
 	TX: entity work.UART_TX
 		generic map(
@@ -73,7 +75,7 @@ begin
 			READY_ADDR => "0010"
 		)
 		port map(
-			clk => clk, 
+			clk => clk_2, 
 			rst => rst,
 			ce => ce_tx,
 			rw => rw_tx,
@@ -86,19 +88,29 @@ begin
 		);
 			
 	SIM: process begin
+    
+        wait for 15 ns;
 	
 		count <= 0;
-		av_sim <= '0';
+		data_av_tx <= '1';
+        data_sim <= 5208;
+        
+        wait for 10 ns;
+        
+        data_av_tx <= '0';
+        
 		wait for 50 us;
 		
 		for i in 1 to 100 loop
+        
+            wait for 100 us;
 				
 			data_sim <= count;
-			av_sim <= '1';
+			data_av_tx <= '1';
 			
-			wait for 15 ns;
+			wait for 100 ns;
 			
-			av_sim <= '0';
+			data_av_tx <= '0';
 			
 			count <= count + 1;
 			
