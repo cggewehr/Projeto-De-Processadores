@@ -470,6 +470,12 @@ syscall5Handler: ; Read (Inserts chars received through UART RX on a given buffe
     
     rts
     
+syscall6Handler: ; StringToInteger (ATOI) (Converts a given string (on r2) to an integer (returned on r14)
+
+    jsrd #StringToInteger
+    
+    rts
+    
 
 ;-------------------------------------------------DRIVERS----------------------------------------------------
 
@@ -1145,10 +1151,130 @@ Read: ; Returns on r14, 0 if a string hasnt been received through UART, or the s
     pop r1
     
     rts
+    
+StringToInteger: ; (Converts a given string (on r2) to an integer (returned on r14)
+
+; IMPLEMENTAR
+    
+
 ;------------------------------------------- PROGRAMA PRINCIPAL ---------------------------------------------
 
 main:
-    xor r12, r12, r12  ; Sets Order for sort
+
+RequestSize:
+
+;   Request size of array to be ordered
+    ldh r1, #0
+    ldl r1, #0
+    ldh r2, #stringTamanho
+    ldl r2, #stringTamanho
+    syscall ; PrintString     
+    
+;   TODO: READ CHAR FROM CONSOLE
+    
+;   Converts Size string to integer
+    ldh r1, #0
+    ldl r1, #6
+    add r2, r0, r14
+    syscall ; StringToInteger    
+    
+;   Stores size on its variable
+    add r2, r0, r14
+    ldh r1, #arraySortSize
+    ldl r1, #arraySortSize
+    st r2, r0, r1
+    
+;   Sets comparison number for RequestElementsLoop iterator   
+    add r5, r0, r2
+    
+;   Prints new line characters
+    ldh r1, #0
+    ldh r1, #0
+    ldh r2, #stringNovaLinha
+    ldl r2, #stringNovaLinha
+    syscall ; PrintString     
+    
+;   Initializes RequestElementsLoop iterator
+    xor r4, r4, r4
+    
+RequestElementsLoop:
+
+;   If iterator = size, breaks loop
+    sub r1, r4, r5
+    jmpzd #RequestOrder
+
+;   Request a new element (first part of request string)
+    ldh r1, #0
+    ldl r1, #0
+    ldh r2, #stringElementoA
+    ldl r2, #stringElementoA
+    syscall ; PrintString
+
+;   Converts iterator to string
+    ldh r1, #0
+    ldl r1, #1
+    add r2, r0, r4
+    syscall ; IntegerToString
+    
+;   Prints iterator
+    ldh r1, #0
+    ldl r1, #0
+    add r2, r0, r14
+    
+;   Request a new element (second part of request string)
+    ldh r1, #0
+    ldl r1, #0
+    ldh r2, #stringElementoB
+    ldl r2, #stringElementoB
+    syscall ; PrintString
+    
+;   TODO: READ CHAR FROM CONSOLE   
+
+;   Converts Size string to integer
+    ldh r1, #0
+    ldl r1, #6
+    add r2, r0, r14
+    syscall ; StringToInteger
+    
+;   Stores new element in array to be sorted
+    ldh r1, #arraySort
+    ldl r1, #arraySort
+    st r14, r1, r4
+    
+;   Prints new line characters
+    ldh r1, #0
+    ldh r1, #0
+    ldh r2, #stringNovaLinha
+    ldl r2, #stringNovaLinha
+    syscall ; PrintString    
+    
+;   Increments iterator
+    addi r4, #1
+
+    jmpd #RequestElementsLoop
+    
+RequestOrder: 
+
+;   Request type of sorting order (0 for increasing, 1 for decreasing)
+    ldh r1, #0
+    ldl r1, #0
+    ldh r2, #stringOrdenacao
+    ldl r2, #stringOrdenacao
+    syscall ; PrintString
+    
+;   TODO: READ CHAR FROM CONSOLE    
+
+;   Converts Order string to integer
+    ldh r1, #0
+    ldl r1, #6
+    add r2, r0, r14
+    syscall ; StringToInteger
+    
+;   r12 <= sort order
+    add r12, r0, r14
+    
+   
+    
 ;; BUBBLE SORT DO CARARA
 
 ;* Bubble sort
@@ -1207,6 +1333,12 @@ TX_ARRAY_INICIAL:
     ldh r1, #0
     ldl r1, #0
     syscall                 ; Prints string on UART transmiter
+    
+    ldh r1, #0
+    ldh r1, #0
+    ldh r2, #stringNovaLinha
+    ldl r2, #stringNovaLinha
+    syscall                 ; New line
 
     addi r11, #1            ; Increments transmission count
 
@@ -1257,15 +1389,15 @@ loop:
     ld r8, r6, r0           ; r8 <- array[r6]
 
     add r12, r0, r12        ; Generate flag for order of array
-    jmpzd #crescent
-    jmpd #decrescent
+    jmpzd #increasing
+    jmpd #decreasing
 
-crescent:
+increasing:
     sub r2, r8, r7          ; If r8 > r7, negative flag is set
     jmpnd #swap             ; (if array[r5] > array[r6] jump)
     jmpd #continue
 
-decrescent:
+decreasing:
     sub r2, r7, r8          ; If r8 < r7, negative flag is set
     jmpnd #swap             ; (if array[r5] < array[r6] jump)
     jmpd #continue
@@ -1307,6 +1439,12 @@ TX_ARRAY_FINAL_LOOP:
     ldh r1, #0
     ldl r1, #0
     syscall                 ; Prints string on UART transmiter
+    
+    ldh r1, #0
+    ldh r1, #0
+    ldh r2, #stringNovaLinha
+    ldl r2, #stringNovaLinha
+    syscall                 ; New line
 
     addi r11, #1            ; Increments transmission count
 
@@ -1331,106 +1469,7 @@ delayAfterSort:
     pop r2
     pop r1
 
-ForçaExceçaoAdd:
-
-    ldh r5, #7Fh
-    ldl r5, #FFh
-    add r5, r5, r5
-
-;   Delays for 100 ms
-    push r1
-    push r2
-    ldh r1, #0
-    ldl r1, #3
-    ldh r2, #0
-    ldl r2, #100
-    syscall
-    pop r2
-    pop r1
-
-ForçaExceçaoAddi:
-
-    ldh r5, #7Fh
-    ldl r5, #FFh
-    addi r5, #1
-
-;   Delays for 100 ms
-    push r1
-    push r2
-    ldh r1, #0
-    ldl r1, #3
-    ldh r2, #0
-    ldl r2, #100
-    syscall
-    pop r2
-    pop r1
-
-ForçaExceçaoSub:
-
-    ldh r4, #F0h
-    ldl r4, #00h
-
-    ldh r5, #7Fh
-    ldl r5, #FFh
-
-    sub r5, r4, r5
-
-;   Delays for 100 ms
-    push r1
-    push r2
-    ldh r1, #0
-    ldl r1, #3
-    ldh r2, #0
-    ldl r2, #100
-    syscall
-    pop r2
-    pop r1
-
-ForçaExceçaoSubi:
-
-    ldh r5, #80h
-    ldl r5, #00h
-    subi r5, #1
-
-;   Delays for 100 ms
-    push r1
-    push r2
-    ldh r1, #0
-    ldl r1, #3
-    ldh r2, #0
-    ldl r2, #100
-    syscall
-    pop r2
-    pop r1
-
-ForçaExceçaoInstInv:
-    INVALID ;  Apenas no ARQ
-;   Delays for 100 ms
-    push r1
-    push r2
-    ldh r1, #0
-    ldl r1, #3
-    ldh r2, #0
-    ldl r2, #100
-    syscall
-    pop r2
-    pop r1
-
-
-TrocaOrdemBubbleSort:
-
-    add r12, r12, r0
-    jmpzd #IncAndJump
-
-;   Next pass orders array in Increasing order
-    xor r12, r12, r12
-    jmpd #BubbleSort
-
-    IncAndJump:
-
-;   Next pass orders array in Decreasing order
-    addi r12, #1
-    jmpd #BubbleSort
+    jmpd #main
 
 .endcode
 
@@ -1467,7 +1506,7 @@ interruptVector:          db #irq0Handler, #irq1Handler, #irq2Handler, #irq3Hand
 trapVector:               db #trap0Handler, #trap1Handler, #trap2Handler, #trap3Handler, #trap4Handler, #trap5Handler, #trap6Handler, #trap7Handler, #trap8Handler, #trap9Handler, #trap10Handler, #trap11Handler, #trap12Handler, #trap13Handler, #trap14Handler, #trap15Handler,
 
 ; Vetor com endereços das chamadas de sistema
-syscallJumpTable:         db #syscall0Handler, #syscall1Handler, #syscall2Handler, #syscall3Handler, #syscall4Handler, #syscall5Handler
+syscallJumpTable:         db #syscall0Handler, #syscall1Handler, #syscall2Handler, #syscall3Handler, #syscall4Handler, #syscall5Handler, #syscall6Handler
 
 ; IntegerToString
 IntegerToStringBuffer:    db #0, #0, #0, #0, #0, #0, #0, #0
@@ -1493,11 +1532,11 @@ stringDelay:              db #68, #69, #76, #65, #89, #0
 ; String contendo caracteres de nova linha e carriage return
 stringNovaLinha:          db #10, #13, #0
 
-; Buffer for READ syscall (80 position)
-UartRxBuffer:               db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0 #0, #0, #0, #0, #0, #0, #0, #0, #0, #0 #0, #0, #0, #0, #0, #0, #0, #0, #0, #0 #0, #0, #0, #0, #0, #0, #0, #0, #0, #0 #0, #0, #0, #0, #0, #0, #0, #0, #0, #0 #0, #0, #0, #0, #0, #0, #0, #0, #0, #0
+; Buffer for READ syscall (80 positions)
+UartRxBuffer:             db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0 #0, #0, #0, #0, #0, #0, #0, #0, #0, #0 #0, #0, #0, #0, #0, #0, #0, #0, #0, #0 #0, #0, #0, #0, #0, #0, #0, #0, #0, #0 #0, #0, #0, #0, #0, #0, #0, #0, #0, #0 #0, #0, #0, #0, #0, #0, #0, #0, #0, #0
 
 ; Pointer for UartRxBuffer
-UartRxBufferIndexer:        db #0
+UartRxBufferIndexer:      db #0
 
 ;-------------------------------------------VARIAVEIS DE APLICAÇÃO-------------------------------------------
 
@@ -1507,5 +1546,17 @@ arraySort:                db #50, #49, #48, #47, #46, #45, #44, #43, #42, #41, #
 
 ; Tamanho do array p/ bubble sort (50 elementos)
 arraySortSize:            db #50
+
+; "Insira tamanho do array a ser ordenado: "
+stringTamanho:            db #49h, 6eh, 73h, 69h, 72h, 61h, 20h, 74h, 61h, 6dh, 61h, 6eh, 68h, 6fh, 20h, 64h, 6fh, 20h, 61h, 72h, 72h, 61h, 79h, 20h, 61h, 20h, 73h, 65h, 72h, 20h, 6fh, 72h, 64h, 65h, 6eh, 61h, 64h, 6fh
+
+; "Insira elemento "
+stringElementoA:          db #49h, 6eh, 73h, 69h, 72h, 61h, 20h, 65h, 6ch, 65h, 6dh, 65h, 6eh, 74h, 6fh, 20h
+
+; " do array: "
+stringElementoB:          db #20h, 64h, 6fh, 20h, 61h, 72h, 72h, 61h, 79h, 3ah, 20h
+
+; "Insira ordenacao do array (0 para crescente, 1 para Decrescente) : "
+stringOrdenacao:          db #49h, 6eh, 73h, 69h, 72h, 61h, 20h, 6fh, 72h, 64h, 65h, 6eh, 61h, 63h, 61h, 6fh, 20h, 64h, 6fh, 20h, 61h, 72h, 72h, 61h, 79h, 20h, 28h, 30h, 20h, 70h, 61h, 72h, 61h, 20h, 63h, 72h, 65h, 73h, 63h, 65h, 6eh, 74h, 65h, 2ch, 20h, 31h, 20h, 70h, 61h, 72h, 61h, 20h, 44h, 65h, 63h, 72h, 65h, 73h, 63h, 65h, 6eh, 74h, 65h, 29h, 20h, 3ah, 20h
 
 .enddata
