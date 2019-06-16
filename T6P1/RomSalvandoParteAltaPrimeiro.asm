@@ -118,6 +118,15 @@
     ldh r5, #01h
     ldl r5, #B2h
     st r5, r0, r1
+    
+;   Seta RATE_FREQ_BAUD = 434 (0x01B2) (115200 BAUD @ 50 MHz clk) 
+    ldh r1, #arrayUART_TX
+    ldl r1, #arrayUART_TX
+    addi r1, #1
+    ld r1, r0, r1
+    ldh r5, #01h
+    ldl r5, #B2h
+    st r5, r0, r1
 
 ;   Inicializa registradores
 
