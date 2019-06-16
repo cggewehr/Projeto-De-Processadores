@@ -93,7 +93,7 @@ begin
 	
 		count <= 0;
 		data_av_tx <= '1';
-        data_sim <= 5208;
+        data_sim <= 434;
         
         wait for 10 ns;
         
