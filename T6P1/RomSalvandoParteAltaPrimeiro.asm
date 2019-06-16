@@ -110,13 +110,13 @@
     ldl r5, #00h   ; Desabilita acesso a todos os bits da porta de I/O
     st r5, r1, r4  ; PortEnable <= "00000000_00000000"
 
-;   Seta RATE_FREQ_BAUD = 5208 (9600 BAUD @ 50 MHz clk)
+;   Seta RATE_FREQ_BAUD = 434 (0x01B2) (115200 BAUD @ 50 MHz clk) 
     ldh r1, #arrayUART_RX
     ldl r1, #arrayUART_RX
     addi r1, #1
     ld r1, r0, r1
-    ldh r5, #14h
-    ldl r5, #58h
+    ldh r5, #01h
+    ldl r5, #B2h
     st r5, r0, r1
 
 ;   Inicializa registradores

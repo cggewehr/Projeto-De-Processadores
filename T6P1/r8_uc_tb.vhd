@@ -101,7 +101,7 @@ begin
         
 		wait for 50 us;
 		
-		for i in 1 to 100 loop
+		for i in 1 to 65536 loop
         
             wait for 100 us;
 				
