@@ -198,6 +198,25 @@ InterruptionServiceRoutine:
 
 ;   Jump para handler
     jsr r1
+    
+;   Exibe no Display 0 (mais à direita) a unidade do contador de 1 seg durante 2 ms
+    jsrd #Display0
+    jsrd #Delay2ms
+
+;   Exibe no Display 1 a dezena do contador de 1 seg durante 2 ms
+    jsrd #Display1
+    jsrd #Delay2ms
+
+;   Exibe no Display 2 a unidade do contador manual durante 2 ms
+    jsrd #Display2
+    jsrd #Delay2ms
+
+;   Exibe no Display 3 (mais à esquerda) a dezena do contador manual durante 2 ms
+    jsrd #Display3
+    jsrd #Delay2ms
+
+;   Se passado 1 seg, incrementa contador de 1 seg
+    jsrd #IncrementaContinuo
 
 ;   ACK Interrupção
     ldh r1, #arrayPIC
