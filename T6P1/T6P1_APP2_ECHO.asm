@@ -29,34 +29,6 @@
 ; --------------------- r14 = Retorno de subrotina
 ; --------------------- r15 = Retorno de subrotina
 
-;////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-; irq[7] = port_irq[15]
-; irq[6] = port_irq[14]
-; irq[5] = port_irq[13]
-; irq[4] = port_irq[12]
-; irq[3] = OPEN
-; irq[2] = OPEN
-; irq[1] = UART RX
-; irq[0] = OPEN
-
-; port_io[15] = OPEN
-; port_io[14] = OPEN
-; port_io[13] = OPEN
-; port_io[12] = OPEN
-; port_io[11] = OPEN
-; port_io[10] = OPEN
-; port_io[9] = OPEN
-; port_io[8] = OPEN
-; port_io[7] = OPEN
-; port_io[6] = OPEN
-; port_io[5] = OPEN
-; port_io[4] = OPEN
-; port_io[3] = OPEN
-; port_io[2] = OPEN
-; port_io[1] = OPEN
-; port_io[0] = OPEN
-
 .org #0000h
 
 .code
@@ -68,16 +40,16 @@
     ldl r0, #FFh
     ldsp r0
 
-;   Seta a Mascara do vetor de interrupções (Desabilita todas)
+;   Seta a Mascara do vetor de interrupções (Desabilita todas menos DATA_AV_UART_Rx)
     ldh r4, #00h
     ldl r4, #02h        ; Atualiza o indexador para carregar a mascara em arrayPIC
 
     ldh r7, #arrayPIC   ; Carrega endereço da mascara de interrupções
     ldl r7, #arrayPIC   ; 
-    ld r7, r4, r7       ; &mask
+    ld r7, r4, r7       ; &mask ; ArryaPic na terceira Posição
 
     ldh r8, #00h
-    ldl r8, #00h        ; Carrega a Mascara para o PIC [ r8 <= "0000_0000_0000_0000"]
+    ldl r8, #02h        ; Carrega a Mascara para o PIC [ r8 <= "0000_0000_0000_0000"]
 
     st r8, r0, r7       ; arrayPIC [MASK] <= "xxxx_xxxx_0000_0010"
 
@@ -88,7 +60,7 @@
 ;   Carrega em r1 & arrayPorta  ( r1 <= &arrayPorta)
     ldh r1, #arrayPorta ; Carrega &Porta
     ldl r1, #arrayPorta ; Carrega &Porta
-    ld r1, r0, r1
+    ld r1, r0, r1       ; r1 <= PortData
 
 ;   Seta todos os bits de PortConfig como entrada
     ldh r4, #00h
@@ -97,11 +69,11 @@
     ldl r5, #FFh   ; Seta todos os bits de PortConfig como entrada
     st r5, r1, r4  ; PortConfig <= "11111111_11111111"
 
-;   Desabilita interrupções
+;   Desabilita interrupções pela porta
     ldh r4, #00h
     ldl r4, #03h   ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &irqtEnable ]
     ldh r5, #00h   ; r5 <= "00000000_00000000"
-    ldl r5, #00h   ; Desabilita todas interrupções
+    ldl r5, #00h   ; Desabilita todas interrupções pela porta
     st r5, r1, r4  ; irqtEnable <= "00000000_00000000"
 
 ;   Desabilita porta
@@ -137,7 +109,7 @@
 ;-------------------------------------------------HANDLERS---------------------------------------------------
 
 Echo: ;  Le o caractere passado pelo terminal e imprime ele novamente no terminal
-;   Pega o caractere do UART_TX e imprime o mesmo valor no RX_DATA
+;   Pega o caractere do  RX_DATA e imprime o mesmo valor no UART_TX
 ;
 ;   Register Table:
 ;       r1: Data recebida pelo modulo RX em RX_DATA
@@ -200,17 +172,25 @@ main:
     ldh r1, #arrayUART_RX
     ldl r1, #arrayUART_RX
     addi r1, #1
-    ld r1, r0, r1
+    ld r1, r0, r1    ; r1 <= &RATE_FREQ_BAUD
     ldh r5, #E1h
     ldl r5, #00h   ; Seta Baud com 57600
-    st r5, r0, r1
+    st r5, r0, r1  ;
+
+    ldh r1, #arrayPIC
+    ldl r1, #arrayPIC
+    addi r1, #03h  ; r1<= arrayPic[3] = IrqREG
+
+;   r7 <= Irq Mask
+    ldh r7, #0
+    ldl r7, #2
 
 loop: 
 ;   r5 <= irqREG
     ld r5, r0, r1
-    and r5, r7, r5
+    and r5, r7, r5   ; Compara a interrupção com a mascara
 
-    jmpzd #loop
+    jmpzd #loop      ; Caso for zero Interrupção Não aconteceu
 
     jsrd #Echo 
 
