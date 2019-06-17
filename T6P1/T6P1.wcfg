@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="/home/carlos/Desktop/Projetos ISE/T6P1/r8_uC_tb_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="numeric_std" />
+            <top_module name="r8_uc_tb" />
+            <top_module name="std_logic_1164" />
+            <top_module name="std_logic_arith" />
+            <top_module name="std_logic_signed" />
+            <top_module name="std_logic_unsigned" />
+            <top_module name="textio" />
+            <top_module name="util_package" />
+            <top_module name="vcomponents" />
+            <top_module name="vital_primitives" />
+            <top_module name="vital_timing" />
+            <top_module name="vpkg" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="29" />
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/clk" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clk</obj_property>
+      <obj_property name="ObjectShortName">clk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/rst" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rst</obj_property>
+      <obj_property name="ObjectShortName">rst</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider56" type="divider">
+      <obj_property name="label">TOPLVL TX</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/addr_tx" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">addr_tx[3:0]</obj_property>
+      <obj_property name="ObjectShortName">addr_tx[3:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/data_in_tx" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">data_in_tx[15:0]</obj_property>
+      <obj_property name="ObjectShortName">data_in_tx[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/data_out_tx" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">data_out_tx[15:0]</obj_property>
+      <obj_property name="ObjectShortName">data_out_tx[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/data_av_tx" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">data_av_tx</obj_property>
+      <obj_property name="ObjectShortName">data_av_tx</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/TX/data_av" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">data_av</obj_property>
+      <obj_property name="ObjectShortName">data_av</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/TX/currentstate" type="other" db_ref_id="1">
+      <obj_property name="ElementShortName">currentstate</obj_property>
+      <obj_property name="ObjectShortName">currentstate</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/ready_tx" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">ready_tx</obj_property>
+      <obj_property name="ObjectShortName">ready_tx</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/data_sim" type="other" db_ref_id="1">
+      <obj_property name="ElementShortName">data_sim</obj_property>
+      <obj_property name="ObjectShortName">data_sim</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/count" type="other" db_ref_id="1">
+      <obj_property name="ElementShortName">count</obj_property>
+      <obj_property name="ObjectShortName">count</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/TX/tx_data" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tx_data[7:0]</obj_property>
+      <obj_property name="ObjectShortName">tx_data[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/TX/rate_freq_baud" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">rate_freq_baud[15:0]</obj_property>
+      <obj_property name="ObjectShortName">rate_freq_baud[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/TX/tx" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">tx</obj_property>
+      <obj_property name="ObjectShortName">tx</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider57" type="divider">
+      <obj_property name="label">uC RX</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/RX/rx" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rx</obj_property>
+      <obj_property name="ObjectShortName">rx</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/RX/data_av" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">data_av</obj_property>
+      <obj_property name="ObjectShortName">data_av</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/RX/rx_data" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">rx_data[7:0]</obj_property>
+      <obj_property name="ObjectShortName">rx_data[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/RX/currentstate" type="other" db_ref_id="1">
+      <obj_property name="ElementShortName">currentstate</obj_property>
+      <obj_property name="ObjectShortName">currentstate</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/RX/rate_freq_baud" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">rate_freq_baud[15:0]</obj_property>
+      <obj_property name="ObjectShortName">rate_freq_baud[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider62" type="divider">
+      <obj_property name="label">PROCESSOR</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/currentinstruction" type="other" db_ref_id="1">
+      <obj_property name="ElementShortName">currentinstruction</obj_property>
+      <obj_property name="ObjectShortName">currentinstruction</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/currentstate" type="other" db_ref_id="1">
+      <obj_property name="ElementShortName">currentstate</obj_property>
+      <obj_property name="ObjectShortName">currentstate</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/address" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">address[15:0]</obj_property>
+      <obj_property name="ObjectShortName">address[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regpc" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">regpc[15:0]</obj_property>
+      <obj_property name="ObjectShortName">regpc[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regir" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">regir[15:0]</obj_property>
+      <obj_property name="ObjectShortName">regir[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regsp" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">regsp[15:0]</obj_property>
+      <obj_property name="ObjectShortName">regsp[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regbank" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">regbank[0:15]</obj_property>
+      <obj_property name="ObjectShortName">regbank[0:15]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+      <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regbank[0]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[0]</obj_property>
+         <obj_property name="ObjectShortName">regbank[0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regbank[1]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[1]</obj_property>
+         <obj_property name="ObjectShortName">regbank[1]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regbank[2]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[2]</obj_property>
+         <obj_property name="ObjectShortName">regbank[2]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regbank[3]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[3]</obj_property>
+         <obj_property name="ObjectShortName">regbank[3]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regbank[4]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[4]</obj_property>
+         <obj_property name="ObjectShortName">regbank[4]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regbank[5]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[5]</obj_property>
+         <obj_property name="ObjectShortName">regbank[5]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regbank[6]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[6]</obj_property>
+         <obj_property name="ObjectShortName">regbank[6]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regbank[7]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[7]</obj_property>
+         <obj_property name="ObjectShortName">regbank[7]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regbank[8]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[8]</obj_property>
+         <obj_property name="ObjectShortName">regbank[8]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regbank[9]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[9]</obj_property>
+         <obj_property name="ObjectShortName">regbank[9]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regbank[10]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[10]</obj_property>
+         <obj_property name="ObjectShortName">regbank[10]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regbank[11]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[11]</obj_property>
+         <obj_property name="ObjectShortName">regbank[11]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regbank[12]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[12]</obj_property>
+         <obj_property name="ObjectShortName">regbank[12]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regbank[13]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[13]</obj_property>
+         <obj_property name="ObjectShortName">regbank[13]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regbank[14]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[14]</obj_property>
+         <obj_property name="ObjectShortName">regbank[14]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8/Microcontroller/R8Processor/regbank[15]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[15]</obj_property>
+         <obj_property name="ObjectShortName">regbank[15]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+   </wvobject>
+</wave_config>

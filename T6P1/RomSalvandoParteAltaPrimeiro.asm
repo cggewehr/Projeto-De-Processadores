@@ -239,11 +239,15 @@ TransferByte:
     
 ;   Converte para string de caracteres em HEX
     add r2, r0, r5
-    jsrd #IntegerToHexString
+    jmpd #IntegerToHexString
+    
+  IntegerToHexStringReturn:
     
 ;   Imprime string com instrução em HEX
     add r2, r0, r14
-    jsrd #PrintString
+    jmpd #PrintString
+    
+  PrintStringVolta:
     
 ;   Restaura flag High/Low
     add r2, r0, r15
@@ -316,7 +320,7 @@ PrintString: ; Transmite por UART uma string. Espera endereço da string a ser e
 
 PrintStringReturn:
 
-    rts
+    jmpd #PrintStringVolta
 
 IntegerToHexString: ; Espera valor a ser convertido em r2, retorna ponteiro para string em r14
 ; Serve Somente para o Erro do pc, Sempre devolve uma string de 4 posições
@@ -364,7 +368,7 @@ IntegerToHexString: ; Espera valor a ser convertido em r2, retorna ponteiro para
 
   ReturnIntegerToHexString:
 
-    rts
+    jmpd #IntegerToHexStringReturn
     
 
 .endcode
