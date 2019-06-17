@@ -154,6 +154,10 @@
 ;   r8 <= "0000_0000_1111_1111" (mask for erasing higher part)
     ldh r8, #0
     ldl r8, #FFh
+    
+;   r10 <= 32767 (last memory position)
+    ldh r10, #7Fh
+    ldl r10, #FFh
 
     jmpd #main
 
@@ -229,6 +233,10 @@ TransferByte:
 ;   Proximo byte a ser salvo na parte alta
     xor r2, r2, r2 ; r2 <= 0
     
+;   Verifica se r3 aponta para ultima posiçãoi de memoria
+    xor r11, r3, r10
+    jmpzd #EndTransfer ; Se r3 = 32767, finaliza programa
+    
 ;   Incrementa Ponteiro da RAM
     addi r3, #1
 
@@ -244,6 +252,9 @@ TransferByte:
 
 ;   Returns to polling loop
     jmpd #UartRxDataAVPollingLoop
+    
+  EndTransfer: ; Loops until next reset
+    jmpd #EndTransfer
 
 .endcode
 ;=============================================================================================================

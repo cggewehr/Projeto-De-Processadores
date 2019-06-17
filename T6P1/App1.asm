@@ -42,14 +42,14 @@
 setup:
 
 ;   Inicializa ponteiro da pilha para 0x"7FFF" (ultimo endereço no espaço de endereçamento da memoria)
-;    ldh r0, #7Fh
-;    ldl r0, #FFh
-;    ldsp r0
+    ldh r0, #7Fh
+    ldl r0, #FFh
+    ldsp r0
 
 ;   Inicializa ponteiro da pilha para 0x"03E6" (ultimo endereço no espaço de endereçamento da memoria)
-    ldh r0, #03h
-    ldl r0, #E6h
-    ldsp r0
+;    ldh r0, #03h
+;    ldl r0, #E6h
+;    ldsp r0
 
 ;   Seta endereço do tratador de interrupção
     ldh r0, #InterruptionServiceRoutine
