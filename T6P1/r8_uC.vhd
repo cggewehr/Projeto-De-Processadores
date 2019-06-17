@@ -152,7 +152,7 @@ begin
             DATA_WIDTH => 16,
             ADDR_WIDTH => 15,
             IMAGE => ROM_IMAGE, -- Assembly code (must be in same directory)
-            SIZE => 100
+            SIZE => 200
         )
         port map(
             clk => clk_MEM,
