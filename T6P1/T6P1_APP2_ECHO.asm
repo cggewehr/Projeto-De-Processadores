@@ -39,19 +39,16 @@
     ldh r0, #7Fh
     ldl r0, #FFh
     ldsp r0
+    
+;   Inicializa r0
+    xor r0, r0, r0
 
-;   Seta a Mascara do vetor de interrupções (Desabilita todas menos DATA_AV_UART_Rx)
-    ldh r4, #00h
-    ldl r4, #02h        ; Atualiza o indexador para carregar a mascara em arrayPIC
-
+;   Mascara todas interrupções do PIC
     ldh r7, #arrayPIC   ; Carrega endereço da mascara de interrupções
     ldl r7, #arrayPIC   ; 
-    ld r7, r4, r7       ; &mask ; ArryaPic na terceira Posição
+    ld r7, r4, r7       ; r7 <= &Mask
 
-    ldh r8, #00h
-    ldl r8, #02h        ; Carrega a Mascara para o PIC [ r8 <= "0000_0000_0000_0000"]
-
-    st r8, r0, r7       ; arrayPIC [MASK] <= "xxxx_xxxx_0000_0010"
+    st r0, r0, r7       ; Mask <= "xxxx_xxxx_0000_0000"
 
     ; Array de registradores do controlador de interrupções
     ; arrayPIC [ IrqID(0x80F0) | IntACK(0x80F1) | Mask(0x80F2) ]
@@ -82,123 +79,99 @@
     ldl r5, #00h   ; Desabilita acesso a todos os bits da porta de I/O
     st r5, r1, r4  ; PortEnable <= "00000000_00000000"
 
-;   Inicializa Registrador 
-    xor r0, r0, r0
-    
-;   r1 <= &irqREG
-    ldh r1, #arrayPIC
-    ldl r1, #arrayPIC
-    addi r1, #3
-    ld r1, r0, r1
+;   Pula para o programa principal
+    jmpd #main
 
+;_________________________________________________END BOOT___________________________________________________
+
+;------------------------------------------- PROGRAMA PRINCIPAL ---------------------------------------------
+main:
+
+;   Inicializa Registrador r0
+    xor r0, r0, r0
+
+;   Seta RATE_FREQ_BAUD = 869 (0x364) (57600 baud @ 50 MHz)
+    ldh r1, #arrayUART_RX
+    ldl r1, #arrayUART_RX
+    addi r1, #1
+    ld r1, r0, r1  ; r1 <= &RATE_FREQ_BAUD (RX)
+    ldh r5, #03h
+    ldl r5, #64h   ; Seta BAUD_RATE = 869
+    st r5, r0, r1  ;
+    
+;   Seta RATE_FREQ_BAUD = 869 (0x364) (57600 baud @ 50 MHz)
+    ldh r1, #arrayUART_TX
+    ldl r1, #arrayUART_TX
+    addi r1, #1
+    ld r1, r0, r1  ; r1 <= &RATE_FREQ_BAUD (TX)
+    ldh r5, #03h
+    ldl r5, #64h   ; Seta BAUD_RATE = 869
+    st r5, r0, r1  ;
+    
 ;   r6 <= &intACK    
     ldh r1, #arrayPIC
     ldl r1, #arrayPIC
     addi r1, #1
     ld r6, r0, r1
     
+;   r1 <= &irqREG
+    ldh r1, #arrayPIC
+    ldl r1, #arrayPIC
+    addi r1, #03h  ; r1<= arrayPic[3] = &IrqREG
+    ld r1, r0, r1
+
 ;   r7 <= Irq(1) Mask
     ldh r7, #0
     ldl r7, #2
 
-;   Pula para o programa principal
-    jmpd #main
+DataAVPollingLoop: ; Espera por DATA_AV de UART RX
 
-;___________________________________________________END BOOT_________________________________________________
+;   r5 <= irqREG
+    ld r5, r0, r1
+    
+;   Aplica mascara para o bit 1 (DATA_AV)
+    and r5, r7, r5           ; Compara a interrupção com a mascara
 
-;-------------------------------------------------HANDLERS---------------------------------------------------
+    jmpzd #DataAVPollingLoop ; Caso for zero, nenhum dado foi recebido
 
 Echo: ;  Le o caractere passado pelo terminal e imprime ele novamente no terminal
-;   Pega o caractere do  RX_DATA e imprime o mesmo valor no UART_TX
-;
-;   Register Table:
-;       r1: Data recebida pelo modulo RX em RX_DATA
-;       r2: Endereço do modulo &UART_TX
-;       r5: Estado do transmissor / ACK
-;       r6: Endereco do &IntACK
+;   Pega o caractere de RX_DATA e imprime o mesmo valor em UART_TX
 
-    push r1
-    push r2
-    push r5
-    push r6
-
-;   r1 <= RX_DATA
-    ldh r1, #arrayUART_RX
-    ldl r1, #arrayUART_RX    ; r1 <= &&arrayUART_RX [RX_DATA]
-    ld r1, r0, r1            ; r1 <= &RX_DATA [RX_DATA]
-    ld r1, r0, r1            ; r1 <= RX_DATA
+;   r10 <= RX_DATA
+    ldh r10, #arrayUART_RX
+    ldl r10, #arrayUART_RX    ; r10 <= &&arrayUART_RX
+    ld r10, r0, r10           ; r10 <= &RX_DATA
+    ld r10, r0, r10           ; r10 <= RX_DATA
     
-;   r2 <= UART_TX
-    ldh r2, #UART_TX
-    ldl r2, #UART_TX
-    ld r2, r0, r2            ; r2 <= &UART_TX
+;   r12 <= &ready
+    ldh r12, #arrayUART_TX
+    ldl r12, #arrayUART_TX
+    addi r12, #2
+    ld r12, r0, r12            ; r12 <= &ready
 
-;   r6 <= &intACK    
-    ldh r6, #arrayPIC
-    ldl r6, #arrayPIC        ; r6 <= &arrayPIC
-    addi r6, #1              ; r6 <= &arrayPIC[IntACK]
+  tx_loop: ; Espera o transmissor estar disponivel
 
-  tx_loop: ; Verifica o estado do transmissor
-
-    ld r5, r0, r2
+    ld r5, r0, r12 ; r5 <= ready
     add r5, r0, r5 ; Gera Flag
-    
-    jmpzd #tx_loop  ; Espera o transmissor estar disponivel
+    jmpzd #tx_loop  
 
 ;   Escreve em TX_DATA, o dado recebido
-    st r1, r0, r2 ; UART_TX <= r1(DATA)
+    ldh r12, #arrayUART_TX
+    ldl r12, #arrayUART_TX
+    ld r12, r0, r12 ; r12 <= &TX_DATA
 
-  UartRXDataACK:   ; Manda o ACK
+    st r10, r0, r12 ; UART_TX <= r11 (DATA)
+
+  UartRXDataACK: ; ACK UART_RX DATA_AV
 
 ;   intACK <= 1 (UART RX)
     ldh r5, #00h
     ldl r5, #01h
-    st r5, r0, r6
+    st r5, r0, r6   
 
-    pop r6
-    pop r5
-    pop r2
-    pop r1    
-
-;   Returns to polling loop
-    rts
-
-;________________________________________________END HANDLERS________________________________________________
-
-;------------------------------------------- PROGRAMA PRINCIPAL ---------------------------------------------
-main:
-;   Seta RATE_FREQ_BAUD = 57600 
-
-    ldh r1, #arrayUART_RX
-    ldl r1, #arrayUART_RX
-    addi r1, #1
-    ld r1, r0, r1    ; r1 <= &RATE_FREQ_BAUD
-    ldh r5, #E1h
-    ldl r5, #00h   ; Seta Baud com 57600
-    st r5, r0, r1  ;
-
-    ldh r1, #arrayPIC
-    ldl r1, #arrayPIC
-    addi r1, #03h  ; r1<= arrayPic[3] = IrqREG
-
-;   r7 <= Irq Mask
-    ldh r7, #0
-    ldl r7, #2
-
-loop: 
-;   r5 <= irqREG
-    ld r5, r0, r1
-    and r5, r7, r5   ; Compara a interrupção com a mascara
-
-    jmpzd #loop      ; Caso for zero Interrupção Não aconteceu
-
-    jsrd #Echo 
-
-    jmpd #loop
-
+    jmpd #DataAVPollingLoop
 
 .endcode
-
 
 .data
 ;--------------------------------------------VARIAVEIS DO KERNEL---------------------------------------------
@@ -211,8 +184,9 @@ arrayPorta:               db #8000h, #8001h, #8002h, #8003h
 ; arrayPIC [ IrqID(0x80F0) | IntACK(0x80F1) | Mask(0x80F2) ] IrqREG(0x80F3) ]
 arrayPIC:                 db #80F0h, #80F1h, #80F2h, #80F3h
 
-; Endereço do transmissor serial
-UART_TX:                  db #8080h
+; Array de registradores do controlador de interrupções
+; arrayUART_TX [ TX_DATA(0x80A0) | RATE_FREQ_BAUD(0x80A1) | READY(0x80A2) ]
+arrayUART_TX:             db #8080h, #8081h, #8082h
 
 ; Array de registradores do controlador de interrupções
 ; arrayUART_RX [ RX_DATA(0x80A0) | RATE_FREQ_BAUD(0x80A1) ]

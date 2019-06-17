@@ -44,7 +44,7 @@ begin
     clk_2 <= not clk_2 after 10 ns; -- 50 MHz
     rst <= '1', '0' after 15 ns;
 	port_io <= "00ZZZZZZZZZZZZZZ", "01ZZZZZZZZZZZZZZ" after 9ms, "00ZZZZZZZZZZZZZZ" after 18ms;
-    prog_mode <= '1';--, '0' after 11 us;
+    prog_mode <= '0';--, '0' after 11 us;
 
 --
 --    -- UART RX
@@ -92,12 +92,12 @@ begin
         wait for 15 ns;
 	
 		count <= 0;
-		data_av_tx <= '1';
-        data_sim <= 434;
+		--data_av_tx <= '1';
+        data_sim <= 869;
         
         wait for 10 ns;
         
-        data_av_tx <= '0';
+       -- data_av_tx <= '0';
         
 		wait for 50 us;
 		

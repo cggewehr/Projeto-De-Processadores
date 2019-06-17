@@ -110,22 +110,22 @@
     ldl r5, #00h   ; Desabilita acesso a todos os bits da porta de I/O
     st r5, r1, r4  ; PortEnable <= "00000000_00000000"
 
-;   Seta RATE_FREQ_BAUD = 434 (0x01B2) (115200 BAUD @ 50 MHz clk) 
+;   Seta RATE_FREQ_BAUD = 869 (0x364) (57600 baud @ 50 MHz)
     ldh r1, #arrayUART_RX
     ldl r1, #arrayUART_RX
     addi r1, #1
     ld r1, r0, r1
-    ldh r5, #01h
-    ldl r5, #B2h
+    ldh r5, #03h
+    ldl r5, #64h
     st r5, r0, r1
     
-;   Seta RATE_FREQ_BAUD = 434 (0x01B2) (115200 BAUD @ 50 MHz clk) 
+;   Seta RATE_FREQ_BAUD = 869 (0x364) (57600 baud @ 50 MHz)
     ldh r1, #arrayUART_TX
     ldl r1, #arrayUART_TX
     addi r1, #1
     ld r1, r0, r1
-    ldh r5, #01h
-    ldl r5, #B2h
+    ldh r5, #03h
+    ldl r5, #64h
     st r5, r0, r1
 
 ;   Inicializa registradores
@@ -231,26 +231,6 @@ TransferByte:
     
 ;   Incrementa Ponteiro da RAM
     addi r3, #1
-    
-;   Imprime Instrução salva
-    
-;   Salva flag High/Low
-    add r15, r0, r2
-    
-;   Converte para string de caracteres em HEX
-    add r2, r0, r5
-    jmpd #IntegerToHexString
-    
-  IntegerToHexStringReturn:
-    
-;   Imprime string com instrução em HEX
-    add r2, r0, r14
-    jmpd #PrintString
-    
-  PrintStringVolta:
-    
-;   Restaura flag High/Low
-    add r2, r0, r15
 
 ;   Retorna
     jmpd #UartRXDataAVACK
@@ -264,112 +244,6 @@ TransferByte:
 
 ;   Returns to polling loop
     jmpd #UartRxDataAVPollingLoop
-    
-; ENVIA INSTRUÇÂO PELO TX
-
-PrintString: ; Transmite por UART uma string. Espera endereço da string a ser enviada em r2
-
-; Tabela de registradores:
-; r10 = Endereço do transmissor serial
-; r2 = Endereço da string a ser enviada
-; r13 = Indexador da string do inteiro convertido (buffer)
-; r5 = Dado a ser transmitido
-
-    xor r0, r0, r0
-    xor r5, r5, r5
-    xor r13, r13, r13
-
-  tx_loop:
-  
-;   r10 <= &ready
-    ldh r10, #arrayUART_TX
-    ldl r10, #arrayUART_TX
-    addi r0, #2
-    ld r10, r0, r10
-
-;   r5 <= status do tx
-    ld r5, r0, r10
-    add r5, r0, r5 ; Gera flag
-
-    jmpzd #tx_loop ; Espera transmissor estar disponivel
-    ;jmpzd #tx_disp ; Espera transmissor estar disponivel
-    ;jmpd #tx_loop  ; Transmissor indisponivel
-
-  tx_disp:
-;   r5 <= string[r3]
-    ld r5, r13, r2
-    add r5, r0, r5 ; Gera flag
-
-;   Se string[r3] = 0 (terminador de string), volta para caller
-    jmpzd #PrintStringReturn
-
-;   r10 <= &TX_DATA
-    ldh r10, #arrayUART_TX
-    ldl r10, #arrayUART_TX
-    ld r10, r0, r10
-
-;   UART TX <= r5
-    st r5, r0, r10
-
-;   Incrementa indice
-    addi r13, #1
-
-;   Transmite proximo caracter
-    jmpd #tx_loop
-    ;jmpd #tx_disp
-
-PrintStringReturn:
-
-    jmpd #PrintStringVolta
-
-IntegerToHexString: ; Espera valor a ser convertido em r2, retorna ponteiro para string em r14
-; Serve Somente para o Erro do pc, Sempre devolve uma string de 4 posições
-; Tabela de registradores:
-; r2 = Inteiro a ser convertido ( 16 bits)
-; r10 = Constante 16
-; r11 = Numeros a ser Convertidos / Temporário para comparacao
-; r12 = Indexador do Buffer
-; r13 = Endereço da LUT
-; r14 = Endereço do Buffer ( Ponteiro para String)
-
-    ldh r10, #00h
-    ldl r10, #10h  ; r10 <= (constante)16
-
-    ;xor r12, r12, r12 ; Zera o indexador do Buffer
-    ldh r12, #00h
-    ldl r12, #04h   ; Buffer index starts in the last position
-
-    ldh r13, #IntegerToHexStringLUT
-    ldl r13, #IntegerToHexStringLUT   ; r13 <= & IntegerToHexStringLUT
-
-    ldh r14, #IntegerToHexBuffer
-    ldl r14, #IntegerToHexBuffer   ; r11 <= & IntergerToHexBufer
-
-    xor r11, r11, r11  ; r11 <= ASCII [ 0 ] = NULL = End of string
-    st r11, r12, r14  ; IntegerToHexBuffer [r12] = r11
-    subi r12, #01h   ; Buffer index <= last -1 Position
-
-  FourBitsConverter:
-    add r11, r0, r12  ; r11 <= Indexador
-    ;subi r11, #04h   ; Comparação é verdadeira quando o indexador for igual a 4
-    jmpnd #ReturnIntegerToHexString ; It's true when r11 is -1
-
-    div r2, r10    ; r2 / 16  ( Divisao por 16 equivale a 4 shifts)
-    mfl r2        ; r2 <= parte inteira da divisao r2/16
-    mfh r11        ; r11 <= Resto da divisao r2/16 ( 4 bits)
-
-;   Salva em r11 o valor da LUT indexada por r11
-    ld r11, r11, r13   ; r11 <= IntegerToHexStringLUT[ ( r11 = resto da divisao)]
-
-    st r11, r12, r14  ; IntegerToHexBuffer [r12] = r11 ( Numero convertido)
-
-    subi r12, #01h   ; Decrementa o Indexador
-    jmpd #FourBitsConverter ; Retoma o Loop
-
-  ReturnIntegerToHexString:
-
-    jmpd #IntegerToHexStringReturn
-    
 
 .endcode
 ;=============================================================================================================
@@ -396,10 +270,5 @@ arrayUART_RX:             db #80A0h, #80A1h
 ; Array de registradores do controlador de interrupções
 ; arrayUART_TX [ TX_DATA(0x80A0) | RATE_FREQ_BAUD(0x80A1) | READY(0x80A2) ]
 arrayUART_TX:             db #8080h, #8081h, #80A2h
-
-; IntegerToHexString Look Up Table (returns indexer value in HEXADECIMAL IN UPPERCASE)
-;                             0    1    2    3    4    5    6    7    8    9    A    B    C    D    E    F
-IntegerToHexStringLUT:    db #48, #49, #50, #51, #52, #53, #54, #55, #56, #57, #65, #66, #67, #68, #69, #70
-IntegerToHexBuffer:       db #0, #0, #0, #0, #0
 
 .enddata
