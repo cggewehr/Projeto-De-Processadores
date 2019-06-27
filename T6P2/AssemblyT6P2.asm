@@ -1189,7 +1189,8 @@ RequestSize:
     
 ;   Prints new line characters
     ldh r1, #0
-    ldh r1, #0
+    ;ldh r1, #0
+    ldl r1, #0
     ldh r2, #stringNovaLinha
     ldl r2, #stringNovaLinha
     syscall ; PrintString     
@@ -1243,7 +1244,8 @@ RequestElementsLoop:
     
 ;   Prints new line characters
     ldh r1, #0
-    ldh r1, #0
+    ;ldh r1, #0
+    ldl r1, #0
     ldh r2, #stringNovaLinha
     ldl r2, #stringNovaLinha
     syscall ; PrintString    
@@ -1316,8 +1318,10 @@ BubbleSort:
 
     add r3, r2, r1          ; r3 points the end of array (right after the last element)
 
-    ldl r4, #0              ;
-    ldh r4, #1              ; r4 <- 1
+    ;ldl r4, #0              ;
+    ;ldh r4, #1              ; r4 <- 1
+    ldh r4, #0
+    ldl r4, #1
 
 ; Converts array to char and transmits via UART
 TX_ARRAY_INICIAL:
@@ -1363,7 +1367,9 @@ delayBeforeSort:
     syscall ; Delay
 
     ldh r1, #0
-    ldh r1, #0
+    ;ldh r1, #0
+    ldl r1, #0
+    
     ldh r2, #stringNovaLinha
     ldl r2, #stringNovaLinha
     syscall ; Nova Linha
@@ -1441,7 +1447,8 @@ TX_ARRAY_FINAL_LOOP:
     syscall                 ; Prints string on UART transmiter
     
     ldh r1, #0
-    ldh r1, #0
+    ;ldh r1, #0
+    ldl r1, #0
     ldh r2, #stringNovaLinha
     ldl r2, #stringNovaLinha
     syscall                 ; New line
