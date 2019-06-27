@@ -1153,6 +1153,78 @@ Read: ; Returns on r14, 0 if a string hasnt been received through UART, or the s
     rts
     
 StringToInteger: ; (Converts a given string (on r2) to an integer (returned on r14)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;STRING TO INTEGER;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;         Given a *String on r2 return the integer value of so in r14                    ;
+; Registers used                                                                         ;
+;	r3 : String index, runs through the String until String[index] = `0` (end of string) ;
+;	r4 : Constant 10, used each time to shift the integer number 10 positions            ;
+;   r5 : Offset of ascii, equals to 48                                                   ;
+;                                                                                        ;
+;  Implementation:                                                                       ;
+;     Workflow:                                                                          ;
+;        Gets the value of The first element of the string passed in r2, and then        ;
+;        compare it whit `0`, the string terminator                                      ;
+;        Multiply the return register (r14) whit 10 to generate the decimal value needed ;
+;        note that in the first iteration r14 == 0 therefore the multiplication will be 0;
+;        Put the value in the string minus ASCII offset in the return register( r14)     ;
+;        Increment the String pointer ( r2)                                              ;
+;     OFFSET:                                                                            ;
+;        In ASCII number zero ( 0 ) starts in postion 48, ergo if the String is `20` the ;
+;        first ASCII char `2` will be 50, subtracted of 48 will result in the int value  ;
+;        of that char                                                                    ;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+	push r3  ; Temporary
+	push r4  ; Constant 10
+	push r5  ; Constant 48 ASCII offset
+
+	; Clean registers
+	xor r3, r3, r3    ; r3  <- 0
+	xor r14, r14, r14 ; r14 <- 0
+	
+	; r4 <- (const) 10
+	ldh r4, #00h  
+	ldl r4, #0Ah      ; r4 <- 10
+
+	; r5 <- (const) 48
+	ldh r5, #00h
+	ldl r5, #30h      ; r5 <- 48
+	
+	; Generates flag
+	ld r3, r0, r2     ; Gets the value of the String in the First position ( r3<- value of addres r2)
+	add r3, r0, r3    ; r3 <- Value ( r2) GENERATES FLAG
+  
+  ; Loop, iterates r3 ( r2 = *String, r3 = Value String[0] ; r2 != `0` ; r2 ++ ) 
+  ; r3 already has the value of string in the first position
+  StringToInteger_loop:
+	
+	; Verifies the end of loop
+	jmpzd #StrintToInteger_return;  ; If the current char is equals to ZERO, end 
+	
+	; Multiply r14(return integer) and r4 ( const 10)
+	mul r14, r4       ; In the first iteration will result in zero
+	mfl r14           ; r14 <- Interger part of division
+
+	; r3 <- r3 - 48( ASCII offset)
+	sub r3, r3, r5     ; r3 <- Int value
+	
+	; r14 <- String[index] - 48 (offset of Ascii)
+	add r14, r14, r3   ; r14 <- Value converted from string to integer
+	
+	; Gets the next memory position of the string
+	addi r2, #01h     ; String ++ 
+	
+	; r3 <- r2[index]
+	ld r3, r0, r2     ; r3 <- Value of address[r2+index]
+  
+	; Restart the iteration
+	jmpd #StringToInteger_loop 
+	
+  StrintToInteger_return:
+	pop r5
+	pop r4
+	pop r3
+	rts
 
 ; IMPLEMENTAR
     
@@ -1544,6 +1616,7 @@ UartRxBuffer:             db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0,
 
 ; Pointer for UartRxBuffer
 UartRxBufferIndexer:      db #0
+
 
 ;-------------------------------------------VARIAVEIS DE APLICAÇÃO-------------------------------------------
 
