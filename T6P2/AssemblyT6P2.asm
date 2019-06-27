@@ -762,8 +762,8 @@ PrintString: ; Transmite por UART uma string. Espera endereço da string a ser e
     xor r3, r3, r3
     xor r5, r5, r5
 
-    ldh r1, #UART_TX
-    ldl r1, #UART_TX
+    ldh r1, #arrayUART_TX
+    ldl r1, #arrayUART_TX
     ld r1, r0, r1
 
   tx_loop:
@@ -1199,7 +1199,7 @@ StringToInteger: ; (Converts a given string (on r2) to an integer (returned on r
   StringToInteger_loop:
 	
 	; Verifies the end of loop
-	jmpzd #StrintToInteger_return;  ; If the current char is equals to ZERO, end 
+	jmpzd #StringToInteger_return  ; If the current char is equals to ZERO, end 
 	
 	; Multiply r14(return integer) and r4 ( const 10)
 	mul r14, r4       ; In the first iteration will result in zero
@@ -1220,7 +1220,7 @@ StringToInteger: ; (Converts a given string (on r2) to an integer (returned on r
 	; Restart the iteration
 	jmpd #StringToInteger_loop 
 	
-  StrintToInteger_return:
+  StringToInteger_return:
 	pop r5
 	pop r4
 	pop r3
@@ -1617,6 +1617,8 @@ UartRxBuffer:             db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0,
 ; Pointer for UartRxBuffer
 UartRxBufferIndexer:      db #0
 
+; Filled buffer flag
+UartRxBufferFilledFlag:   db #0
 
 ;-------------------------------------------VARIAVEIS DE APLICAÇÃO-------------------------------------------
 
@@ -1628,15 +1630,15 @@ arraySort:                db #50, #49, #48, #47, #46, #45, #44, #43, #42, #41, #
 arraySortSize:            db #50
 
 ; "Insira tamanho do array a ser ordenado: "
-stringTamanho:            db #49h, 6eh, 73h, 69h, 72h, 61h, 20h, 74h, 61h, 6dh, 61h, 6eh, 68h, 6fh, 20h, 64h, 6fh, 20h, 61h, 72h, 72h, 61h, 79h, 20h, 61h, 20h, 73h, 65h, 72h, 20h, 6fh, 72h, 64h, 65h, 6eh, 61h, 64h, 6fh
+stringTamanho:            db #49h, #6eh, #73h, #69h, #72h, #61h, #20h, #74h, #61h, #6dh, #61h, #6eh, #68h, #6fh, #20h, #64h, #6fh, #20h, #61h, #72h, #72h, #61h, #79h, #20h, #61h, #20h, #73h, #65h, #72h, #20h, #6fh, #72h, #64h, #65h, #6eh, #61h, #64h, #6fh
 
 ; "Insira elemento "
-stringElementoA:          db #49h, 6eh, 73h, 69h, 72h, 61h, 20h, 65h, 6ch, 65h, 6dh, 65h, 6eh, 74h, 6fh, 20h
+stringElementoA:          db #49h, #6eh, #73h, #69h, #72h, #61h, #20h, #65h, #6ch, #65h, #6dh, #65h, #6eh, #74h, #6fh, #20h
 
 ; " do array: "
-stringElementoB:          db #20h, 64h, 6fh, 20h, 61h, 72h, 72h, 61h, 79h, 3ah, 20h
+stringElementoB:          db #20h, #64h, #6fh, #20h, #61h, #72h, #72h, #61h, #79h, #3ah, #20h
 
 ; "Insira ordenacao do array (0 para crescente, 1 para Decrescente) : "
-stringOrdenacao:          db #49h, 6eh, 73h, 69h, 72h, 61h, 20h, 6fh, 72h, 64h, 65h, 6eh, 61h, 63h, 61h, 6fh, 20h, 64h, 6fh, 20h, 61h, 72h, 72h, 61h, 79h, 20h, 28h, 30h, 20h, 70h, 61h, 72h, 61h, 20h, 63h, 72h, 65h, 73h, 63h, 65h, 6eh, 74h, 65h, 2ch, 20h, 31h, 20h, 70h, 61h, 72h, 61h, 20h, 44h, 65h, 63h, 72h, 65h, 73h, 63h, 65h, 6eh, 74h, 65h, 29h, 20h, 3ah, 20h
+stringOrdenacao:          db #49h, #6eh, #73h, #69h, #72h, #61h, #20h, #6fh, #72h, #64h, #65h, #6eh, #61h, #63h, #61h, #6fh, #20h, #64h, #6fh, #20h, #61h, #72h, #72h, #61h, #79h, #20h, #28h, #30h, #20h, #70h, #61h, #72h, #61h, #20h, #63h, #72h, #65h, #73h, #63h, #65h, #6eh, #74h, #65h, #2ch, #20h, #31h, #20h, #70h, #61h, #72h, #61h, #20h, #44h, #65h, #63h, #72h, #65h, #73h, #63h, #65h, #6eh, #74h, #65h, #29h, #20h, #3ah, #20h
 
 .enddata
