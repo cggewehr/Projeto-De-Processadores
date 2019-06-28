@@ -67,14 +67,14 @@
 ;-----------------------------------------------------BOOT---------------------------------------------------
 
 ;   Inicializa ponteiro da pilha para 0x"7FFF" (ultimo endereço no espaço de endereçamento da memoria)
-;    ldh r0, #7Fh
-;    ldl r0, #FFh
-;    ldsp r0
+    ldh r0, #7Fh
+    ldl r0, #FFh
+    ldsp r0
 
 ;   Inicializa ponteiro da pilha para 0x"03E6" (ultimo endereço no espaço de endereçamento da memoria)
-    ldh r0, #03h
-    ldl r0, #E6h
-    ldsp r0
+;    ldh r0, #03h
+;    ldl r0, #E6h
+;    ldsp r0
 
 ;   Seta endereço do tratador de interrupção
     ldh r0, #InterruptionServiceRoutine
@@ -836,13 +836,13 @@ PrintString: ; Transmite por UART uma string. Espera endereço da string a ser e
 
     ldh r1, #arrayUART_TX
     ldl r1, #arrayUART_TX
-    ld r1, r0, r1
     addi r1, #2
+    ld r1, r0, r1 ; r1 <= &TX READY
 
   tx_loop:
 
 ;   r5 <= status do tx
-    ld r5, r0, r1
+    ld r5, r0, r1  ; r1 <= TX READY
     add r5, r0, r5 ; Gera flag
 
     jmpzd #tx_loop ; Espera transmissor estar disponivel
@@ -866,6 +866,12 @@ PrintString: ; Transmite por UART uma string. Espera endereço da string a ser e
 
 ;   Incrementa indice
     addi r3, #1
+    
+;   Restaura ponteiro para TX READY em r1 
+    ldh r1, #arrayUART_TX
+    ldl r1, #arrayUART_TX
+    addi r1, #2
+    ld r1, r0, r1 ; r1 <= &TX READY   
 
 ;   Transmite proximo caracter
     jmpd #tx_loop

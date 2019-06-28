@@ -41,8 +41,8 @@ begin
 
     clk <= not clk after 5 ns; -- 100 MHz
     rst <= '1', '0' after 15 ns;
-	port_io <= "00ZZZZZZZZZZZZZZ", "01ZZZZZZZZZZZZZZ" after 9ms, "00ZZZZZZZZZZZZZZ" after 18ms;
-    prog_mode <= '1';--, '0' after 11 us;
+	port_io <= "ZZZZZZZZZZZZZZZZ";
+    prog_mode <= '0';--, '0' after 11 us;
 
 --
 --    -- UART RX
@@ -66,45 +66,45 @@ begin
 	data_in_tx <= std_logic_vector(to_unsigned(5208, data_in_tx'length)), std_logic_vector(to_unsigned(data_sim, data_in_tx'length)) after 50 ns;
 	data_av_tx <= av_sim;
 
-	TX: entity work.UART_TX
-		generic map(
-			TX_DATA_ADDR => "0000",
-			RATE_FREQ_BAUD_ADDR => "0001",
-			READY_ADDR => "0010"
-		)
-		port map(
-			clk => clk, 
-			rst => rst,
-			ce => ce_tx,
-			rw => rw_tx,
-			tx => uart_rx,
-			address => addr_tx,
-			data_in => data_in_tx,
-			data_out => data_out_tx,
-			data_av => data_av_tx,
-			ready => ready_tx
-		);
-			
-	SIM: process begin
-	
-		count <= 0;
-		av_sim <= '0';
-		wait for 50 us;
-		
-		for i in 1 to 100 loop
-				
-			data_sim <= count;
-			av_sim <= '1';
-			
-			wait for 15 ns;
-			
-			av_sim <= '0';
-			
-			count <= count + 1;
-			
-			wait until ready_tx = '1';
-			
-	    end loop;
-	end process;
+--	TX: entity work.UART_TX
+--		generic map(
+--			TX_DATA_ADDR => "0000",
+--			RATE_FREQ_BAUD_ADDR => "0001",
+--			READY_ADDR => "0010"
+--		)
+--		port map(
+--			clk => clk, 
+--			rst => rst,
+--			ce => ce_tx,
+--			rw => rw_tx,
+--			tx => uart_rx,
+--			address => addr_tx,
+--			data_in => data_in_tx,
+--			data_out => data_out_tx,
+--			data_av => data_av_tx,
+--			ready => ready_tx
+--		);
+--			
+--	SIM: process begin
+--	
+--		count <= 0;
+--		av_sim <= '0';
+--		wait for 50 us;
+--		
+--		for i in 1 to 100 loop
+--				
+--			data_sim <= count;
+--			av_sim <= '1';
+--			
+--			wait for 15 ns;
+--			
+--			av_sim <= '0';
+--			
+--			count <= count + 1;
+--			
+--			wait until ready_tx = '1';
+--			
+--	    end loop;
+--	end process;
 	
 end behavioral;
