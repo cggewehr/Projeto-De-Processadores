@@ -128,6 +128,24 @@
     ldh r5, #00h   ; r5 <= "00000000_00000000"
     ldl r5, #00h   ; Desabilita todos os bits da porta de I/O
     st r5, r1, r4  ; PortEnable <= "00000000_00000000"
+    
+;   Seta RATE_FREQ_BAUD = 869 (0x364) (57600 baud @ 50 MHz)
+    ldh r1, #arrayUART_RX
+    ldl r1, #arrayUART_RX
+    addi r1, #1
+    ld r1, r0, r1  ; r1 <= &RATE_FREQ_BAUD (RX)
+    ldh r5, #03h
+    ldl r5, #64h   ; Seta BAUD_RATE = 869
+    st r5, r0, r1  ;
+    
+;   Seta RATE_FREQ_BAUD = 869 (0x364) (57600 baud @ 50 MHz)
+    ldh r1, #arrayUART_TX
+    ldl r1, #arrayUART_TX
+    addi r1, #1
+    ld r1, r0, r1  ; r1 <= &RATE_FREQ_BAUD (TX)
+    ldh r5, #03h
+    ldl r5, #64h   ; Seta BAUD_RATE = 869
+    st r5, r0, r1  ;
 
 ;   Inicialização dos registradores
     xor r0, r0, r0
@@ -480,7 +498,7 @@ syscall6Handler: ; StringToInteger (ATOI) (Converts a given string (on r2) to an
 ;-------------------------------------------------DRIVERS----------------------------------------------------
 
 UartRXDriver:
-; Regiter Table: 
+; Register Table: 
 ; r1 = Address for LD/ST from/into variables
 ; r5 = Data for LD/ST from/into variables
 ; r6 = Buffer pointer
@@ -490,67 +508,121 @@ UartRXDriver:
     push r5
     push r6
     push r7
-    
+
     xor r0, r0, r0
-    
+
 ;   r5 <= RX DATA
     ldh r1, #arrayUART_RX
     ldl r1, #arrayUART_RX
     ld r1, r0, r1 ; r1 <= &RX_DATA
     ld r5, r0, r1 ; r5 <= RX_DATA
-    
+ 
+;   r1 <= &TX READY
+    ldh r1, #arrayUART_TX
+    ldl r1, #arrayUART_TX
+    addi r1, #2
+    ld r1, r0, r1 ; r1 <= &Ready
+
+;   Waits for TX to be available
+  UartRXTXReadyLoop:
+
+;   r6 <= TX READY
+    ld r6, r0, r1
+    add r6, r0, r6
+    jmpzd #UartRXTXReadyLoop
+
+;   Transmits received char back to source
+  UartRXTXChar:
+
+;   r1 <= &UART TX DATA
+    ldh r1, #arrayUART_TX
+    ldl r1, #arrayUART_TX
+    ld r1, r0, r1
+
+;   TX DATA <= RX DATA   
+    st r5, r0, r1
+
+  UartRXSetup:
+
 ;   r6 <= Address of temp buffer
     ldh r6, #UartRxBuffer
     ldl r6, #UartRxBuffer
-    
+
 ;   r7 <= Indexer for temp buffer
     ldh r7, #UartRxBufferIndexer
     ldl r7, #UartRxBufferIndexer
     ld r7, r0, r7
-    
+
 ;   Checks if current char is '/n' ( Enter ), if it is, inserts '\0' terminator at current buffer position and flags buffer is available, else, adds current char to buffer
     subi r5, #10 ; Integer 10 is ASCII code for '/n'
     jmpzd #UartRxAppendTerminator
     jmpd #UartRxAppendChar
-    
+
   UartRxAppendChar:
-    
+
 ;   Restores char value and stores it on buffer
     addi r5, #10
     st r5, r6, r7 ; Buffer[BufferIndexer] <= Current Char (not '\n')
 
-;   Increments buffer indexer
-    addi r6, #1
-    ldh r1, #UartRxBufferIndexer
-    ldl r1, #UartRxBufferIndexer
-    st r6, r0, r1 ; BufferIndexer++
+;   Increments buffer indexer (if indexer == 80, loops bak to 0)
+    addi r7, #1
+    ldh r1, #0
+    ldl r1, #80
+    sub r1, r7, r8 ; r1 <= ++indexer - 80
+    jmpzd #UartRxResetsIndexer
+    jmpd #UartRxStoreIndexer
     
+  UartRxResetsIndexer:
+    
+    xor r7, r7, r7 ; Indexer <= 0
+    
+  UartRxStoreIndexer:
+    
+    ldh r1, #UartRxBufferIndexer ; Indexer < 80
+    ldl r1, #UartRxBufferIndexer
+    st r7, r0, r1 ; BufferIndexer
+
 ;   Signals buffer not ready
     ldh r1, #UartRxBufferFilledFlag
     ldl r1, #UartRxBufferFilledFlag
     xor r5, r5, r5
     st r5, r1, r0
-    
+
 ;   Jumps to return
     jmpd #UartRxReturn
-    
+
   UartRxAppendTerminator:
-  
+
 ;   Stores '/0' at current position
     st r0, r6, r7 ; Buffer[BufferIndexer] <= '\0'
-    
+
+;   r1 <= &TX READY
+    ldh r1, #arrayUART_TX
+    ldl r1, #arrayUART_TX
+    addi r1, #2
+    ld r1, r0, r1 ; r1 <= &Ready
+
+  UartRxLoopSendCR: ; Loops while TX is unavailable
+
+    ld r6, r0, r1
+    add r6, r0, r6
+    jmpzd #UartRxLoopSendCR
+
+;   Sends '/r' character (Carriage Return) through UART TX
+    ldh r1, #arrayUART_TX
+    ldl r1, #arrayUART_TX
+    ld r1, r0, r1 ; r1 <= &TX DATA
+    ldh r5, #0
+    ldl r5, #13   ; r5 <= '\r'
+    st r5, r0, r1
+
 ;   Signals new string available in buffer
     ldh r1, #UartRxBufferFilledFlag
     ldl r1, #UartRxBufferFilledFlag
     ldh r5, #0
     ldl r5, #1
     st r5, r1, r0
-    
-;   Resets buffer indexer
-    ldh r1, #UartRxBufferIndexer
-    ldl r1, #UartRxBufferIndexer
-    st r0, r0, r1 ; BufferIndexer++   
-    
+
 ;   Jumps to to return
     jmpd #UartRxReturn
 
@@ -571,7 +643,6 @@ NullPointerExceptionDriver:
     jsrd #PrintError
 
     rts
-
 
 InvalidInstructionDriver:
 
@@ -623,6 +694,7 @@ DivisionByZeroDriver:
 
     rts
 
+    
 ;---------------------------------------------FUNÇÕES DO KERNEL----------------------------------------------
 
 PrintError: ; Prints a given error code (on r2) on a given insruction (r3)
@@ -765,6 +837,7 @@ PrintString: ; Transmite por UART uma string. Espera endereço da string a ser e
     ldh r1, #arrayUART_TX
     ldl r1, #arrayUART_TX
     ld r1, r0, r1
+    addi r1, #2
 
   tx_loop:
 
@@ -777,6 +850,7 @@ PrintString: ; Transmite por UART uma string. Espera endereço da string a ser e
     ;jmpd #tx_loop  ; Transmissor indisponivel
 
   tx_disp:
+  
 ;   r5 <= string[r3]
     ld r5, r3, r2
     add r5, r0, r5 ; Gera flag
@@ -785,6 +859,9 @@ PrintString: ; Transmite por UART uma string. Espera endereço da string a ser e
     jmpzd #PrintStringReturn
 
 ;   UART TX <= r5
+    ldh r1, #arrayUART_TX
+    ldl r1, #arrayUART_TX
+    ld r1, r0, r1 ; r1 <= &TX DATA
     st r5, r0, r1
 
 ;   Incrementa indice
@@ -1032,13 +1109,13 @@ Delay1ms: ; Assumes clk = 50MHz (MIGHT CAUSE PROBELMS IF GIVEN NUMBER IS GREATER
     ldh r4, #09h
     ldl r4, #C4h
 
-  Delay1msloop:             ; Repete 2500 vezes, 20 ciclos
-    subi r4, #1             ;  4 ciclos
-    nop                     ;  7 ciclos
-    nop                     ; 10 ciclos
-    nop                     ; 13 ciclos
-    jmpzd #Delay1msloopExit ; 16 ciclos
-    jmpd #Delay1msloop      ; 20 ciclos
+  Delay1msloop:             ; Repeats 2500 times, 20 cycles
+    subi r4, #1             ;  4 cycles
+    nop                     ;  7 cycles
+    nop                     ; 10 cycles
+    nop                     ; 13 cycles
+    jmpzd #Delay1msloopExit ; 16 cycles
+    jmpd #Delay1msloop      ; 20 cycles
 
   Delay1msloopExit:
 
@@ -1053,7 +1130,7 @@ Delay1ms: ; Assumes clk = 50MHz (MIGHT CAUSE PROBELMS IF GIVEN NUMBER IS GREATER
 
     rts
 
-IntegerToSSD: ; Returns on r14 given integer (on r2) encoded for 7 Segment Display (abcdefg.)
+IntegerToSSD: ; Returns on r14 given integer (on r2) encoded for 7 Segment Display (abcdefg.) (Considers display segments to be active on 0)
 ; Register table
 ; r1 = Address of Look Up Table for conversion
 ; r2 = Integer to be encoded
@@ -1075,16 +1152,24 @@ IntegerToSSD: ; Returns on r14 given integer (on r2) encoded for 7 Segment Displ
 
     rts
 
-Read: ; Returns on r14, 0 if a string hasnt been received through UART, or the size of said string if the last char received was 'Enter' (Data is on given buffer)
-  
+Read: ; Returns on r14, 0 if a string hasnt been received through UART, or the size of said string if the last char received was '\n'
+; Register Table:
+; r1 = Addr of UART RX buffer filled flag
+; r2 = Pointer to string which data from buffer is transfered to
+; r3 = Amount of chars to copy from buffer into given string
+; r5 = Temp for loading data from buffer and storing it into given string pointer
+; r6 = Addr of buffer (filled by UART RX driver)
+; r7 = Buffer indexer (Indexes buffer filled by UART RX driver)
+
     push r1
     push r3
     push r5
     push r6
+    push r7
     
     xor r0, r0, r0
     xor r14, r14, r14
-  
+
 ;   Checks if there is new data available on buffer
     ldh r1, #UartRxBufferFilledFlag
     ldl r1, #UartRxBufferFilledFlag
@@ -1105,53 +1190,53 @@ Read: ; Returns on r14, 0 if a string hasnt been received through UART, or the s
 ;   Sets string size as the return value
     add r14, r0, r3
     
+;   r3 now points to last position of given string (Size - 1)
+    subi r3, #1
+    
 ;   Loads UART RX buffer address
     ldh r6, #UartRxBuffer
     ldl r6, #UartRxBuffer
+
+;   Loads buffer indexer
+    ldh r7, #UartRxBufferIndexer
+    ldl r7, #UartRxBufferIndexer
+    ld r7, r0, r7 ; r7 <= Next buffer position
+    subi r7, #1   ; r7 <= Current buffer position
     
-  ReadLoop: ; Loops until buffer is transfered into given string
-  
-;   While buffer indexer is positive, transfers char from buffer to string
-    jmpnd #ReadLoopReturn 
-    
+  ReadLoop: ; Loops until buffer is transfered into given string pointer
+
+;   While buffer indexer is > 0 transfers char from buffer to string
+    jmpnd #ReadReturn 
+
 ;   Transfers current character
-    ld r5, r6, r3 ; r5 <= r6[r3] (Buffer[BufferIndexer])
+    ld r5, r6, r7 ; r5 <= r6[r7] (buffer[BufferIndexer])
     st r5, r2, r3 ; GivenString[r3] <= buffer[r3]
-    
-;   Decrements indexer
+
+;   Decrements "definitive" indexer (Indexes return string)
     subi r3, #1
     
-;   Jump to loop beginning
+;   Decrements temp buffer indexer (Indexes buffer filled by UART RX driver)
+    subi r7, #1
+    jmpnd #ReadSetBufferIndexer
     jmpd #ReadLoop
     
-  ReadLoopReturn:
+  ReadSetBufferIndexer:
   
-;   Sets size (argument) as loop iterator
-    add r3, r0, r14
-  
-  ReadClearBufferLoop: ; Clears buffer
-  
-;   Returns to caller with r14 = Given string size (Set before loop) if done clearing buffer
-    jmpnd #ReadClearBufferLoop
-  
-;   Clear current buffer position
-    st r0, r6, r3
-  
-;   Decrements indexer
-    subi r3, #1 
-    
-;   Returns to caller with r14 = Given string size (Set before loop)
-    jmpd #ReadReturn
-    
-  ReadReturn:  
-    
+;   r7 now will point to last position of temp buffer  
+    ldh r7, #0
+    ldl r7, #79
+    jmpd #ReadLoop
+
+  ReadReturn:
+
+    pop r7
     pop r6
     pop r5
     pop r3
     pop r1
-    
+
     rts
-    
+
 StringToInteger: ; (Converts a given string (on r2) to an integer (returned on r14)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;STRING TO INTEGER;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;         Given a *String on r2 return the integer value of so in r14                    ;
@@ -1242,7 +1327,20 @@ RequestSize:
     ldl r2, #stringTamanho
     syscall ; PrintString     
     
-;   TODO: READ CHAR FROM CONSOLE
+;   Gets array size from terminal
+    ldh r1, #0
+    ldl r1, #5
+    ldh r2, #stringTemp
+    ldl r2, #stringTemp
+    ldh r3, #0
+    ldl r3, #3
+    
+  RequestSizeReadLoop:
+  
+;   Keeps calling Read until it returns a valid value
+    syscall
+    add r14, r0, r14
+    jmpzd #RequestSizeReadLoop
     
 ;   Converts Size string to integer
     ldh r1, #0
@@ -1255,10 +1353,10 @@ RequestSize:
     ldh r1, #arraySortSize
     ldl r1, #arraySortSize
     st r2, r0, r1
-    
+
 ;   Sets comparison number for RequestElementsLoop iterator   
     add r5, r0, r2
-    
+
 ;   Prints new line characters
     ldh r1, #0
     ;ldh r1, #0
@@ -1266,10 +1364,10 @@ RequestSize:
     ldh r2, #stringNovaLinha
     ldl r2, #stringNovaLinha
     syscall ; PrintString     
-    
+
 ;   Initializes RequestElementsLoop iterator
     xor r4, r4, r4
-    
+
 RequestElementsLoop:
 
 ;   If iterator = size, breaks loop
@@ -1301,7 +1399,20 @@ RequestElementsLoop:
     ldl r2, #stringElementoB
     syscall ; PrintString
     
-;   TODO: READ CHAR FROM CONSOLE   
+;   Gets array size from terminal
+    ldh r1, #0
+    ldl r1, #5
+    ldh r2, #stringTemp
+    ldl r2, #stringTemp
+    ldh r3, #0
+    ldl r3, #3
+    
+  RequestElementsReadLoop:
+  
+;   Keeps calling Read until it returns a valid value
+    syscall
+    add r14, r0, r14
+    jmpzd #RequestElementsReadLoop
 
 ;   Converts Size string to integer
     ldh r1, #0
@@ -1336,7 +1447,20 @@ RequestOrder:
     ldl r2, #stringOrdenacao
     syscall ; PrintString
     
-;   TODO: READ CHAR FROM CONSOLE    
+;   Gets array size from terminal
+    ldh r1, #0
+    ldl r1, #5
+    ldh r2, #stringTemp
+    ldl r2, #stringTemp
+    ldh r3, #0
+    ldl r3, #3
+    
+  RequestOrderReadLoop:
+  
+;   Keeps calling Read until it returns a valid value
+    syscall
+    add r14, r0, r14
+    jmpzd #RequestOrderReadLoop
 
 ;   Converts Order string to integer
     ldh r1, #0
@@ -1347,7 +1471,6 @@ RequestOrder:
 ;   r12 <= sort order
     add r12, r0, r14
     
-   
     
 ;; BUBBLE SORT DO CARARA
 
@@ -1571,8 +1694,8 @@ arrayPorta:               db #8000h, #8001h, #8002h, #8003h
 arrayPIC:                 db #80F0h, #80F1h, #80F2h, #80F3h
 
 ; Array de registradores do controlador de interrupções
-; arrayUART_TX [ TX_DATA(0x80A0) | RATE_FREQ_BAUD(0x80A1) ]
-arrayUART_TX:             db #8080h, #8081h
+; arrayUART_TX [ TX_DATA(0x8080) | RATE_FREQ_BAUD(0x8081) | READY(0x8082) ]
+arrayUART_TX:             db #8080h, #8081h, #8082h
 
 ; Array de registradores do controlador de interrupções
 ; arrayUART_TX [ RX_DATA(0x80A0) | RATE_FREQ_BAUD(0x80A1) ]
@@ -1598,15 +1721,9 @@ IntegerToHexBuffer:       db #0, #0, #0, #0, #0
 ; Buffer para transmissao de codigo de erro (8 chars + string trailer)
 ErrorCode:                db #0, #0, #0, #0, #0, #0, #0, #0, #0
 
-; Primeira posição deve ser o caracter a ser enviado, segunda posição deve ser o terminador de string
-CharString:               db #0, #0
-
-; array SSD representa o array de valores a serem postos nos displays de sete seg
-                           ;|  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |  9  |
-arraySSD:                 db #03h, #9fh, #25h, #0dh, #99h, #49h, #41h, #1fh, #01h, #09h
-
-;                            | D  | E | L  | A |  Y |  /0  |
-stringDelay:              db #68, #69, #76, #65, #89, #0
+; Codifica o numero indexante em segmentos de um display de 7 segmentos
+;                           |  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |  9  |  A  |  B  |  C  |  D  |  E  |  F  |
+arraySSD:                 db #03h, #9fh, #25h, #0dh, #99h, #49h, #41h, #1fh, #01h, #09h, #11h, #b1h, #63h, #85h, #61h, #71h
 
 ; String contendo caracteres de nova linha e carriage return
 stringNovaLinha:          db #10, #13, #0
@@ -1630,15 +1747,18 @@ arraySort:                db #50, #49, #48, #47, #46, #45, #44, #43, #42, #41, #
 arraySortSize:            db #50
 
 ; "Insira tamanho do array a ser ordenado: "
-stringTamanho:            db #49h, #6eh, #73h, #69h, #72h, #61h, #20h, #74h, #61h, #6dh, #61h, #6eh, #68h, #6fh, #20h, #64h, #6fh, #20h, #61h, #72h, #72h, #61h, #79h, #20h, #61h, #20h, #73h, #65h, #72h, #20h, #6fh, #72h, #64h, #65h, #6eh, #61h, #64h, #6fh
+stringTamanho:            db #49h, #6eh, #73h, #69h, #72h, #61h, #20h, #74h, #61h, #6dh, #61h, #6eh, #68h, #6fh, #20h, #64h, #6fh, #20h, #61h, #72h, #72h, #61h, #79h, #20h, #61h, #20h, #73h, #65h, #72h, #20h, #6fh, #72h, #64h, #65h, #6eh, #61h, #64h, #6fh, #0
 
 ; "Insira elemento "
-stringElementoA:          db #49h, #6eh, #73h, #69h, #72h, #61h, #20h, #65h, #6ch, #65h, #6dh, #65h, #6eh, #74h, #6fh, #20h
+stringElementoA:          db #49h, #6eh, #73h, #69h, #72h, #61h, #20h, #65h, #6ch, #65h, #6dh, #65h, #6eh, #74h, #6fh, #20h, #0
 
 ; " do array: "
-stringElementoB:          db #20h, #64h, #6fh, #20h, #61h, #72h, #72h, #61h, #79h, #3ah, #20h
+stringElementoB:          db #20h, #64h, #6fh, #20h, #61h, #72h, #72h, #61h, #79h, #3ah, #20h, #0
 
 ; "Insira ordenacao do array (0 para crescente, 1 para Decrescente) : "
-stringOrdenacao:          db #49h, #6eh, #73h, #69h, #72h, #61h, #20h, #6fh, #72h, #64h, #65h, #6eh, #61h, #63h, #61h, #6fh, #20h, #64h, #6fh, #20h, #61h, #72h, #72h, #61h, #79h, #20h, #28h, #30h, #20h, #70h, #61h, #72h, #61h, #20h, #63h, #72h, #65h, #73h, #63h, #65h, #6eh, #74h, #65h, #2ch, #20h, #31h, #20h, #70h, #61h, #72h, #61h, #20h, #44h, #65h, #63h, #72h, #65h, #73h, #63h, #65h, #6eh, #74h, #65h, #29h, #20h, #3ah, #20h
+stringOrdenacao:          db #49h, #6eh, #73h, #69h, #72h, #61h, #20h, #6fh, #72h, #64h, #65h, #6eh, #61h, #63h, #61h, #6fh, #20h, #64h, #6fh, #20h, #61h, #72h, #72h, #61h, #79h, #20h, #28h, #30h, #20h, #70h, #61h, #72h, #61h, #20h, #63h, #72h, #65h, #73h, #63h, #65h, #6eh, #74h, #65h, #2ch, #20h, #31h, #20h, #70h, #61h, #72h, #61h, #20h, #44h, #65h, #63h, #72h, #65h, #73h, #63h, #65h, #6eh, #74h, #65h, #29h, #20h, #3ah, #20h, #0
+
+; String temporaria para dados recebidos atraves de UART RX por terminal
+stringTemp:               db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0
 
 .enddata
