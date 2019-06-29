@@ -146,6 +146,11 @@
     ldh r5, #03h
     ldl r5, #64h   ; Seta BAUD_RATE = 869
     st r5, r0, r1  ;
+    
+;   Starts UART RX buffer @ 0
+    ldh r1, #UartRxBufferStart
+    ldl r1, #UartRxBufferStart
+    st r0, r0, r1
 
 ;   Inicialização dos registradores
     xor r0, r0, r0
@@ -539,7 +544,7 @@ UartRXDriver:
     ldl r1, #arrayUART_TX
     ld r1, r0, r1
 
-;   TX DATA <= RX DATA   
+;   TX DATA <= RX DATA
     st r5, r0, r1
 
   UartRXSetup:
@@ -564,29 +569,10 @@ UartRXDriver:
     addi r5, #10
     st r5, r6, r7 ; Buffer[BufferIndexer] <= Current Char (not '\n')
 
-;   Increments buffer indexer (if indexer == 80, loops bak to 0)
-    addi r7, #1
-    ldh r1, #0
-    ldl r1, #80
-    sub r1, r7, r8 ; r1 <= ++indexer - 80
-    jmpzd #UartRxResetsIndexer
-    jmpd #UartRxStoreIndexer
-    
-  UartRxResetsIndexer:
-    
-    xor r7, r7, r7 ; Indexer <= 0
-    
-  UartRxStoreIndexer:
-    
-    ldh r1, #UartRxBufferIndexer ; Indexer < 80
-    ldl r1, #UartRxBufferIndexer
-    st r7, r0, r1 ; BufferIndexer
-
 ;   Signals buffer not ready
     ldh r1, #UartRxBufferFilledFlag
     ldl r1, #UartRxBufferFilledFlag
-    xor r5, r5, r5
-    st r5, r1, r0
+    st r0, r0, r1
 
 ;   Jumps to return
     jmpd #UartRxReturn
@@ -595,6 +581,18 @@ UartRXDriver:
 
 ;   Stores '/0' at current position
     st r0, r6, r7 ; Buffer[BufferIndexer] <= '\0'
+
+;   Signals new string available in buffer
+    ldh r1, #UartRxBufferFilledFlag
+    ldl r1, #UartRxBufferFilledFlag
+    ldh r5, #0
+    ldl r5, #1
+    st r5, r1, r0
+
+;   Saves current indexer as end of string
+    ldh r1, #UartRxBufferEnd
+    ldl r1, #UartRxBufferEnd
+    st r7, r0, r1
 
 ;   r1 <= &TX READY
     ldh r1, #arrayUART_TX
@@ -615,18 +613,29 @@ UartRXDriver:
     ldh r5, #0
     ldl r5, #13   ; r5 <= '\r'
     st r5, r0, r1
-
-;   Signals new string available in buffer
-    ldh r1, #UartRxBufferFilledFlag
-    ldl r1, #UartRxBufferFilledFlag
-    ldh r5, #0
-    ldl r5, #1
-    st r5, r1, r0
-
+ 
 ;   Jumps to to return
     jmpd #UartRxReturn
 
   UartRxReturn:
+  
+;   Increments buffer indexer (if indexer == 80, loops bak to 0)
+    addi r7, #1
+    ldh r1, #0
+    ldl r1, #80
+    sub r1, r7, r1 ; r1 <= ++indexer - 80
+    jmpzd #UartRxResetsIndexer
+    jmpd #UartRxStoreIndexer
+    
+  UartRxResetsIndexer:
+    
+    xor r7, r7, r7 ; Indexer <= 0
+    
+  UartRxStoreIndexer:
+    
+    ldh r1, #UartRxBufferIndexer ; Indexer < 80
+    ldl r1, #UartRxBufferIndexer
+    st r7, r0, r1 ; BufferIndexer
   
     pop r7
     pop r6
@@ -1165,15 +1174,18 @@ Read: ; Returns on r14, 0 if a string hasnt been received through UART, or the s
 ; r3 = Amount of chars to copy from buffer into given string
 ; r5 = Temp for loading data from buffer and storing it into given string pointer
 ; r6 = Addr of buffer (filled by UART RX driver)
-; r7 = Buffer indexer (Indexes buffer filled by UART RX driver)
+; r7 = Buffer start position
+; r8 = Chars tranfered counter
 
     push r1
     push r3
     push r5
     push r6
     push r7
+    push r8
     
     xor r0, r0, r0
+    xor r8, r8, r8
     xor r14, r14, r14
 
 ;   Checks if there is new data available on buffer
@@ -1183,7 +1195,7 @@ Read: ; Returns on r14, 0 if a string hasnt been received through UART, or the s
     add r1, r0, r1
     
 ;   If no new data is available, returns 0, else, transfer buffer into given string pointer (r2) 
-    jmpzd #ReadReturn
+    jmpzd #ReadPop
     jmpd #ReadTransferBufferToString
     
   ReadTransferBufferToString:
@@ -1196,45 +1208,60 @@ Read: ; Returns on r14, 0 if a string hasnt been received through UART, or the s
 ;   Sets string size as the return value
     add r14, r0, r3
     
-;   r3 now points to last position of given string (Size - 1)
-    subi r3, #1
-    
 ;   Loads UART RX buffer address
     ldh r6, #UartRxBuffer
     ldl r6, #UartRxBuffer
 
-;   Loads buffer indexer
-    ldh r7, #UartRxBufferIndexer
-    ldl r7, #UartRxBufferIndexer
-    ld r7, r0, r7 ; r7 <= Next buffer position
-    subi r7, #1   ; r7 <= Current buffer position
+;   Loads buffer start position
+    ldh r7, #UartRxBufferStart
+    ldl r7, #UartRxBufferStart
+    ld r7, r0, r7
+    
+;   Sets buffer reference pointer (buffer pointer + start position)
+    add r6, r7, r6
     
   ReadLoop: ; Loops until buffer is transfered into given string pointer
 
-;   While buffer indexer is > 0 transfers char from buffer to string
-    jmpnd #ReadReturn 
-
-;   Transfers current character
-    ld r5, r6, r7 ; r5 <= r6[r7] (buffer[BufferIndexer])
-    st r5, r2, r3 ; GivenString[r3] <= buffer[r3]
-
-;   Decrements "definitive" indexer (Indexes return string)
-    subi r3, #1
+;   r5 <= buffer[r8 + reference]
+    ld r5, r6, r8
     
-;   Decrements temp buffer indexer (Indexes buffer filled by UART RX driver)
-    subi r7, #1
-    jmpnd #ReadSetBufferIndexer
-    jmpd #ReadLoop
+;   string[r8] <= buffer[r8 + reference]
+    st r5, r2, r8
     
-  ReadSetBufferIndexer:
-  
-;   r7 now will point to last position of temp buffer  
-    ldh r7, #0
-    ldl r7, #79
-    jmpd #ReadLoop
-
+;   Increments counter
+    addi r8, #1
+    
+;   If counter == Amount of chars to be copied, breaks, else, loops back to ReadLoop
+    sub r5, r3, r8
+    jmpnd #ReadLoop
+    
   ReadReturn:
+  
+;   Sets new buffer start position, right after current buffer end position
+    ldh r1, #UartRxBufferEnd
+    ldl r1, #UartRxBufferEnd
+    ld r5, r0, r1
+    addi r5, #1
 
+;   If new start position = 80, loops back to 0
+    ldh r1, #0
+    ldl r1, #80
+    sub r1, r5, r1
+    jmpnd #ReadSetStart
+    
+;   Only reaches this line if r5 == 80
+    xor r5, r5, r5
+    
+  ReadSetStart:
+  
+;   Stores new start position value
+    ldh r1, #UartRxBufferStart
+    ldl r1, #UartRxBufferStart
+    st r5, r0, r1
+    
+  ReadPop:
+  
+    pop r8
     pop r7
     pop r6
     pop r5
@@ -1743,6 +1770,12 @@ UartRxBufferIndexer:      db #0
 ; Filled buffer flag
 UartRxBufferFilledFlag:   db #0
 
+; Indexes start of current string in circular buffer
+UartRxBufferStart:        db #0
+
+; Indexes ending of current string in circular buffer
+UartRxBufferEnd:          db #0
+
 ;-------------------------------------------VARIAVEIS DE APLICAÇÃO-------------------------------------------
 
 ; Array para aplicação principal (Bubble Sort) de 50 elementos
@@ -1753,7 +1786,7 @@ arraySort:                db #50, #49, #48, #47, #46, #45, #44, #43, #42, #41, #
 arraySortSize:            db #50
 
 ; "Insira tamanho do array a ser ordenado: "
-stringTamanho:            db #49h, #6eh, #73h, #69h, #72h, #61h, #20h, #74h, #61h, #6dh, #61h, #6eh, #68h, #6fh, #20h, #64h, #6fh, #20h, #61h, #72h, #72h, #61h, #79h, #20h, #61h, #20h, #73h, #65h, #72h, #20h, #6fh, #72h, #64h, #65h, #6eh, #61h, #64h, #6fh, #0
+stringTamanho:            db #49h, #6eh, #73h, #69h, #72h, #61h, #20h, #74h, #61h, #6dh, #61h, #6eh, #68h, #6fh, #20h, #64h, #6fh, #20h, #61h, #72h, #72h, #61h, #79h, #20h, #61h, #20h, #73h, #65h, #72h, #20h, #6fh, #72h, #64h, #65h, #6eh, #61h, #64h, #6fh, #3ah, #20h, #0
 
 ; "Insira elemento "
 stringElementoA:          db #49h, #6eh, #73h, #69h, #72h, #61h, #20h, #65h, #6ch, #65h, #6dh, #65h, #6eh, #74h, #6fh, #20h, #0
