@@ -50,7 +50,8 @@ begin
             ADDR_PORT     => "0000",
             ADDR_PIC      => "1111",
             ADDR_UART_TX  => "1000",
-            ADDR_UART_RX  => "1010"
+            ADDR_UART_RX  => "1010",
+            ADDR_TIMER    => "1011"
     	)
 		port map (
     	    clk       => clk_2,

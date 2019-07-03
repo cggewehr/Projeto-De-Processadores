@@ -9,7 +9,7 @@
 ; PROCESSADOR R8 COM SUPORTE A INTERRUPÇÕES DE I/O VIA PIC OU TIMER E TRAPS
 
 ; APLICAÇÃO ATUAL:
-;  BUBBLE SORT COM INPUT VA UART E CONTADORES
+;  BUBBLE SORT COM INPUT VIA UART E CONTADORES
 
 ; CHANGELOG:
 ;
@@ -34,8 +34,8 @@
 
 ;////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-; irq[7] = port_io[15] = DISABLED
-; irq[6] = port_io[14] = DISABLED
+; irq[7] = port_io[15] = BUTTON DOWN
+; irq[6] = port_io[14] = BUTTON UP
 ; irq[5] = ṕort_io[13] = DISABLED
 ; irq[4] = ṕort_io[12] = DISABLED
 ; irq[3] = OPEN
@@ -111,23 +111,23 @@
 
     xor r4, r4, r4
 
-;   Seta todos os bits de PortConfig como entrada
-    ldl r4, #01h   ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &PortConfig ]
-    ldh r5, #FFh   ; r5 <= "11111111_11111111"
-    ldl r5, #FFh   ; Seta todos os bits de PortConfig como entrada
-    st r5, r1, r4  ; PortConfig <= "11111111_11111111"
+;   Seta PortConfig
+    addi r4, #01h  ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &PortConfig ]
+    ldh r5, #C0h   ; r5 <= "11000000_00000000"
+    ldl r5, #00h   ; bit 15 e 14 = entrada, outros = saida
+    st r5, r1, r4  ; PortConfig <= "11000000_00000000"
 
-;   Desabilita interrupções
+;   Seta irqtEnable
     ldl r4, #03h   ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &irqtEnable ]
-    ldh r5, #00h   ; r5 <= "00000000_00000000"
-    ldl r5, #00h   ; Desabilita interrupções
-    st r5, r1, r4  ; irqtEnable <= "00000000_00000000"
+    ldh r5, #C0h   ; r5 <= "11000000_00000000"
+    ldl r5, #00h   ; Habilita a interrupção nos bits 15 e 14
+    st r5, r1, r4  ; irqtEnable <= "11000000_00000000"
 
-;   Desabilita portas
+;   Seta PortEnable
     ldl r4, #02h   ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &PortEnable ]
-    ldh r5, #00h   ; r5 <= "00000000_00000000"
-    ldl r5, #00h   ; Desabilita todos os bits da porta de I/O
-    st r5, r1, r4  ; PortEnable <= "00000000_00000000"
+    ldh r5, #DEh   ; r5 <= "11011110_11111111"
+    ldl r5, #FFh   ; Habilita acesso a todos os bits da porta de I/O, menos bit 13 e bit 8
+    st r5, r1, r4  ; PortEnable <= "11011110_11111111"
     
 ;   Seta RATE_FREQ_BAUD = 869 (0x364) (57600 baud @ 50 MHz)
     ldh r1, #arrayUART_RX
@@ -191,8 +191,8 @@ InterruptionServiceRoutine:
 
 ;////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-; irq[7] = port_io[15] = DISABLED
-; irq[6] = port_io[14] = DISABLED
+; irq[7] = port_io[15] = BUTTON DOWN
+; irq[6] = port_io[14] = BUTTON UP
 ; irq[5] = ṕort_io[13] = DISABLED
 ; irq[4] = ṕort_io[12] = DISABLED
 ; irq[3] = OPEN
@@ -377,11 +377,15 @@ irq5Handler: ; PORT_IO[13]
 
     halt
 
-irq6Handler: ; PORT_IO[14]
+irq6Handler: ; PORT_IO[14] (BUTTON UP)
+
+	jsrd #ButtonUpDriver
 
     halt
 
-irq7Handler: ; PORT_IO[15]
+irq7Handler: ; PORT_IO[15] (BUTTON DOWN)
+
+	jsrd #ButtonDownDriver
 
     halt
 
@@ -771,7 +775,87 @@ DivisionByZeroDriver:
 
     rts
 
+ButtonUpDriver:
+
+;   Driver incrementa contador manual
+
+    push r1
+    push r5
+    push r6
     
+    xor r0, r0, r0
+    xor r1, r1, r1
+    xor r5, r5, r5
+    xor r6, r6, r6
+    
+;   r1 <= &contadorManual
+    ldh r1, #contadorManual
+    ldl r1, #contadorManual
+    
+;   r5 <= contadorManual
+    ld r5, r1, r0
+    
+;   se contadorManual for == 99, volta para 0
+    ldl r6, #99
+    sub r6, r5, r6
+    jmpzd #ButtonUpDriverld0
+    
+;   Incrementa valor de contadorManual
+    addi r5, #01h
+    
+  ButtonDownDriverReturnld0:  
+    
+;   Atualiza valor de contadorManual
+    st r5, r1, r0
+    
+    pop r6
+    pop r5
+    pop r1
+    
+    rts
+
+  ButtonUpDriverld0:
+    xor r5, r5, r5
+    jmpd #ButtonDownDriverReturnld0
+
+ButtonDownDriver:
+
+;   Driver decrementa contador manual
+
+    push r1
+    push r5
+    
+    xor r0, r0, r0
+    xor r1, r1, r1
+    xor r5, r5, r5
+    
+;   r1 <= &contadorManual
+    ldh r1, #contadorManual
+    ldl r1, #contadorManual
+    
+;   r5 <= contadorManual
+    ld r5, r1, r0
+    add r5, r0, r5 ; Gera flag
+    jmpzd #ButtonDownDriverld99
+    
+;   Decrementa valor de contadorManual
+    subi r5, #01h
+    
+  ButtonDownDriverReturnld99:  
+    
+;   Atualiza valor de contadorManual
+    st r5, r1, r0
+
+    pop r5
+    pop r1
+
+    rts
+
+  ButtonDownDriverld99:
+    ldl r5, #99
+    jmpzd #ButtonDownDriverReturnld99
+
+ 
 ;---------------------------------------------FUNÇÕES DO KERNEL----------------------------------------------
 
 PrintError: ; Prints a given error code (on r2) on a given insruction (r3)
@@ -1349,11 +1433,11 @@ StringToInteger: ; (Converts a given string (on r2) to an integer (returned on r
 ;  Implementation:                                                                       ;
 ;     Workflow:                                                                          ;
 ;        Gets the value of The first element of the string passed in r2, and then        ;
-;        compare it whit `0`, the string terminator                                      ;
+;        compare it with `0`, the string terminator                                      ;
 ;        Multiply the return register (r14) whit 10 to generate the decimal value needed ;
 ;        note that in the first iteration r14 == 0 therefore the multiplication will be 0;
-;        Put the value in the string minus ASCII offset in the return register( r14)     ;
-;        Increment the String pointer ( r2)                                              ;
+;        Put the value in the string minus ASCII offset in the return register(r14)      ;
+;        Increment the String pointer (r2)                                               ;
 ;     OFFSET:                                                                            ;
 ;        In ASCII number zero ( 0 ) starts in postion 48, ergo if the String is `20` the ;
 ;        first ASCII char `2` will be 50, subtracted of 48 will result in the int value  ;
@@ -1438,11 +1522,6 @@ SetTimer: ; (Generates a high priority interruption on a given time difference (
     ldl r1, #TimerDone
     st r0, r0, r1
     
-;   Saves new period value in variable (to be used in interruption handler when periodic flag = 1)
-    ldh r1, #TimerLastPeriod
-    ldl r1, #TimerLastPeriod
-    st r2, r0, r1
-    
 ;   Determines if callback pointer should be set if r5 = 0
     ldh r1, #TimerCallbackFlag
     ldl r1, #TimerCallbackFlag
@@ -1462,7 +1541,7 @@ SetTimer: ; (Generates a high priority interruption on a given time difference (
     ldl r1, #arrayTIMER
     ld r1, r0, r1
 
-;   r5 <= 50 (1 us = 50 clock cycles)
+;   r6 <= 50 (1 us = 50 clock cycles)
     ldh r6, #0
     ldl r6, #50
     
@@ -1471,6 +1550,11 @@ SetTimer: ; (Generates a high priority interruption on a given time difference (
     mfl r6
     
 ;   Sets timer period
+    st r6, r0, r1
+	
+;   Saves new period value in variable (to be used in interruption handler when periodic flag = 1)
+    ldh r1, #TimerLastPeriod
+    ldl r1, #TimerLastPeriod
     st r6, r0, r1
 
     pop r6
@@ -1481,7 +1565,7 @@ SetTimer: ; (Generates a high priority interruption on a given time difference (
 WaitForTimer: ; Returns 0 while timer period hasnt been reached, else returns 1
 
     push r1
-    
+
     ldh r1, #TimerDone
     ldl r1, #TimerDone
     ld r14, r0, r1
@@ -1826,28 +1910,393 @@ TX_ARRAY_FINAL_LOOP:
 
     addi r11, #1            ; Increments transmission count
 
-    sub r5, r10, r11        ; If transmission count == array size, breaks loop, else iterates again
+    sub r5, r10, r11        ; If transmission count == array size, breaks loop, else, iterates again
 
     ldh r1, #arraySort
     ldl r1, #arraySort      ; r1 <- &array
 
-    jmpzd #delayAfterSort
+    jmpzd #main
     jmpd #TX_ARRAY_FINAL_LOOP
 
-delayAfterSort:
+	
+;----------------------------------------------- SUBROTINAS --------------------------------------------------
 
-;   Delays for 100 ms
+DisplayHandler:
+
+	push r1
+	push r2
+	push r3
+	
+	xor r0, r0, r0
+	
+;	r1 <= contador1us
+	ldh r1, #contador1us
+	ldl r1, #contador1us
+	ld r3, r0, r1
+	
+;	contador1us++
+	addi r3, #1
+	st r3, r0, r1
+	
+;	If contador1us == 2000, 2 milliseconds have passed, if so, updates next display, else, waits for contador1us to be == 2000
+	ldh r2, #07h
+	ldl r2, #D0h
+	sub r2, r2, r3
+	jmpnd #DisplayHandlerReturn
+	
+;	Increments 2ms counter
+	ldh r1, #contador2ms
+	ldh r1, #contador2ms
+	ld r3, r0, r1
+	addi r3, #1
+	
+;	If contador2ms == 500, 1 second has passed, if so, updates continuous counter and resets 2ms counter
+	ldh r2, #0
+	ldl r2, #500
+	sub r2, r2, r3
+	jmpnd #DisplayHandlerUpdateCounters
+	
+;	Resets 2ms counter (Only reaches this point if 2ms counter was == 500)
+	xor r3, r3, r3
+	
+  DisplayHandlerUpdateCounters:
+  
+;	Updates 2ms counter
+	ldh r1, #contador2ms
+	ldl r1, #contador2ms
+    st r3, r0, r1
+
+;	Resets contador1us (Only reaches this point if contador1us was == 2000)
+	ldh r1, #contador1us
+	ldl r1, #contador1us
+	st r0, r0, r1
+	
+;	Sets next display to be updated
+	ldh r1, #displayNextToUpdate
+	ldl r1, #displayNextToUpdate
+	ld r3, r0, r1
+	addi r3, #1
+	
+	ldh r2, #0
+	ldl r2, #4
+	
+	sub r2, r2, r3
+	jmpnd #DisplayHandlerSkipReset
+	
+;	displayNextToUpdate <= 0 (Only reaches this point if displayNextToUpdate was = 4)
+	add r3, r0, r0
+	
+  DisplayHandlerSkipReset:
+	
+;	Sets next display to be updated
+	st r3, r0, r1
+	
+;	Gets pointer to subrotine that updates specific display
+	ldh r1, #displayJumpTable
+	ldl r1, #displayJumpTable
+	ld r1, r3, r1 ; r1 <= jumpTable[displayNextToUpdate]
+	
+;	Calls specific display updating subroutine
+	jsr r1
+
+  DisplayHandlerReturn:
+	
+	pop r3
+	pop r2
+	pop r1
+	
+	rts
+
+
+Display0:
+
+;REGISTRADORES:
+; - r1: &arrayDisp
+; - r2: &contadorContinuo, contadorContinuo
+; - r5: Dado a ser escrito
+; - r6: Endereço do registrador de dados da porta
+
     push r1
     push r2
-    ldh r1, #0
-    ldl r1, #3
-    ldh r2, #0
-    ldl r2, #100
-    syscall
+    push r5
+    push r6
+
+    xor r1, r1, r1
+    xor r2, r2, r2
+    xor r5, r5, r5
+    xor r6, r6, r6
+
+;   r1 <= &arrayDisp
+    ldh r1, #arrayDisp
+    ldl r1, #arrayDisp
+
+;   r5 <= Codigo do Display 0 ( arrayDisp[0] )
+    ld r5, r0, r1
+
+;   r2 <= &contadorContinuo  (ponteiro)
+    ldh r2, #contadorContinuo
+    ldl r2, #contadorContinuo
+
+;   r2 <= contadorContinuo   (valor)
+    ld r2, r0, r2
+
+;   passa contadorContinuo como argumento para HEXtoDEC
+    jsrd #HEXtoDEC
+
+;   r2 <= valor da unidade da conversão decimal de contadorContinuo(r14 contem dezena, r15 contem unidade)
+    xor r2, r2, r2
+    add r2, r0, r15
+    
+;   Converte decimal para codigo do display de 7 segmentos (r14 contem numero convertido)
+    jsrd #DECtoSSD
+
+;   r5 <= Dado pronto para ser escrito na porta
+    add r5, r5, r14
+
+;   r6 <= &arrayPorta
+    ldh r6, #arrayPorta
+    ldl r6, #arrayPorta
+    ld r6, r0, r6
+
+;   PortData <= Display0 + Numero
+    st r5, r0, r6
+
+    pop r6
+    pop r5
     pop r2
     pop r1
 
-    jmpd #main
+    rts
+
+Display1:
+
+;REGISTRADORES:
+; - r1: &arrayDisp
+; - r2: &contadorContinuo, contadorContinuo
+; - r5: Dado a ser escrito
+; - r6: Endereço do registrador de dados da porta
+
+    push r1
+    push r2
+    push r5
+    push r6
+
+    xor r1, r1, r1
+    xor r2, r2, r2
+    xor r5, r5, r5
+    xor r6, r6, r6
+
+;   r1 <= &arrayDisp
+    ldh r1, #arrayDisp
+    ldl r1, #arrayDisp
+
+;   r5 <= Codigo do Display 1 ( arrayDisp[1] )
+    addi r1, #01h
+    ld r5, r0, r1
+
+;   r2 <= &contadorContinuo  (ponteiro)
+    ldh r2, #contadorContinuo
+    ldl r2, #contadorContinuo
+
+;   r2 <= contadorContinuo   (valor)
+    ld r2, r0, r2
+
+;   passa contadorContinuo como argumento para HEXtoDEC
+    jsrd #HEXtoDEC
+
+;   r2 <= valor da dezena da conversão decimal de contadorContinuo (r14 contem dezena, r15 contem unidade)
+    xor r2, r2, r2
+    add r2, r0, r14
+
+;   Converte decimal para codigo do display de 7 segmentos (r14 contem numero convertido)
+    jsrd #DECtoSSD
+
+;   r5 <= Dado pronto para ser escrito na porta
+    add r5, r5, r14
+
+;   r6 <= &arrayPorta
+    ldh r6, #arrayPorta
+    ldl r6, #arrayPorta
+    ld r6, r0, r6
+
+;   PortData (arrayDisp[0]) <= Display0 + Numero
+    st r5, r0, r6
+
+    pop r6
+    pop r5
+    pop r2
+    pop r1
+
+    rts
+
+Display2:
+
+;REGISTRADORES:
+; - r1: &arrayDisp
+; - r2: &contadorManual, contadorManual
+; - r5: Dado a ser escrito
+; - r6: Endereço do registrador de dados da porta
+
+    push r1
+    push r2
+    push r5
+    push r6
+
+    xor r1, r1, r1
+    xor r2, r2, r2
+    xor r5, r5, r5
+    xor r6, r6, r6
+
+;   r1 <= &arrayDisp
+    ldh r1, #arrayDisp
+    ldl r1, #arrayDisp
+
+;   r5 <= Codigo do Display 2 ( arrayDisp[2] )
+    addi r1, #02h
+    ld r5, r0, r1
+
+;   r2 <= &contadorManual  (ponteiro)
+    ldh r2, #contadorManual
+    ldl r2, #contadorManual
+
+;   r2 <= contadorManual   (valor)
+    ld r2, r0, r2
+
+;   passa contadorManual como argumento para HEXtoDEC
+    jsrd #HEXtoDEC
+
+;   r2 <= valor da unidade da conversão decimal de contadorContinuo (r14 contem dezena, r15 contem unidade)
+    xor r2, r2, r2
+    add r2, r0, r15
+
+;   Converte decimal para codigo do display de 7 segmentos (r14 contem numero convertido)
+    jsrd #DECtoSSD
+
+;   r5 <= Dado pronto para ser escrito na porta
+    add r5, r5, r14
+
+;   r6 <= &arrayPorta
+    ldh r6, #arrayPorta
+    ldl r6, #arrayPorta
+    ld r6, r0, r6
+
+;   PortData (arrayDisp[0]) <= Display0 + Numero
+    st r5, r0, r6
+
+    pop r6
+    pop r5
+    pop r2
+    pop r1
+
+    rts
+
+Display3:
+
+;REGISTRADORES:
+; - r1: &arrayDisp
+; - r2: &contadorManual, contadorManual
+; - r5: Dado a ser escrito
+; - r6: Endereço do registrador de dados da porta
+
+    push r1
+    push r2
+    push r5
+    push r6
+
+    xor r1, r1, r1
+    xor r2, r2, r2
+    xor r5, r5, r5
+    xor r6, r6, r6
+
+;   r1 <= &arrayDisp
+    ldh r1, #arrayDisp
+    ldl r1, #arrayDisp
+
+;   r5 <= Codigo do Display 3 ( arrayDisp[3] )
+    addi r1, #03h
+    ld r5, r0, r1
+
+;   r2 <= &contadorManual  (ponteiro)
+    ldh r2, #contadorManual
+    ldl r2, #contadorManual
+
+;   r2 <= contadorManual   (valor)
+    ld r2, r0, r2
+
+;   passa contadorManual como argumento para HEXtoDEC
+    jsrd #HEXtoDEC
+
+;   r2 <= valor da dezena da conversão decimal de contadorContinuo (r14 contem dezena, r15 contem unidade)
+    xor r2, r2, r2
+    add r2, r0, r14
+
+;   Converte decimal para codigo do display de 7 segmentos (r14 contem numero convertido)
+    jsrd #DECtoSSD
+
+;   r5 <= Dado pronto para ser escrito na porta
+    add r5, r5, r14
+
+;   r6 <= &arrayPorta
+    ldh r6, #arrayPorta
+    ldl r6, #arrayPorta
+    ld r6, r0, r6
+
+;   PortData (arrayDisp[0]) <= Display0 + Numero
+    st r5, r0, r6
+
+    pop r6
+    pop r5
+    pop r2
+    pop r1
+
+    rts
+
+
+HEXtoDEC: ; Divide em parte decimal e parte unitaria o numero passado como parametro (em r2)
+
+; REGISTRADORES: 
+; - r2: Numero a ser convertido
+; - r14: Dezena do numero convertido  (arrayDEC[Numero a ser convertido])
+; - r15: Unidade do numero convertido  (arrayDEC[Numero a ser convertido])
+
+;   r14 <= &arrayDEC    
+    ldh r14, #arrayDEC
+    ldl r14, #arrayDEC
+
+;   r14 <= arrayDEC[r2]
+    ld r14, r14, r2
+
+;   r15 <= &arrayUNI
+    ldh r15, #arrayUNI
+    ldl r15, #arrayUNI
+
+;   r15 <= arrayUNI[r2]
+    ld r15, r15, r2
+
+    rts                    
+
+DECtoSSD: ; Recebe numero a ser convertido em r2, retorna numero convertido em r14
+
+;REGISTRADORES:
+; - r1: &arraySSD
+; - r14: Codigo do display de 7 segmentos do numero passado como argumento
+
+    push r1
+
+    xor r1, r1, r1
+    xor r14, r14, r14
+
+;   r1 <= &arraySSD
+    ldh r1, #arraySSD
+    ldl r1, #arraySSD
+
+;   r14 <= arraySSD[r2]
+    ld r14, r1, r2
+
+    pop r1
+
+    rts
+
 
 .endcode
 
@@ -1943,7 +2392,6 @@ TimerCallbackFlag:        db #0
 
 ; Array para aplicação principal (Bubble Sort) de 50 elementos
 arraySort:                db #50, #49, #48, #47, #46, #45, #44, #43, #42, #41, #40, #39, #38, #37, #36, #35, #34, #33, #32, #31, #30, #29, #28, #27, #26, #25, #24, #23, #22, #21, #20, #19, #18, #17, #16, #15, #14, #13, #12, #11, #10, #9, #8, #7, #6, #5, #4, #3, #2, #1  
-;arraySort:                db #0050h, #0049h, #0048h, #0047h, #0046h, #0045h, #0044h, #0043h, #0042h, #0041h, #0040h, #0039h, #0038h, #0037h, #0036h, #0035h, #0034h, #0033h, #0032h, #0031h, #0030h, #0029h, #0028h, #0027h, #0026h, #0025h, #0024h, #0023h, #0022h, #0021h, #0020h, #0019h, #0018h, #0017h, #0016h, #0015h, #0014h, #0013h, #0012h, #0011h, #0010h, #0009h, #0008h, #0007h, #0006h, #0005h, #0004h, #0003h, #0002h, #0001h
 
 ; Tamanho do array p/ bubble sort (50 elementos)
 arraySortSize:            db #50
@@ -1957,10 +2405,37 @@ stringElementoA:          db #49h, #6eh, #73h, #69h, #72h, #61h, #20h, #65h, #6c
 ; " do array: "
 stringElementoB:          db #20h, #64h, #6fh, #20h, #61h, #72h, #72h, #61h, #79h, #3ah, #20h, #0
 
-; "Insira ordenacao do array (0 para crescente, 1 para Decrescente) : "
-stringOrdenacao:          db #49h, #6eh, #73h, #69h, #72h, #61h, #20h, #6fh, #72h, #64h, #65h, #6eh, #61h, #63h, #61h, #6fh, #20h, #64h, #6fh, #20h, #61h, #72h, #72h, #61h, #79h, #20h, #28h, #30h, #20h, #70h, #61h, #72h, #61h, #20h, #63h, #72h, #65h, #73h, #63h, #65h, #6eh, #74h, #65h, #2ch, #20h, #31h, #20h, #70h, #61h, #72h, #61h, #20h, #44h, #65h, #63h, #72h, #65h, #73h, #63h, #65h, #6eh, #74h, #65h, #29h, #20h, #3ah, #20h, #0
+; "Insira ordenacao do array (0 para crescente, 1 para Decrescente): "
+stringOrdenacao:          db #49h, #6eh, #73h, #69h, #72h, #61h, #20h, #6fh, #72h, #64h, #65h, #6eh, #61h, #63h, #61h, #6fh, #20h, #64h, #6fh, #20h, #61h, #72h, #72h, #61h, #79h, #20h, #28h, #30h, #20h, #70h, #61h, #72h, #61h, #20h, #63h, #72h, #65h, #73h, #63h, #65h, #6eh, #74h, #65h, #2ch, #20h, #31h, #20h, #70h, #61h, #72h, #61h, #20h, #44h, #65h, #63h, #72h, #65h, #73h, #63h, #65h, #6eh, #74h, #65h, #29h, #3ah, #20h, #0
 
 ; String temporaria para dados recebidos atraves de UART RX por terminal
 stringTemp:               db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0
+
+; Contador de quantas vezes a interrupção gerada pelo timer foi efetivada (periodo de 1 us)
+contador1us:             db #0
+
+; Proximo display a ser atualizado
+displayNextToUpdate:      db #0
+
+; Ponteiros para handlers dos displays especificos
+displayJumpTable:         db #Display0, #Display1, #Display2, #Display3
+
+; Contador a ser exibido nos displays mais a esquerda, controlados pelos botoes UP e DOWN
+contadorManual:           db #0
+
+; Contador a ser exibido nos displays mais a direita, controlados pelo timer
+contadorContinuo:         db #0
+
+; Armazema informação de quanto tempo se passou em incrementos de 2 ms, quando == 500, 1 s se passou, contadorAuto será incrementado
+contador2ms:              db #0
+
+; Array que escolhe qual disp sera utilizado  Mais da direita -> Mais da esquerda
+arrayDisp:  db #1C00h, #1A00h, #1600h, #0E00h
+
+; Array que retorna dezena do numero indexador
+arrayDEC:   db #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0001h, #0001h, #0001h, #0001h, #0001h, #0001h, #0001h, #0001h, #0001h, #0001h, #0002h, #0002h, #0002h, #0002h, #0002h, #0002h, #0002h, #0002h, #0002h, #0002h, #0003h, #0003h, #0003h, #0003h, #0003h, #0003h, #0003h, #0003h, #0003h, #0003h, #0004h, #0004h, #0004h, #0004h, #0004h, #0004h, #0004h, #0004h, #0004h, #0004h, #0005h, #0005h, #0005h, #0005h, #0005h, #0005h, #0005h, #0005h, #0005h, #0005h, #0006h, #0006h, #0006h, #0006h, #0006h, #0006h, #0006h, #0006h, #0006h, #0006h, #0007h, #0007h, #0007h, #0007h, #0007h, #0007h, #0007h, #0007h, #0007h, #0007h, #0008h, #0008h, #0008h, #0008h, #0008h, #0008h, #0008h, #0008h, #0008h, #0008h, #0009h, #0009h, #0009h, #0009h, #0009h, #0009h, #0009h, #0009h, #0009h, #0009h  
+
+; Array que retorna unidade do numero indexador               
+arrayUNI:   db #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h,#0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h
 
 .enddata
