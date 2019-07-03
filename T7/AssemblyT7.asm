@@ -2426,7 +2426,7 @@ contadorManual:           db #0
 ; Contador a ser exibido nos displays mais a direita, controlados pelo timer
 contadorContinuo:         db #0
 
-; Armazema informação de quanto tempo se passou em incrementos de 2 ms, quando == 500, 1 s se passou, contadorAuto será incrementado
+; Armazema informação de quanto tempo se passou em incrementos de 2 ms, quando == 500, 1 s se passou, contadorContinuo será incrementado
 contador2ms:              db #0
 
 ; Array que escolhe qual disp sera utilizado  Mais da direita -> Mais da esquerda
