@@ -551,9 +551,15 @@ TimerDriver:
     
     jsr r5
     
-;       If timer should be periodic, sets last period value as new period value
-  TimerDriverMakePeriodic:
+  TimerDriverMakePeriodic: ; If timer should be periodic, sets last period value as new period value
   
+;	r5 <= Periodic Flag (if flags == 0, returns, else, sets old timer period as new timer period)
+	ldh r1, #TimerPeriodicFlag
+	ldl r1, #TimerPeriodicFlag
+	ld r5, r0, r1
+	add r5, r0, r5 ; Sets zero flag
+	jmpzd #TimerDriverReturn
+	
 ;   r5 <= Last timer period
     ldh r1, #TimerLastPeriod
     ldl r1, #TimerLastPeriod
@@ -564,7 +570,7 @@ TimerDriver:
 ;   Timer counter <= Last timer period
     ldh r1, #arrayTIMER
     ldl r1, #arrayTIMER
-    ld r1, r0, r1
+    ld r1, r0, r1 ; r1 <= &Counter
     st r5, r0, r1  
     
   TimerDriverReturn:
@@ -759,7 +765,7 @@ SyscallDriver:
 
 OverflowDriver:
 
-;   Calls PrintErro with TrapID = 12
+;   Calls PrintError with TrapID = 12
     mfc r2
     mft r3
     jsrd #PrintError
@@ -768,7 +774,7 @@ OverflowDriver:
 
 DivisionByZeroDriver:
 
-;   Calls PrintErro with TrapID = 15
+;   Calls PrintError with TrapID = 15
     mfc r2
     mft r3
     jsrd #PrintError
@@ -938,7 +944,7 @@ PrintError: ; Prints a given error code (on r2) on a given insruction (r3)
     ldh r8, #IntegerToHexBuffer
     ldl r8, #IntegerToHexBuffer ; r8 <= &IntegerToHexBuffer
 
-AddrsLoop:
+  AddrsLoop:
     addi r7, #01h ; Increment ErrorCodeIndex | r7 = 4
 
     ld r5, r0, r8 ; r5 <= Value IntegerToHexBuffer
@@ -1038,7 +1044,7 @@ PrintString: ; Transmite por UART uma string. Espera endereço da string a ser e
     jmpd #tx_loop
     ;jmpd #tx_disp
 
-PrintStringReturn:
+  PrintStringReturn:
 
     pop r5
     pop r3
@@ -2412,7 +2418,7 @@ stringOrdenacao:          db #49h, #6eh, #73h, #69h, #72h, #61h, #20h, #6fh, #72
 stringTemp:               db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0
 
 ; Contador de quantas vezes a interrupção gerada pelo timer foi efetivada (periodo de 1 us)
-contador1us:             db #0
+contador1us:              db #0
 
 ; Proximo display a ser atualizado
 displayNextToUpdate:      db #0
@@ -2430,12 +2436,12 @@ contadorContinuo:         db #0
 contador2ms:              db #0
 
 ; Array que escolhe qual disp sera utilizado  Mais da direita -> Mais da esquerda
-arrayDisp:  db #1C00h, #1A00h, #1600h, #0E00h
+arrayDisp:                db #1C00h, #1A00h, #1600h, #0E00h
 
 ; Array que retorna dezena do numero indexador
-arrayDEC:   db #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0001h, #0001h, #0001h, #0001h, #0001h, #0001h, #0001h, #0001h, #0001h, #0001h, #0002h, #0002h, #0002h, #0002h, #0002h, #0002h, #0002h, #0002h, #0002h, #0002h, #0003h, #0003h, #0003h, #0003h, #0003h, #0003h, #0003h, #0003h, #0003h, #0003h, #0004h, #0004h, #0004h, #0004h, #0004h, #0004h, #0004h, #0004h, #0004h, #0004h, #0005h, #0005h, #0005h, #0005h, #0005h, #0005h, #0005h, #0005h, #0005h, #0005h, #0006h, #0006h, #0006h, #0006h, #0006h, #0006h, #0006h, #0006h, #0006h, #0006h, #0007h, #0007h, #0007h, #0007h, #0007h, #0007h, #0007h, #0007h, #0007h, #0007h, #0008h, #0008h, #0008h, #0008h, #0008h, #0008h, #0008h, #0008h, #0008h, #0008h, #0009h, #0009h, #0009h, #0009h, #0009h, #0009h, #0009h, #0009h, #0009h, #0009h  
+arrayDEC:                 db #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #0001h, #0001h, #0001h, #0001h, #0001h, #0001h, #0001h, #0001h, #0001h, #0001h, #0002h, #0002h, #0002h, #0002h, #0002h, #0002h, #0002h, #0002h, #0002h, #0002h, #0003h, #0003h, #0003h, #0003h, #0003h, #0003h, #0003h, #0003h, #0003h, #0003h, #0004h, #0004h, #0004h, #0004h, #0004h, #0004h, #0004h, #0004h, #0004h, #0004h, #0005h, #0005h, #0005h, #0005h, #0005h, #0005h, #0005h, #0005h, #0005h, #0005h, #0006h, #0006h, #0006h, #0006h, #0006h, #0006h, #0006h, #0006h, #0006h, #0006h, #0007h, #0007h, #0007h, #0007h, #0007h, #0007h, #0007h, #0007h, #0007h, #0007h, #0008h, #0008h, #0008h, #0008h, #0008h, #0008h, #0008h, #0008h, #0008h, #0008h, #0009h, #0009h, #0009h, #0009h, #0009h, #0009h, #0009h, #0009h, #0009h, #0009h  
 
 ; Array que retorna unidade do numero indexador               
-arrayUNI:   db #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h,#0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h
+arrayUNI:                 db #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h,#0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h
 
 .enddata
