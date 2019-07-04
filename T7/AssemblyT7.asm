@@ -167,11 +167,12 @@
     xor r11, r11, r11
     xor r12, r12, r12
     xor r13, r13, r13
-    xor r13, r13, r13
     xor r14, r14, r14
     xor r15, r15, r15
 
-    jmpd #main
+    ldh r1, #main
+    ldl r1, #main
+    jmp r1
 
 ; END SETUP
 ;____________________________________________________________________________________________________________
@@ -256,7 +257,6 @@ InterruptionServiceRoutine:
 ;   r1 <= interruptVector[IrqID]
     ld r1, r4, r1
 
-    ld r1, r0, r1
 ;   Jump para handler
     jsr r1
     
@@ -326,7 +326,6 @@ TrapsServiceRoutine:
 ;   r5 <= trapVector[trapID]
     ld r5, r4, r5
 
-    ld r5, r0, r5
 ;   Jump para handler
     jsr r5
 
@@ -350,6 +349,7 @@ TrapsServiceRoutine:
     rti
 
 ;-------------------------------------------------HANDLERS---------------------------------------------------
+
 
 irq0Handler: ; TIMER
 
@@ -518,7 +518,7 @@ syscall8Handler: ; Returns 0 while timer period hassnt been reached, else, retur
     jsrd #WaitForTimer
     
     rts
-    
+
 
 ;-------------------------------------------------DRIVERS----------------------------------------------------
 
@@ -1593,7 +1593,7 @@ main:
 
     ; Set the Syscall Number
     ldh r1, #00h
-    ldl r1, #11h         ; r1 <= 17
+    ldl r1, #07h         ; r1 <= 17
 
     ; Set the period in microseconds
     ldh r2, #07h 
