@@ -1466,13 +1466,15 @@ StringToInteger: ; (Converts a given string (on r2) to an integer (returned on r
 	ldh r5, #00h
 	ldl r5, #30h      ; r5 <- 48
 	
-	; Generates flag
+	
 	ld r3, r0, r2     ; Gets the value of the String in the First position ( r3<- value of addres r2)
-	add r3, r0, r3    ; r3 <- Value ( r2) GENERATES FLAG
+	
   
   ; Loop, iterates r3 ( r2 = *String, r3 = Value String[0] ; r2 != `0` ; r2 ++ ) 
   ; r3 already has the value of string in the first position
   StringToInteger_loop:
+	; Generates flag
+	add r3, r0, r3    ; r3 <- Value ( r2) GENERATES FLAG
 	
 	; Verifies the end of loop
 	jmpzd #StringToInteger_return  ; If the current char is equals to ZERO, end 
