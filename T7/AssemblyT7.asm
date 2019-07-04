@@ -316,18 +316,18 @@ TrapsServiceRoutine:
 
 ;   Le ID da trap
 
-;   r4 <= registrador de causa
-    mfc r4
+;   r12 <= registrador de causa
+    mfc r12
 
-;   r5 <= &trapVector
-    ldh r5, #trapVector
-    ldl r5, #trapVector
+;   r13 <= &trapVector
+    ldh r13, #trapVector
+    ldl r13, #trapVector
 
-;   r5 <= trapVector[trapID]
-    ld r5, r4, r5
+;   r13 <= trapVector[trapID]
+    ld r13, r12, r13
 
 ;   Jump para handler
-    jsr r5
+    jsr r13
 
 ;   Recupera contexto
     popf
