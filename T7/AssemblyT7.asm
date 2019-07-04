@@ -96,7 +96,7 @@
     ld r7, r4, r7       ; &mask
 
     ldh r8, #00h
-    ldl r8, #02h   ; Carrega a Mascara para o PIC [ r8 <= "0000_0000_0000_0010"]
+    ldl r8, #C3h   ; Carrega a Mascara para o PIC [ r8 <= "0000_0000_1100_0011"]
 
     st r8, r0, r7  ; arrayPIC [MASK] <= "xxxx_xxxx_0000_0010"
 
@@ -1392,7 +1392,7 @@ Read: ; Returns on r14, 0 if a string hasnt been received through UART, or the s
     addi r8, #1
     
 ;   If counter == Amount of chars to be copied, breaks, else, loops back to ReadLoop
-    sub r5, r3, r8
+    sub r5, r8, r3
     jmpnd #ReadLoop
     
   ReadReturn:
@@ -1584,6 +1584,7 @@ WaitForTimer: ; Returns 0 while timer period hasnt been reached, else returns 1
     pop r1
     
     rts
+    
 
 ;------------------------------------------- PROGRAMA PRINCIPAL ---------------------------------------------
 
@@ -1593,26 +1594,25 @@ main:
 
     ; Set the Syscall Number
     ldh r1, #00h
-    ldl r1, #07h         ; r1 <= 17
+    ldl r1, #07h            ; r1 <= 7
 
     ; Set the period in microseconds
-    ldh r2, #07h 
-    ldl r2, #D0h          ; r2 <= 2000 
+    ldh r2, #03h 
+    ldl r2, #E8h            ; r2 <= 1000
 
     ; Set the periodic Flag Value
     ldh r3, #00h
-    ldl r3, #01h          ; r3 <= 1
-    
+    ldl r3, #01h            ; r3 <= 1
+
     ; Set the ponter to callback Function
     ldh r4, #DisplayHandler
     ldl r4, #DisplayHandler ; r4 <= &DisplayHandler
 
     ; Set the callback flag value
     ldh r5, #00h
-    ldl r5, #01h          ; r5 <= 1
+    ldl r5, #01h            ; r5 <= 1
     
     syscall
-
 
 RequestSize:
 
@@ -1641,7 +1641,8 @@ RequestSize:
 ;   Converts Size string to integer
     ldh r1, #0
     ldl r1, #6
-    add r2, r0, r14
+    ldh r2, #stringTemp
+    ldl r2, #stringTemp
     syscall ; StringToInteger    
     
 ;   Stores size on its variable
@@ -1965,19 +1966,19 @@ DisplayHandler:
 	
 	xor r0, r0, r0
 	
-;	r1 <= contador1us
-	ldh r1, #contador1us
-	ldl r1, #contador1us
+;	r1 <= contador1000us
+	ldh r1, #contador1000us
+	ldl r1, #contador1000us
 	ld r3, r0, r1
 	
-;	contador1us++
+;	contador1000us++
 	addi r3, #1
 	st r3, r0, r1
 	
-;	If contador1us == 2000, 2 milliseconds have passed, if so, updates next display, else, waits for contador1us to be == 2000
-	ldh r2, #07h
-	ldl r2, #D0h
-	sub r2, r2, r3
+;	If contador1000us == 2, 2 milliseconds have passed, if so, updates next display, else, waits for contador1000us to be == 2
+	ldh r2, #00h
+	ldl r2, #02h
+	sub r2, r3, r2
 	jmpnd #DisplayHandlerReturn
 	
 ;	Increments 2ms counter
@@ -1989,34 +1990,54 @@ DisplayHandler:
 ;	If contador2ms == 500, 1 second has passed, if so, updates continuous counter and resets 2ms counter
 	ldh r2, #0
 	ldl r2, #500
-	sub r2, r2, r3
+	sub r2, r3, r2
 	jmpnd #DisplayHandlerUpdateCounters
 	
 ;	Resets 2ms counter (Only reaches this point if 2ms counter was == 500)
 	xor r3, r3, r3
-	
+
   DisplayHandlerUpdateCounters:
-  
+
 ;	Updates 2ms counter
 	ldh r1, #contador2ms
 	ldl r1, #contador2ms
     st r3, r0, r1
 
-;	Resets contador1us (Only reaches this point if contador1us was == 2000)
-	ldh r1, #contador1us
-	ldl r1, #contador1us
+;	Resets contador1000us (Only reaches this point if contador1000us was == 2)
+	ldh r1, #contador1000us
+	ldl r1, #contador1000us
 	st r0, r0, r1
-	
+    
+;   Increments continuous 1 second counter
+    ldh r1, #contadorContinuo
+    ldh r1, #contadorContinuo
+    ld r3, r0, r1
+    addi r3, #1
+    
+;   If 1 second counter == 100, goes back to 0
+    ldh r2, #0
+    ldl r2, #100
+    sub r2, r3, r2
+    jmpnd #DisplayHandlerIncrement1Sec
+    
+;	Resets contador1000us (Only reaches this point if 1 sec counter was == 100)
+    xor r3, r3, r3
+    
+  DisplayHandlerIncrement1Sec:
+    
+    st r3, r0, r1
+
 ;	Sets next display to be updated
 	ldh r1, #displayNextToUpdate
 	ldl r1, #displayNextToUpdate
 	ld r3, r0, r1
 	addi r3, #1
 	
+;   r2 <= 4
 	ldh r2, #0
 	ldl r2, #4
 	
-	sub r2, r2, r3
+	sub r2, r3, r2
 	jmpnd #DisplayHandlerSkipReset
 	
 ;	displayNextToUpdate <= 0 (Only reaches this point if displayNextToUpdate was = 4)
@@ -2065,7 +2086,6 @@ Display0:
 ;   r1 <= &arrayDisp
     ldh r1, #arrayDisp
     ldl r1, #arrayDisp
-
 
 ;   r5 <= Codigo do Display 0 ( arrayDisp[0] )
     ld r5, r0, r1
@@ -2449,7 +2469,7 @@ stringOrdenacao:          db #49h, #6eh, #73h, #69h, #72h, #61h, #20h, #6fh, #72
 stringTemp:               db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0
 
 ; Contador de quantas vezes a interrupção gerada pelo timer foi efetivada (periodo de 1 us)
-contador1us:              db #0
+contador1000us:              db #0
 
 ; Proximo display a ser atualizado
 displayNextToUpdate:      db #0
