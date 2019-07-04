@@ -256,6 +256,7 @@ InterruptionServiceRoutine:
 ;   r1 <= interruptVector[IrqID]
     ld r1, r4, r1
 
+    ld r1, r0, r1
 ;   Jump para handler
     jsr r1
     
@@ -325,6 +326,7 @@ TrapsServiceRoutine:
 ;   r5 <= trapVector[trapID]
     ld r5, r4, r5
 
+    ld r5, r0, r5
 ;   Jump para handler
     jsr r5
 
@@ -1587,6 +1589,31 @@ WaitForTimer: ; Returns 0 while timer period hasnt been reached, else returns 1
 
 main:
 
+;   Set the time for the function
+
+    ; Set the Syscall Number
+    ldh r1, #00h
+    ldl r1, #11h         ; r1 <= 17
+
+    ; Set the period in microseconds
+    ldh r2, #07h 
+    ldl r2, #D0h          ; r2 <= 2000 
+
+    ; Set the periodic Flag Value
+    ldh r3, #00h
+    ldl r3, #01h          ; r3 <= 1
+    
+    ; Set the ponter to callback Function
+    ldh r4, #DisplayHandler
+    ldl r4, #DisplayHandler ; r4 <= &DisplayHandler
+
+    ; Set the callback flag value
+    ldh r5, #00h
+    ldl r5, #01h          ; r5 <= 1
+    
+    syscall
+
+
 RequestSize:
 
 ;   Request size of array to be ordered
@@ -2004,7 +2031,7 @@ DisplayHandler:
 	ldh r1, #displayJumpTable
 	ldl r1, #displayJumpTable
 	ld r1, r3, r1 ; r1 <= jumpTable[displayNextToUpdate]
-	
+	    
 ;	Calls specific display updating subroutine
 	jsr r1
 
@@ -2038,6 +2065,7 @@ Display0:
 ;   r1 <= &arrayDisp
     ldh r1, #arrayDisp
     ldl r1, #arrayDisp
+
 
 ;   r5 <= Codigo do Display 0 ( arrayDisp[0] )
     ld r5, r0, r1

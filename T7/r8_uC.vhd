@@ -72,6 +72,12 @@ architecture behavioral of R8_uC is
     signal data_av_UART_RX    : std_logic;
     signal data_in_UART_RX    : std_logic_vector(15 downto 0);
     signal data_out_UART_RX   : std_logic_vector(15 downto 0);
+	 
+	 -- Timer signal
+	 signal time_out_TIMER     : std_logic;
+	 signal ce_timer           : std_logic;
+	 signal tristate_timer_en  : std_logic;
+	 signal data_timer         : std_logic_vector(15 downto 0);
 
 begin
 		
@@ -113,7 +119,7 @@ begin
         port map(
             clk       => clk,
             rst       => rst_R8,
-			irq       => intr_PIC,
+			   irq       => intr_PIC,
             prog_mode => prog_mode,
             address   => address,
             data_out  => data_r8_out,
@@ -189,7 +195,7 @@ begin
             address => address_PORT,
             rw => rw_MEM,              -- 0: read; 1: write
             ce => en_PORT,
-			irq => irq_PORT,           -- To PIC
+		    irq => irq_PORT,           -- To PIC
 				
             -- External interface
 			port_io => port_io         -- To Peripheral
@@ -279,7 +285,7 @@ begin
 
     -- Timer signals
     ce_TIMER <= '1' when (ce = '1' and ENABLE_PERIFERICO = '1' and ID_PERIFERICO = ADDR_TIMER) else '0';
-    data_TIMER <= data_out_r8 when TRISTATE_TIMER_EN = '1' else (others=>'Z');
+    data_TIMER <= data_r8_out when TRISTATE_TIMER_EN = '1' else (others=>'Z');
     TRISTATE_TIMER_EN  <= '1' when rw = '0' and ID_PERIFERICO = ADDR_TIMER and ENABLE_PERIFERICO = '1' else '0';
 
     -- Programmable timer

@@ -43,7 +43,7 @@ begin
     clk <= not clk after 5 ns; -- 100 MHz
 	 clk_tx <= not clk_tx after 10 ns;
     rst <= '1', '0' after 15 ns;
-	port_io <= "ZZZZZZZZZZZZZZZZ";
+	 port_io <= "ZZZZZZZZZZZZZZZZ";
     prog_mode <= '0';--, '0' after 11 us;
 
 --
