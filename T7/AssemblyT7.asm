@@ -1714,7 +1714,8 @@ RequestElementsLoop:
 ;   Converts Size string to integer
     ldh r1, #0
     ldl r1, #6
-    add r2, r0, r14
+    ldh r2, #stringTemp
+    ldl r2, #stringTemp
     syscall ; StringToInteger
     
 ;   Stores new element in array to be sorted
@@ -1762,7 +1763,8 @@ RequestOrder:
 ;   Converts Order string to integer
     ldh r1, #0
     ldl r1, #6
-    add r2, r0, r14
+    ldh r2, #stringTemp
+    ldl r2, #stringTemp
     syscall ; StringToInteger
     
 ;   r12 <= sort order
