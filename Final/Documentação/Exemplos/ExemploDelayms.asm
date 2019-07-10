@@ -1583,28 +1583,21 @@ WaitForTimer: ; Returns 0 while timer period hasnt been reached, else returns 1
 
 ;------------------------------------------- PROGRAMA PRINCIPAL ---------------------------------------------
 
-;   Seta RATE_FREQ_BAUD = 869 (0x364) (57600 baud @ 50 MHz)
-    ldh r1, #arrayUART_TX
-    ldl r1, #arrayUART_TX
-    addi r1, #1
-    ld r1, r0, r1  ; r1 <= &RATE_FREQ_BAUD (TX)
-    ldh r5, #03h
-    ldl r5, #64h   ; Seta BAUD_RATE = 869
-    st r5, r0, r1  
 
-;   r1 <= 0 (Identificador do syscall PrintString)
+;   r1 <= 3 (Identificador do syscall Delayms)
     ldh r1, #0
-    ldl r1, #0
+    ldl r1, #3
 
-;   r2 <= Ponteiro para string a ser enviada por UART TX
-    ldh r2, #StringASerTransmitida
-    ldl r2, #StringASerTransmitida
+;   r2 <= Numero de milisegundos a serem dispediçados em tempo de processador, nesse exemplo, 10
+    ldh r2, #0
+    ldl r2, #10
     
-;   Executa syscall ID 0 (PrintString), em r1, e ponteiro para string a ser transmitida, em r2
+;   Executa syscall ID 3 (Delayms), em r1, e valor de tempo, em milisegundos, em r2
     syscall
-    
-    halt
 
+;   Esta instrução só será executada 10 ms após a instrução de syscall anterior
+    halt
+    
 .endcode
 
 ;=============================================================================================================
@@ -1696,8 +1689,5 @@ TimerCallback:            db #0
 TimerCallbackFlag:        db #0
 
 ;-------------------------------------------VARIAVEIS DE APLICAÇÃO-------------------------------------------
-
-; "String sendo transmitida"
-StringASerTransmitida:    db #53h, #74h, #72h, #69h, #6eh, #67h, #20h, #73h, #65h, #6eh, #64h, #6fh, #20h, #74h, #72h, #61h, #6eh, #73h, #6dh, #69h, #74h, #69h, #64h, #61h, #0
 
 .enddata

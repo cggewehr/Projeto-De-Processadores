@@ -86,6 +86,7 @@ begin
                   ("00000000" & data_PIC) when ENABLE_PERIFERICO = '1' and ID_PERIFERICO = ADDR_PIC     else
                   data_out_UART_TX        when ENABLE_PERIFERICO = '1' and ID_PERIFERICO = ADDR_UART_TX else
                   data_out_UART_RX        when ENABLE_PERIFERICO = '1' and ID_PERIFERICO = ADDR_UART_RX else
+                  data_TIMER              when ENABLE_PERIFERICO = '1' and ID_PERIFERICO = ADDR_TIMER   else
                   data_ROM_out            when ENABLE_PERIFERICO = '0' and prog_mode = '1'              else
                   data_RAM_out;
                       
