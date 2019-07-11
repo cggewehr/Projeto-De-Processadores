@@ -1585,20 +1585,16 @@ WaitForTimer: ; Returns 0 while timer period hasnt been reached, else returns 1
 
 main: 
 
-;   r1 <= 1 (Identificador do syscall IntegerToString)
-    ldh r1, #0
-    ldl r1, #1
-
-;   r2 <= Numero a ser convertido, no caso, 890
-    ldh r2, #03h
-    ldl r2, #7ah
+;   r1 <= &TrapsServiceRoutine (TSR)
+    ldh r1, #TrapsServiceRoutine
+    ldl r1, #TrapsServiceRoutine
     
-;   Executa syscall ID 1 (IntegerToString), em r1, e valor inteiro a ser convertido, em r2
-    syscall
+;   regTSRA <= &TrapsServiceRoutine
+    ldtsra r1
+    
+;   Nesse ponto regTSRA contém o endereço da TSR
+    nop 
 
-;   Nesse ponto, encontra-se em r14 um ponteiro para uma string contendo os caracteres: ( ‘8’, ‘9’, ‘0’ e ‘\0’)
-    halt
-  
 .endcode
 
 ;=============================================================================================================

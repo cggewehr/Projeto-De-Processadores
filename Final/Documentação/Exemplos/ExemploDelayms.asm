@@ -1583,6 +1583,7 @@ WaitForTimer: ; Returns 0 while timer period hasnt been reached, else returns 1
 
 ;------------------------------------------- PROGRAMA PRINCIPAL ---------------------------------------------
 
+main:
 
 ;   r1 <= 3 (Identificador do syscall Delayms)
     ldh r1, #0

@@ -1583,6 +1583,8 @@ WaitForTimer: ; Returns 0 while timer period hasnt been reached, else returns 1
 
 ;------------------------------------------- PROGRAMA PRINCIPAL ---------------------------------------------
 
+main:
+
 ;   Seta RATE_FREQ_BAUD = 869 (0x364) (57600 baud @ 50 MHz)
     ldh r1, #arrayUART_TX
     ldl r1, #arrayUART_TX

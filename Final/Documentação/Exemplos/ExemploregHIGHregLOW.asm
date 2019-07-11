@@ -1583,22 +1583,40 @@ WaitForTimer: ; Returns 0 while timer period hasnt been reached, else returns 1
 
 ;------------------------------------------- PROGRAMA PRINCIPAL ---------------------------------------------
 
-main: 
+main:
 
-;   r1 <= 1 (Identificador do syscall IntegerToString)
+;   r1 <= 255
     ldh r1, #0
-    ldl r1, #1
-
-;   r2 <= Numero a ser convertido, no caso, 890
-    ldh r2, #03h
-    ldl r2, #7ah
+    ldl r1, #255
     
-;   Executa syscall ID 1 (IntegerToString), em r1, e valor inteiro a ser convertido, em r2
-    syscall
+;   r2 <= 33
+    ldh r2, #0
+    ldl r2, #33
+    
+;   r1 * r2 = 8415 = 0x20DF (regHIGH <= 0x20, regLOW <= 0xDF)
+    mul r1, r2
+    
+;   r11 <= 0x20
+    mfh r11
+    
+;   r12 <= 0xDF
+    mfl r12
+    
+;   Nesse ponto r11 contem a parte alta da multiplicação entre r1 e r2, e r12 a parte baixa
+    nop
+    
+;   r1 / r2, quociente = 7, resto = 24
+    div r1, r2
+    
+;   r11 <= 24
+    mfh r11
+    
+;   r12 <= 7
+    mfl r12
+    
+;   Nesse ponto r11 contem o resto da divisão entre r1 e r2, e r12 o quociente
+    nop
 
-;   Nesse ponto, encontra-se em r14 um ponteiro para uma string contendo os caracteres: ( ‘8’, ‘9’, ‘0’ e ‘\0’)
-    halt
-  
 .endcode
 
 ;=============================================================================================================

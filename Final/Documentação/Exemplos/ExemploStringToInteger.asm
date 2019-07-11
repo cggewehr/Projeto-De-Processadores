@@ -1584,21 +1584,21 @@ WaitForTimer: ; Returns 0 while timer period hasnt been reached, else returns 1
 ;------------------------------------------- PROGRAMA PRINCIPAL ---------------------------------------------
 
 main: 
-
-;   r1 <= 1 (Identificador do syscall IntegerToString)
+	
+;   r1 <= 6 (Identificador do syscall StringToInteger)
     ldh r1, #0
-    ldl r1, #1
-
-;   r2 <= Numero a ser convertido, no caso, 890
-    ldh r2, #03h
-    ldl r2, #7ah
+    ldl r1, #6
     
-;   Executa syscall ID 1 (IntegerToString), em r1, e valor inteiro a ser convertido, em r2
-    syscall
+;   r2 <= Ponteiro para string onde numero a ser convertido está localizado
+    ldh r2, #stringNumeroEmASCII
+    ldl r2, #stringNumeroEmASCII
 
-;   Nesse ponto, encontra-se em r14 um ponteiro para uma string contendo os caracteres: ( ‘8’, ‘9’, ‘0’ e ‘\0’)
+;   Executa syscall ID 6 (StringToInteger), em r1, e ponteiro para string com valor a ser convertido, em r2
+    syscall
+    
+;   Supondo que "stringNumeroEmASCII" aponte para ('5', '2', '0', '\0'), após o syscall r14 conterá o valor 520
     halt
-  
+    
 .endcode
 
 ;=============================================================================================================

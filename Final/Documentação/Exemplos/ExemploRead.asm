@@ -1585,20 +1585,29 @@ WaitForTimer: ; Returns 0 while timer period hasnt been reached, else returns 1
 
 main: 
 
-;   r1 <= 1 (Identificador do syscall IntegerToString)
+;   r1 <= 5 (Identificador do syscall Read)
     ldh r1, #0
-    ldl r1, #1
-
-;   r2 <= Numero a ser convertido, no caso, 890
-    ldh r2, #03h
-    ldl r2, #7ah
+    ldl r1, #5
     
-;   Executa syscall ID 1 (IntegerToString), em r1, e valor inteiro a ser convertido, em r2
-    syscall
-
-;   Nesse ponto, encontra-se em r14 um ponteiro para uma string contendo os caracteres: ( ‘8’, ‘9’, ‘0’ e ‘\0’)
-    halt
+;   r2 <= Ponteiro para string onde dados recebidos deve ser salvos
+    ldh r2, #stringRecebeDados
+    ldl r2, #stringRecebeDados
+    
+;   r3 <= Quantidade de caracteres a serem transferidos do buffer de entrada para "stringRecebeDados"
+    ldh r3, #0
+    ldl r3, #3
+    
+  ReadLoop:
   
+;   Executa instrução syscall enquanto dados não forem transferidos para "stringRecebeDados"
+    syscall
+    add r14, r0, r14 ; Gera flag de resultado nulo
+    jmpzd #ReadLoop
+    
+;    Somente executa esta instrução quando o valor de retorno do syscall Read for diferente de 0
+;   ou seja, enquanto 3 caracteres não forem transferidos do buffer de entrada para "stringRecebeDados"
+    halt
+    
 .endcode
 
 ;=============================================================================================================
@@ -1690,5 +1699,7 @@ TimerCallback:            db #0
 TimerCallbackFlag:        db #0
 
 ;-------------------------------------------VARIAVEIS DE APLICAÇÃO-------------------------------------------
+
+stringRecebeDados:        db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0
 
 .enddata

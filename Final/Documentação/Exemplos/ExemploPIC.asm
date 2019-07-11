@@ -1585,20 +1585,20 @@ WaitForTimer: ; Returns 0 while timer period hasnt been reached, else returns 1
 
 main: 
 
-;   r1 <= 1 (Identificador do syscall IntegerToString)
-    ldh r1, #0
-    ldl r1, #1
+;   r0 <= 0
+    xor r0, r0, r0
 
-;   r2 <= Numero a ser convertido, no caso, 890
-    ldh r2, #03h
-    ldl r2, #7ah
+;   r1 <= 0x00C0 = "00000000_11110000" (Habilita apenas interrupções geradas pela porta de E/S)
+    ldh r1, #00h
+    ldl r1, #C0h
     
-;   Executa syscall ID 1 (IntegerToString), em r1, e valor inteiro a ser convertido, em r2
-    syscall
+;   r2 <= 0x80F2 = &Mask
+    ldh r2, #80h
+    ldl r2, #F2h
+    
+;   Mask <= 0x00C0
+    st r1, r0, r2
 
-;   Nesse ponto, encontra-se em r14 um ponteiro para uma string contendo os caracteres: ( ‘8’, ‘9’, ‘0’ e ‘\0’)
-    halt
-  
 .endcode
 
 ;=============================================================================================================

@@ -1585,20 +1585,20 @@ WaitForTimer: ; Returns 0 while timer period hasnt been reached, else returns 1
 
 main: 
 
-;   r1 <= 1 (Identificador do syscall IntegerToString)
+;   r1 <= 4 (Identificador do syscall IntegerToSSD)
     ldh r1, #0
-    ldl r1, #1
+    ldl r1, #4
 
-;   r2 <= Numero a ser convertido, no caso, 890
-    ldh r2, #03h
-    ldl r2, #7ah
+;   r2 <= Numero a ser codificado, neste exemplo, 8
+    ldh r2, #0
+    ldl r2, #8
     
-;   Executa syscall ID 1 (IntegerToString), em r1, e valor inteiro a ser convertido, em r2
+;   Executa syscall ID 4 (IntegerToSSD), em r1, e valor inteiro a ser codificado, em r2
     syscall
 
-;   Nesse ponto, encontra-se em r14 um ponteiro para uma string contendo os caracteres: ( ‘8’, ‘9’, ‘0’ e ‘\0’)
+;   Neste ponto r14 contem o numero 8 codificado (r14 = xxxxxxxx00000001)
     halt
-  
+    
 .endcode
 
 ;=============================================================================================================

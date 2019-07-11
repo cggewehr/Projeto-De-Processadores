@@ -1583,6 +1583,8 @@ WaitForTimer: ; Returns 0 while timer period hasnt been reached, else returns 1
 
 ;------------------------------------------- PROGRAMA PRINCIPAL ---------------------------------------------
 
+main: 
+
 ;   r1 <= 2 (Identificador do syscall IntegerToHexString)
     ldh r1, #0
     ldl r1, #2

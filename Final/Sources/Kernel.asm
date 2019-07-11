@@ -1583,6 +1583,9 @@ WaitForTimer: ; Returns 0 while timer period hasnt been reached, else returns 1
 
 ;------------------------------------------- PROGRAMA PRINCIPAL ---------------------------------------------
 
+main: 
+
+	halt
 
 .endcode
 
