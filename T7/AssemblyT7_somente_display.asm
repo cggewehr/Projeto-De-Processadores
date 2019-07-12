@@ -1697,7 +1697,10 @@ DisplayHandler:
 	jmpnd #DisplayHandlerSkipReset
 	
 ;	displayNextToUpdate <= 0 (Only reaches this point if displayNextToUpdate was = 4)
-	st r0, r0, r1
+	ldh r1, #displayNextToUpdate
+	ldl r1, #displayNextToUpdate
+    xor r3, r3, r3
+	st r3, r0, r1
 	
   DisplayHandlerSkipReset:
 	
