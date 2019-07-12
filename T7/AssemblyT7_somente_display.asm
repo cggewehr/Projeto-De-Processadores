@@ -151,6 +151,14 @@
     ldh r1, #UartRxBufferStart
     ldl r1, #UartRxBufferStart
     st r0, r0, r1
+    
+;   Resets counters
+    ldh r1, #contadorManual
+    ldl r1, #contadorManual
+    st r0, r0, r1
+    ldh r1, #contadorContinuo
+    ldl r1, #contadorContinuo
+    st r0, r0, r1
 
 ;   Inicialização dos registradores
     xor r0, r0, r0
@@ -1644,7 +1652,7 @@ DisplayHandler:
 	sub r2, r3, r2
 	jmpnd #DisplayHandlerReturn
 	
-;	Increments 2ms counter
+;	Increments 2ms counter (only reaches this point if contador1000us was != 2)
 	ldh r1, #contador2ms
 	ldl r1, #contador2ms
 	ld r3, r0, r1
@@ -1655,14 +1663,12 @@ DisplayHandler:
 	ldh r2, #01h
 	ldl r2, #f4h ; r2 <= 500
 	sub r2, r3, r2
-    jmpzd #DisplayHandlerReturn
-
-  DisplayHandlerUpdateCounters:
-
-;	Resets contador1000us (Only reaches this point if contador1000us was == 2)
-	ldh r1, #contador1000us
-	ldl r1, #contador1000us
-	st r0, r0, r1
+    jmpnd #DisplayHandlerReturn
+    
+;   Resets 2ms counter
+    ldh r1, #contador2ms
+	ldl r1, #contador2ms
+    st r0, r0, r1
     
 ;   Increments continuous 1 second counter
     ldh r1, #contadorContinuo
@@ -1675,12 +1681,14 @@ DisplayHandler:
     ldh r2, #0
     ldl r2, #100
     sub r2, r3, r2
-    jmpnd #DisplayHandlerIncrement1Sec
+    jmpnd #DisplayHandlerUpdateDisplay
     
-;	Resets contador1000us (Only reaches this point if 1 sec counter was == 100)
+;   Resets 1 sec counter
+    ldh r1, #contadorContinuo
+    ldl r1, #contadorContinuo
     st r0, r0, r1
     
-  DisplayHandlerIncrement1Sec:
+  DisplayHandlerUpdateDisplay:
   
 ;	Sets next display to be updated
 	ldh r1, #displayNextToUpdate
@@ -1711,6 +1719,11 @@ DisplayHandler:
 	    
 ;	Calls specific display updating subroutine
 	jsr r1
+    
+;	Resets contador1000us (Only reaches this point if contador1000us was == 2)
+	ldh r1, #contador1000us
+	ldl r1, #contador1000us
+	st r0, r0, r1
 
   DisplayHandlerReturn:
 	
