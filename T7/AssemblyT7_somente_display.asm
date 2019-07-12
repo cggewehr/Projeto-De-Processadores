@@ -1649,22 +1649,15 @@ DisplayHandler:
 	ldl r1, #contador2ms
 	ld r3, r0, r1
 	addi r3, #1
+    st r3, r0, r1
 	
 ;	If contador2ms == 500, 1 second has passed, if so, updates continuous counter and resets 2ms counter
 	ldh r2, #01h
 	ldl r2, #f4h ; r2 <= 500
 	sub r2, r3, r2
-	jmpnd #DisplayHandlerUpdateCounters
-	
-;	Resets 2ms counter (Only reaches this point if 2ms counter was == 500)
-	xor r3, r3, r3
+    jmpzd #DisplayHandlerReturn
 
   DisplayHandlerUpdateCounters:
-
-;	Updates 2ms counter
-	ldh r1, #contador2ms
-	ldl r1, #contador2ms
-    st r3, r0, r1
 
 ;	Resets contador1000us (Only reaches this point if contador1000us was == 2)
 	ldh r1, #contador1000us
@@ -1676,6 +1669,7 @@ DisplayHandler:
     ldl r1, #contadorContinuo
     ld r3, r0, r1
     addi r3, #1
+    st r3, r0, r1
     
 ;   If 1 second counter == 100, goes back to 0
     ldh r2, #0
@@ -1684,18 +1678,17 @@ DisplayHandler:
     jmpnd #DisplayHandlerIncrement1Sec
     
 ;	Resets contador1000us (Only reaches this point if 1 sec counter was == 100)
-    xor r3, r3, r3
+    st r0, r0, r1
     
   DisplayHandlerIncrement1Sec:
-    
-    st r3, r0, r1
-
+  
 ;	Sets next display to be updated
 	ldh r1, #displayNextToUpdate
 	ldl r1, #displayNextToUpdate
 	ld r3, r0, r1
 	addi r3, #1
-	
+	st r3, r0, r1
+    
 ;   r2 <= 4
 	ldh r2, #0
 	ldl r2, #4
@@ -1704,12 +1697,9 @@ DisplayHandler:
 	jmpnd #DisplayHandlerSkipReset
 	
 ;	displayNextToUpdate <= 0 (Only reaches this point if displayNextToUpdate was = 4)
-	add r3, r0, r0
+	st r0, r0, r3
 	
   DisplayHandlerSkipReset:
-	
-;	Sets next display to be updated
-	st r3, r0, r1
 	
 ;	Gets pointer to subrotine that updates specific display
 	ldh r1, #displayJumpTable
