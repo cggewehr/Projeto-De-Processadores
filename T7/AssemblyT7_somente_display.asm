@@ -1651,8 +1651,8 @@ DisplayHandler:
 	addi r3, #1
 	
 ;	If contador2ms == 500, 1 second has passed, if so, updates continuous counter and resets 2ms counter
-	ldh r2, #0
-	ldl r2, #500
+	ldh r2, #01h
+	ldl r2, #f4h ; r2 <= 500
 	sub r2, r3, r2
 	jmpnd #DisplayHandlerUpdateCounters
 	
