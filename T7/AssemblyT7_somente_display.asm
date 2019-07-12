@@ -1642,7 +1642,7 @@ DisplayHandler:
 	ldh r2, #00h
 	ldl r2, #02h
 	sub r2, r3, r2
-	jmpzd #DisplayHandlerReturn
+	jmpnd #DisplayHandlerReturn
 	
 ;	Increments 2ms counter
 	ldh r1, #contador2ms
