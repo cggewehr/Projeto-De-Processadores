@@ -383,13 +383,13 @@ irq6Handler: ; PORT_IO[14] (BUTTON UP)
 
 	jsrd #ButtonUpDriver
 
-    halt
+    rts
 
 irq7Handler: ; PORT_IO[15] (BUTTON DOWN)
 
 	jsrd #ButtonDownDriver
 
-    halt
+    rts
 
 trap0Handler: ; NULL POINTER EXCEPTION
 
@@ -1646,7 +1646,7 @@ DisplayHandler:
 	
 ;	Increments 2ms counter
 	ldh r1, #contador2ms
-	ldh r1, #contador2ms
+	ldl r1, #contador2ms
 	ld r3, r0, r1
 	addi r3, #1
 	
@@ -1673,7 +1673,7 @@ DisplayHandler:
     
 ;   Increments continuous 1 second counter
     ldh r1, #contadorContinuo
-    ldh r1, #contadorContinuo
+    ldl r1, #contadorContinuo
     ld r3, r0, r1
     addi r3, #1
     
