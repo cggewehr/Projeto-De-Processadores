@@ -344,7 +344,7 @@ TrapsServiceRoutine:
     pop r3
     pop r2
     pop r1
-    ;pop r0
+    pop r0
 
     rti
 
@@ -1613,7 +1613,11 @@ main:
     ldl r5, #01h            ; r5 <= 1
     
     syscall
-
+    
+  WaitForInterruption:
+  
+    nop
+    jmpd #WaitForInterruption
 
 ;----------------------------------------------- SUBROTINAS --------------------------------------------------
 
