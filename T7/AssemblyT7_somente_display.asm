@@ -344,7 +344,7 @@ TrapsServiceRoutine:
     pop r3
     pop r2
     pop r1
-    pop r0
+    ;pop r0
 
     rti
 
