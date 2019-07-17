@@ -43,7 +43,7 @@ begin
     clk <= not clk after 5 ns; -- 100 MHz
 	 clk_tx <= not clk_tx after 10 ns;
     rst <= '1', '0' after 15 ns;
-	 port_io <= "ZZZZZZZZZZZZZZZZ";
+--	 port_io <= "ZZZZZZZZZZZZZZZZ";
     prog_mode <= '0';--, '0' after 11 us;
 
 --
@@ -91,6 +91,7 @@ begin
 	
 		count <= 868;
 		av_sim <= '0';
+		port_io <= "ZZZZZZZZZZZZZZZZ";
 		
 		wait for 50 ns;
 		
@@ -109,9 +110,11 @@ begin
 		  
 		count <= 10;
 		av_sim <= '1';
+		port_io <= "01ZZZZZZZZZZZZZZ";
 		  
 		wait for 50 ns;
-		  
+		
+		port_io <= "00ZZZZZZZZZZZZZZ";
 		av_sim <= '0';
 			
 	    --end loop;

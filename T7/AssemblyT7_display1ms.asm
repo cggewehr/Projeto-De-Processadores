@@ -118,7 +118,7 @@
     st r5, r1, r4  ; PortConfig <= "11000000_00000000"
 
 ;   Seta irqtEnable
-    ldl r4, #03h   ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &irqtEnable ]
+    ldl r4, #00h   ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &irqtEnable ]
     ldh r5, #C0h   ; r5 <= "11000000_00000000"
     ldl r5, #03h   ; Habilita a interrupção nos bits 15 e 14
     st r5, r1, r4  ; irqtEnable <= "11000000_00000011"
