@@ -536,56 +536,89 @@ TimerDriver:
 ; r5 = Data for LD/ST from/into variables
 
     push r1
-    push r5
-    
-    xor r0, r0, r0
-    xor r5, r5, r5
-    
-;   Signals timer period has been reached
-    ldh r1, #TimerDone
-    ldl r1, #TimerDone
-    ldl r5, #1
-    st r5, r0, r1
-    
-;   Determines if callback funtion should be called
-    ldh r1, #TimerCallbackFlag
-    ldl r1, #TimerCallbackFlag
-    ld r5, r0, r1
-    add r5, r0, r5 ; Sets zero flag
-    jmpzd #TimerDriverMakePeriodic
-    
-;   Jumps to timer callback function if callback flag is set to 1
-    ldh r1, #TimerCallback
-    ldl r1, #TimerCallback
-    ld r5, r0, r1
-    jsr r5
-    
-  TimerDriverMakePeriodic: ; If timer should be periodic, sets last period value as new period value
-  
-;	r5 <= Periodic Flag (if flags == 0, returns, else, sets old timer period as new timer period)
-	ldh r1, #TimerPeriodicFlag
-	ldl r1, #TimerPeriodicFlag
-	ld r5, r0, r1
-	add r5, r0, r5 ; Sets zero flag
-	jmpzd #TimerDriverReturn
+	push r2
+	push r3
 	
-;   r5 <= Last timer period
-    ldh r1, #TimerLastPeriod
-    ldl r1, #TimerLastPeriod
-    ld r5, r0, r1
-    add r5, r0, r5 ; Sets zero flag
-    jmpzd #TimerDriverReturn
+	xor r0, r0, r0
     
-;   Timer counter <= Last timer period
-    ldh r1, #arrayTIMER
-    ldl r1, #arrayTIMER
-    ld r1, r0, r1 ; r1 <= &Counter
-    st r5, r0, r1  
+;   Increments 1ms counter
+	ldh r1, #contador1ms
+	ldl r1, #contador1ms
+	ld r3, r0, r1
+	addi r3, #1
+	st r3, r0, r1
+	
+;	If contador1ms == 1000, 1 second has passed, if so, updates continuous counter and resets 1ms counter
+	ldh r2, #03h
+	ldl r2, #e8h ; r2 <= 1000
+	sub r2, r3, r2
+    jmpnd #DisplayHandlerUpdateDisplay
     
-  TimerDriverReturn:
+  DisplayHandlerUpdateCounters:
+    
+;   Resets 1ms counter
+    ldh r1, #contador1ms
+	ldl r1, #contador1ms
+    st r0, r0, r1
+    
+;   Increments continuous 1 second counter
+    ldh r1, #contadorContinuo
+    ldl r1, #contadorContinuo
+    ld r3, r0, r1
+    addi r3, #1
+    st r3, r0, r1
+    
+;   If 1 second counter == 100, goes back to 0
+    ldh r2, #0
+    ldl r2, #100
+    sub r2, r3, r2
+    jmpnd #DisplayHandlerUpdateDisplay
+    
+;   Resets 1 sec counter
+    ldh r1, #contadorContinuo
+    ldl r1, #contadorContinuo
+    st r0, r0, r1
+    
+ DisplayHandlerUpdateDisplay:
   
-    pop r5
-    pop r1
+;	Sets next display to be updated
+	ldh r1, #displayNextToUpdate
+	ldl r1, #displayNextToUpdate
+	ld r3, r0, r1
+	addi r3, #1
+	st r3, r0, r1
+    
+;   r2 <= 4
+	ldh r2, #0
+	ldl r2, #4
+	
+	sub r2, r3, r2
+	jmpnd #DisplayHandlerSkipReset
+	
+;	displayNextToUpdate <= 0 (Only reaches this point if displayNextToUpdate was = 4)
+	ldh r1, #displayNextToUpdate
+	ldl r1, #displayNextToUpdate
+    xor r3, r3, r3
+	st r3, r0, r1
+	
+  DisplayHandlerSkipReset:
+	
+;	Gets pointer to subrotine that updates specific display
+	ldh r1, #displayJumpTable
+	ldl r1, #displayJumpTable
+    ldh r3, #displayNextToUpdate
+    ldl r3, #displayNextToUpdate
+    ld r3, r0, r3
+	ld r1, r3, r1 ; r1 <= jumpTable[displayNextToUpdate]
+	    
+;	Calls specific display updating subroutine
+	jsr r1
+
+  DisplayHandlerReturn:
+	
+	pop r3
+	pop r2
+	pop r1
     
     rts
 
@@ -1610,10 +1643,6 @@ main:
     ; Set the periodic Flag Value
     ldh r3, #00h
     ldl r3, #01h            ; r3 <= 1
-    
-    ; Set callback pointer
-    ldh r4, #DisplayHandler 
-    ldl r4, #DisplayHandler ; r4 <= &DisplayHandler
 
     ; Set the callback flag value
     ldh r5, #00h
@@ -1626,56 +1655,6 @@ main:
     nop
     jmpd #WaitForInterruption
     
-    
-DisplayHandler:
-
-    push r1
-	push r2
-	push r3
-	
-	xor r0, r0, r0
-  
-;	Sets next display to be updated
-	ldh r1, #displayNextToUpdate
-	ldl r1, #displayNextToUpdate
-	ld r3, r0, r1
-	addi r3, #1
-	st r3, r0, r1
-    
-;   r2 <= 4
-	ldh r2, #0
-	ldl r2, #4
-	
-	sub r2, r3, r2
-	jmpnd #DisplayHandlerSkipReset
-	
-;	displayNextToUpdate <= 0 (Only reaches this point if displayNextToUpdate was = 4)
-	ldh r1, #displayNextToUpdate
-	ldl r1, #displayNextToUpdate
-    xor r3, r3, r3
-	st r3, r0, r1
-	
-  DisplayHandlerSkipReset:
-	
-;	Gets pointer to subrotine that updates specific display
-	ldh r1, #displayJumpTable
-	ldl r1, #displayJumpTable
-    ldh r3, #displayNextToUpdate
-    ldl r3, #displayNextToUpdate
-    ld r3, r0, r3
-	ld r1, r3, r1 ; r1 <= jumpTable[displayNextToUpdate]
-	    
-;	Calls specific display updating subroutine
-	jsr r1
-
-  DisplayHandlerReturn:
-	
-	pop r3
-	pop r2
-	pop r1
-    
-    rts
-   
 
 ;----------------------------------------------- SUBROTINAS --------------------------------------------------
 
@@ -1704,8 +1683,19 @@ Display0:
 ;   r5 <= Codigo do Display 0 ( arrayDisp[0] )
     ld r5, r0, r1
 
-;   r2 <= 0
+;   r2 <= &contadorContinuo  (ponteiro)
+    ldh r2, #contadorContinuo
+    ldl r2, #contadorContinuo
+
+;   r2 <= contadorContinuo   (valor)
+    ld r2, r0, r2
+
+;   passa contadorContinuo como argumento para HEXtoDEC
+    jsrd #HEXtoDEC
+
+;   r2 <= valor da unidade da conversão decimal de contadorContinuo(r14 contem dezena, r15 contem unidade)
     xor r2, r2, r2
+    add r2, r0, r15
     
 ;   Converte decimal para codigo do display de 7 segmentos (r14 contem numero convertido)
     jsrd #DECtoSSD
@@ -1754,8 +1744,19 @@ Display1:
     addi r1, #01h
     ld r5, r0, r1
 
-;   r2 <= 1
-    addi r2, #1
+;   r2 <= &contadorContinuo  (ponteiro)
+    ldh r2, #contadorContinuo
+    ldl r2, #contadorContinuo
+
+;   r2 <= contadorContinuo   (valor)
+    ld r2, r0, r2
+
+;   passa contadorContinuo como argumento para HEXtoDEC
+    jsrd #HEXtoDEC
+
+;   r2 <= valor da dezena da conversão decimal de contadorContinuo (r14 contem dezena, r15 contem unidade)
+    xor r2, r2, r2
+    add r2, r0, r14
 
 ;   Converte decimal para codigo do display de 7 segmentos (r14 contem numero convertido)
     jsrd #DECtoSSD
@@ -1804,8 +1805,19 @@ Display2:
     addi r1, #02h
     ld r5, r0, r1
 
-;   r2 <= 2
-    addi r2, #2
+;   r2 <= &contadorManual  (ponteiro)
+    ldh r2, #contadorManual
+    ldl r2, #contadorManual
+
+;   r2 <= contadorManual   (valor)
+    ld r2, r0, r2
+
+;   passa contadorManual como argumento para HEXtoDEC
+    jsrd #HEXtoDEC
+
+;   r2 <= valor da unidade da conversão decimal de contadorContinuo (r14 contem dezena, r15 contem unidade)
+    xor r2, r2, r2
+    add r2, r0, r15
 
 ;   Converte decimal para codigo do display de 7 segmentos (r14 contem numero convertido)
     jsrd #DECtoSSD
@@ -1854,8 +1866,19 @@ Display3:
     addi r1, #03h
     ld r5, r0, r1
 
-;   r2 <= 3
-    addi r2, #3
+;   r2 <= &contadorManual  (ponteiro)
+    ldh r2, #contadorManual
+    ldl r2, #contadorManual
+
+;   r2 <= contadorManual   (valor)
+    ld r2, r0, r2
+
+;   passa contadorManual como argumento para HEXtoDEC
+    jsrd #HEXtoDEC
+
+;   r2 <= valor da dezena da conversão decimal de contadorContinuo (r14 contem dezena, r15 contem unidade)
+    xor r2, r2, r2
+    add r2, r0, r14
 
 ;   Converte decimal para codigo do display de 7 segmentos (r14 contem numero convertido)
     jsrd #DECtoSSD
