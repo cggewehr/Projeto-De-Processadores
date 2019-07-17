@@ -1646,7 +1646,7 @@ DisplayHandler:
 	addi r3, #1
 	st r3, r0, r1
 	
-;	If contador2ms == 1000, 1 second has passed, if so, updates continuous counter and resets 1ms counter
+;	If contador1ms == 1000, 1 second has passed, if so, updates continuous counter and resets 1ms counter
 	ldh r2, #03h
 	ldl r2, #e8h ; r2 <= 1000
 	sub r2, r3, r2
@@ -1704,6 +1704,9 @@ DisplayHandler:
 ;	Gets pointer to subrotine that updates specific display
 	ldh r1, #displayJumpTable
 	ldl r1, #displayJumpTable
+    ldh r3, #displayNextToUpdate
+    ldl r3, #displayNextToUpdate
+    ld r3, r0, r3
 	ld r1, r3, r1 ; r1 <= jumpTable[displayNextToUpdate]
 	    
 ;	Calls specific display updating subroutine
