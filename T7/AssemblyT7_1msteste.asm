@@ -1606,7 +1606,7 @@ main:
 
     ; Set the callback flag value
     ldh r5, #00h
-    ldl r5, #00h            ; r5 <= 1
+    ldl r5, #00h            ; r5 <= 0
     
     syscall
     
@@ -1644,13 +1644,6 @@ Display0:
 
 ;   r2 <= 0
     xor r2, r2, r2
-
-;   passa 0 como argumento para HEXtoDEC
-    jsrd #HEXtoDEC
-
-;   r2 <= valor da unidade da conversão decimal de contadorContinuo(r14 contem dezena, r15 contem unidade)
-    xor r2, r2, r2
-    add r2, r0, r15
     
 ;   Converte decimal para codigo do display de 7 segmentos (r14 contem numero convertido)
     jsrd #DECtoSSD
@@ -1702,13 +1695,6 @@ Display1:
 ;   r2 <= 1
     addi r2, #1
 
-;   passa 1 como argumento para HEXtoDEC
-    jsrd #HEXtoDEC
-
-;   r2 <= valor da dezena da conversão decimal de contadorContinuo (r14 contem dezena, r15 contem unidade)
-    xor r2, r2, r2
-    add r2, r0, r14
-
 ;   Converte decimal para codigo do display de 7 segmentos (r14 contem numero convertido)
     jsrd #DECtoSSD
 
@@ -1759,13 +1745,6 @@ Display2:
 ;   r2 <= 2
     addi r2, #2
 
-;   passa 2 como argumento para HEXtoDEC
-    jsrd #HEXtoDEC
-
-;   r2 <= valor da unidade da conversão decimal de contadorContinuo (r14 contem dezena, r15 contem unidade)
-    xor r2, r2, r2
-    add r2, r0, r15
-
 ;   Converte decimal para codigo do display de 7 segmentos (r14 contem numero convertido)
     jsrd #DECtoSSD
 
@@ -1815,13 +1794,6 @@ Display3:
 
 ;   r2 <= 3
     addi r2, #2
-
-;   passa 3 como argumento para HEXtoDEC
-    jsrd #HEXtoDEC
-
-;   r2 <= valor da dezena da conversão decimal de contadorContinuo (r14 contem dezena, r15 contem unidade)
-    xor r2, r2, r2
-    add r2, r0, r14
 
 ;   Converte decimal para codigo do display de 7 segmentos (r14 contem numero convertido)
     jsrd #DECtoSSD
