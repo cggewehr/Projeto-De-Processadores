@@ -120,7 +120,7 @@
 ;   Seta irqtEnable
     ldl r4, #00h   ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &irqtEnable ]
     ldh r5, #C0h   ; r5 <= "11000000_00000000"
-    ldl r5, #03h   ; Habilita a interrupção nos bits 15 e 14
+    ldl r5, #00h   ; Habilita a interrupção nos bits 15 e 14
     st r5, r1, r4  ; irqtEnable <= "11000000_00000011"
 
 ;   Seta PortEnable
@@ -153,12 +153,12 @@
     st r0, r0, r1
     
 ;   Resets counters
-    ldh r1, #contadorManual
-    ldl r1, #contadorManual
-    st r0, r0, r1
-    ldh r1, #contadorContinuo
-    ldl r1, #contadorContinuo
-    st r0, r0, r1
+;    ldh r1, #contadorManual
+;    ldl r1, #contadorManual
+;    st r0, r0, r1
+;    ldh r1, #contadorContinuo
+;    ldl r1, #contadorContinuo
+;    st r0, r0, r1
 
 ;   Inicialização dos registradores
     xor r0, r0, r0
@@ -540,6 +540,18 @@ TimerDriver:
 	push r3
 	
 	xor r0, r0, r0
+    xor r5, r5, r5
+    
+  TimerDriverMakePeriodic: ; If timer should be periodic, sets last period value as new period value
+    
+;   Timer counter <= Last timer period
+    ldh r1, #TimerLastPeriod
+    ldl r1, #TimerLastPeriod
+    ld r5, r0, r1
+    ldh r1, #arrayTIMER
+    ldl r1, #arrayTIMER
+    ld r1, r0, r1 ; r1 <= &Counter
+    st r5, r0, r1  
     
 ;   Increments 1ms counter
 	ldh r1, #contador1ms
@@ -836,25 +848,25 @@ ButtonUpDriver:
     xor r5, r5, r5
     xor r6, r6, r6
     
-;   r1 <= &contadorManual
+;   contadorManual++
     ldh r1, #contadorManual
     ldl r1, #contadorManual
+    ld r5, r0, r1
+    addi r5, #1
+    st r5, r0, r1
     
-;   r5 <= contadorManual
-    ld r5, r1, r0
-    
-;   se contadorManual for == 99, volta para 0
-    ldl r6, #99
+;   Se contadorManual for == 100, volta para 0
+    ldh r6, #0
+    ldh r6, #100
     sub r6, r5, r6
-    jmpzd #ButtonUpDriverld0
+    jmpnd #ButtonUpDriverReturn
     
-;   Incrementa valor de contadorManual
-    addi r5, #01h
+;   contadorManual <= 0
+    ldh r1, #contadorManual
+    ldl r1, #contadorManual
+    st r0, r0, r1
     
-  ButtonDownDriverReturnld0:  
-    
-;   Atualiza valor de contadorManual
-    st r5, r1, r0
+  ButtonUpDriverReturn:
     
     pop r6
     pop r5
@@ -862,46 +874,44 @@ ButtonUpDriver:
     
     rts
 
-  ButtonUpDriverld0:
-    xor r5, r5, r5
-    jmpd #ButtonDownDriverReturnld0
-
 ButtonDownDriver:
 
 ;   Driver decrementa contador manual
 
     push r1
     push r5
+    push r6
     
     xor r0, r0, r0
-    xor r1, r1, r1
-    xor r5, r5, r5
     
-;   r1 <= &contadorManual
+;   Se contadorManual for == 0, volta para 99
     ldh r1, #contadorManual
     ldl r1, #contadorManual
+    ld r5, r0, r1
+    add r5, r0, r5
+    jmpzd #ButtonDownDriverReset
     
-;   r5 <= contadorManual
-    ld r5, r1, r0
-    add r5, r0, r5 ; Gera flag
-    jmpzd #ButtonDownDriverld99
+;   contadorManual--
+    subi r5, #1
+    st r5, r0, r1
+    jmpd #ButtonDownDriverReturn
     
-;   Decrementa valor de contadorManual
-    subi r5, #01h
+  ButtonDownDriverReset:
     
-  ButtonDownDriverReturnld99:  
+;   contadorManual <= 99
+    ldh r1, #contadorManual
+    ldl r1, #contadorManual
+    ldh r5, #0
+    ldl r5, #99
+    st r5, r0, r1
     
-;   Atualiza valor de contadorManual
-    st r5, r1, r0
-
+  ButtonDownDriverReturn:
+    
+    pop r6
     pop r5
     pop r1
-
+    
     rts
-
-  ButtonDownDriverld99:
-    ldl r5, #99
-    jmpzd #ButtonDownDriverReturnld99
 
  
 ;---------------------------------------------FUNÇÕES DO KERNEL----------------------------------------------
