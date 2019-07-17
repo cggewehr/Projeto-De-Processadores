@@ -153,12 +153,12 @@
     st r0, r0, r1
     
 ;   Resets counters
-;    ldh r1, #contadorManual
-;    ldl r1, #contadorManual
-;    st r0, r0, r1
-;    ldh r1, #contadorContinuo
-;    ldl r1, #contadorContinuo
-;    st r0, r0, r1
+    ldh r1, #contadorManual
+    ldl r1, #contadorManual
+    st r0, r0, r1
+    ldh r1, #contadorContinuo
+    ldl r1, #contadorContinuo
+    st r0, r0, r1
 
 ;   Inicialização dos registradores
     xor r0, r0, r0
@@ -538,6 +538,7 @@ TimerDriver:
     push r1
 	push r2
 	push r3
+    push r5
 	
 	xor r0, r0, r0
     xor r5, r5, r5
@@ -552,6 +553,28 @@ TimerDriver:
     ldl r1, #arrayTIMER
     ld r1, r0, r1 ; r1 <= &Counter
     st r5, r0, r1  
+    
+;   Decreases debounce counter if its > 0
+    ldh r1, #debounceUP
+    ldl r1, #debounceUP
+    ld r5, r0, r1
+    add r5, r0 ,r5
+    jmpzd #TimerDriverDebounceDown
+    subi r5, #1
+    st r5, r0, r1
+    
+  TimerDriverDebounceDown:
+  
+;   Decreases debounce counter if its > 0
+    ldh r1, #debounceDOWN
+    ldl r1, #debounceDOWN
+    ld r5, r0, r1
+    add r5, r0 ,r5
+    jmpzd #TimerDriverIncrementsCounters
+    subi r5, #1
+    st r5, r0, r1   
+    
+  TimerDriverIncrementsCounters:
     
 ;   Increments 1ms counter
 	ldh r1, #contador1ms
@@ -628,6 +651,7 @@ TimerDriver:
 
   DisplayHandlerReturn:
 	
+    pop r5
 	pop r3
 	pop r2
 	pop r1
@@ -848,6 +872,16 @@ ButtonUpDriver:
     xor r5, r5, r5
     xor r6, r6, r6
     
+;   If debounce counter != 0, does nothing
+    ldh r1, #debounceUP
+    ldl r1, #debounceUP
+    ld r1, r0, r1
+    add r1, r0, r1
+    jmpzd #ButtonUpAction
+    jmpd #ButtonUpDriverReturn
+    
+  ButtonUpAction: 
+    
 ;   contadorManual++
     ldh r1, #contadorManual
     ldl r1, #contadorManual
@@ -857,7 +891,7 @@ ButtonUpDriver:
     
 ;   Se contadorManual for == 100, volta para 0
     ldh r6, #0
-    ldh r6, #100
+    ldl r6, #100
     sub r6, r5, r6
     jmpnd #ButtonUpDriverReturn
     
@@ -883,6 +917,16 @@ ButtonDownDriver:
     push r6
     
     xor r0, r0, r0
+    
+;   If debounce counter != 0, does nothing
+    ldh r1, #debounceDOWN
+    ldl r1, #debounceDOWN
+    ld r1, r0, r1
+    add r1, r0, r1
+    jmpzd #ButtonDownAction
+    jmpd #ButtonDownDriverReturn
+    
+  ButtonDownAction:
     
 ;   Se contadorManual for == 0, volta para 99
     ldh r1, #contadorManual
@@ -2101,5 +2145,11 @@ arrayDEC:                 db #0000h, #0000h, #0000h, #0000h, #0000h, #0000h, #00
 
 ; Array que retorna unidade do numero indexador               
 arrayUNI:                 db #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h, #0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h,#0000h, #0001h, #0002h, #0003h, #0004h, #0005h, #0006h, #0007h, #0008h, #0009h
+
+; Debounce counter for UP button
+debounceUP:               db #0
+
+; Debounce counter for DOWN button
+debounceDOWN:             db #0
 
 .enddata
