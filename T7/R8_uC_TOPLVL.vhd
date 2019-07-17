@@ -45,7 +45,7 @@ begin
     -- R8 Microcontroller (R8 Processor, Memory, I/O Port, PIC, UART TX and RX)
     Microcontroller: entity work.R8_uC
     	generic map (
-    	    RAM_IMAGE     => "AssemblyT7_somente_display_BRAM.txt",
+    	    RAM_IMAGE     => "AssemblyT7_display1ms_BRAM.txt",
     	    ROM_IMAGE     => "ROM_IMAGE_BRAM.txt",
             ADDR_PORT     => "0000",
             ADDR_PIC      => "1111",
