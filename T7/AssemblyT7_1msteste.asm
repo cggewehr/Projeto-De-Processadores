@@ -118,10 +118,10 @@
     st r5, r1, r4  ; PortConfig <= "11000000_00000000"
 
 ;   Seta irqtEnable
-    ldl r4, #00h   ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &irqtEnable ]
+    ldl r4, #03h   ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &irqtEnable ]
     ldh r5, #C0h   ; r5 <= "11000000_00000000"
     ldl r5, #00h   ; Habilita a interrupção nos bits 15 e 14
-    st r5, r1, r4  ; irqtEnable <= "11000000_00000011"
+    st r5, r1, r4  ; irqtEnable <= "11000000_00000000"
 
 ;   Seta PortEnable
     ldl r4, #02h   ; Atualiza indexador de arrayPorta [ arrayPorta[r4] -> &PortEnable ]
@@ -1681,6 +1681,7 @@ Display0:
     push r5
     push r6
 
+    xor r0, r0, r0
     xor r1, r1, r1
     xor r2, r2, r2
     xor r5, r5, r5
@@ -1741,6 +1742,7 @@ Display1:
     push r5
     push r6
 
+    xor r0, r0, r0
     xor r1, r1, r1
     xor r2, r2, r2
     xor r5, r5, r5
@@ -1802,6 +1804,7 @@ Display2:
     push r5
     push r6
 
+    xor r0, r0, r0
     xor r1, r1, r1
     xor r2, r2, r2
     xor r5, r5, r5
@@ -1863,6 +1866,7 @@ Display3:
     push r5
     push r6
 
+    xor r0, r0, r0
     xor r1, r1, r1
     xor r2, r2, r2
     xor r5, r5, r5
@@ -1919,6 +1923,8 @@ HEXtoDEC: ; Divide em parte decimal e parte unitaria o numero passado como param
 ; - r14: Dezena do numero convertido  (arrayDEC[Numero a ser convertido])
 ; - r15: Unidade do numero convertido  (arrayDEC[Numero a ser convertido])
 
+    xor r0, r0, r0
+
 ;   r14 <= &arrayDEC    
     ldh r14, #arrayDEC
     ldl r14, #arrayDEC
@@ -1943,6 +1949,7 @@ DECtoSSD: ; Recebe numero a ser convertido em r2, retorna numero convertido em r
 
     push r1
 
+    xor r0, r0, r0
     xor r1, r1, r1
     xor r14, r14, r14
 
