@@ -676,6 +676,7 @@ UartRXDriver:
 ;   Prints current buffer position
     ldh r2, #UartRxBufferIndexer
     ldl r2, #UartRxBufferIndexer
+    xor r0, r0, r0
     ld r2, r0, r2
     jsrd #IntegerToString
     
@@ -685,6 +686,7 @@ UartRXDriver:
 ;   r5 <= RX DATA
     ldh r1, #arrayUART_RX
     ldl r1, #arrayUART_RX
+    xor r0, r0, r0
     ld r1, r0, r1 ; r1 <= &RX_DATA
     ld r5, r0, r1 ; r5 <= RX_DATA
  
@@ -692,13 +694,16 @@ UartRXDriver:
     ldh r1, #arrayUART_TX
     ldl r1, #arrayUART_TX
     addi r1, #2
+    xor r0, r0, r0
     ld r1, r0, r1 ; r1 <= &Ready
 
 ;   Waits for TX to be available
   UartRXTXReadyLoop:
 
 ;   r6 <= TX READY
+    xor r0, r0, r0
     ld r6, r0, r1
+    xor r0, r0, r0
     add r6, r0, r6
     jmpzd #UartRXTXReadyLoop
 
@@ -708,9 +713,11 @@ UartRXDriver:
 ;   r1 <= &UART TX DATA
     ldh r1, #arrayUART_TX
     ldl r1, #arrayUART_TX
+    xor r0, r0, r0
     ld r1, r0, r1
 
 ;   TX DATA <= RX DATA
+    xor r0, r0, r0
     st r5, r0, r1
 
   UartRXSetup:
@@ -722,13 +729,16 @@ UartRXDriver:
 ;   r7 <= Indexer for temp buffer
     ldh r7, #UartRxBufferIndexer
     ldl r7, #UartRxBufferIndexer
+    xor r0, r0, r0
     ld r7, r0, r7
 
 ;   Checks if current char is '/n' ( Enter ), if it is, inserts '\0' terminator at current buffer position and flags buffer is available, else, adds current char to buffer
     subi r5, #10 ; Integer 10 is ASCII code for '/n'
+    xor r0, r0, r0
     add r5, r0, r5
     jmpzd #UartRxAppendTerminator
     subi r5, #3 ; Integer 13 is ASCII code for '/l'
+    xor r0, r0, r0
     add r5, r0, r5
     jmpzd #UartRxAppendTerminator
     jmpd #UartRxAppendChar
@@ -1458,7 +1468,6 @@ Read: ; Returns on r14, 0 if a string hasnt been received through UART, or the s
     add r1, r0, r1
     
 ;   If no new data is available, returns 0, else, transfer buffer into given string pointer (r2)
-    xor r14, r14, r14
     jmpzd #ReadPop
     
   ReadTransferBufferToString:
@@ -1471,6 +1480,7 @@ Read: ; Returns on r14, 0 if a string hasnt been received through UART, or the s
     xor r4, r4, r4
     
 ;   Sets return value
+    xor r0, r0, r0
     add r14, r0, r3
 
   ReadLoop: ; Loops until buffer is transfered into given string pointer
@@ -1769,7 +1779,15 @@ Imprime:
     ldl r2, #stringNovaLinha
     syscall ; PrintString
 
+;   Imprime nova linha
+    ldh r1, #0
+    ldl r1, #0
+    ldh r2, #stringNovaLinha
+    ldl r2, #stringNovaLinha
+    syscall ; PrintString
+
     jmpd #RepeteLoop
+
 
 ;----------------------------------------------- SUBROTINAS --------------------------------------------------
 
