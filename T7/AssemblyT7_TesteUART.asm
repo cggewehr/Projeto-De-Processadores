@@ -743,12 +743,7 @@ UartRXDriver:
     ldl r1, #UartRxBufferFilledFlag
     ldh r5, #0
     ldl r5, #1
-    st r5, r1, r0
-
-;   Saves current indexer as end of string
-    ldh r1, #UartRxBufferEnd
-    ldl r1, #UartRxBufferEnd
-    st r7, r0, r1
+    st r5, r0, r1
 
 ;   r1 <= &TX READY
     ldh r1, #arrayUART_TX
@@ -1444,19 +1439,13 @@ Read: ; Returns on r14, 0 if a string hasnt been received through UART, or the s
 ; r2 = Pointer to string which data from buffer is transfered to
 ; r3 = Amount of chars to copy from buffer into given string
 ; r5 = Temp for loading data from buffer and storing it into given string pointer
-; r6 = Addr of buffer (filled by UART RX driver)
-; r7 = Buffer start position
-; r8 = Chars tranfered counter
 
     push r1
     push r3
+    push r4
     push r5
-    push r6
-    push r7
-    push r8
     
     xor r0, r0, r0
-    xor r8, r8, r8
     xor r14, r14, r14
 
 ;   Checks if there is new data available on buffer
@@ -1465,77 +1454,49 @@ Read: ; Returns on r14, 0 if a string hasnt been received through UART, or the s
     ld r1, r0, r1
     add r1, r0, r1
     
-;   If no new data is available, returns 0, else, transfer buffer into given string pointer (r2) 
+;   If no new data is available, returns 0, else, transfer buffer into given string pointer (r2)
     jmpzd #ReadPop
     jmpd #ReadTransferBufferToString
     
   ReadTransferBufferToString:
   
-;   Sets new data flag to 0
-    ldh r1, #UartRxBufferFilledFlag
-    ldl r1, #UartRxBufferFilledFlag
-    st r0, r0, r1
-  
-;   Sets string size as the return value
-    add r14, r0, r3
+;   r1 <= &RxBuffer
+    ldh r1, #UartRxBuffer
+    ldl r1, #UartRxBuffer
     
-;   Loads UART RX buffer address
-    ldh r6, #UartRxBuffer
-    ldl r6, #UartRxBuffer
+;   r4 <= transfer counter
+    xor r4, r4, r4
 
-;   Loads buffer start position
-    ldh r7, #UartRxBufferStart
-    ldl r7, #UartRxBufferStart
-    ld r7, r0, r7
-    
-;   Sets buffer reference pointer (buffer pointer + start position)
-    add r6, r7, r6
-    
   ReadLoop: ; Loops until buffer is transfered into given string pointer
 
-;   r5 <= buffer[r8 + reference]
-    ld r5, r6, r8
+;   r5 <= buffer[counter]
+    ld r5, r1, r4
     
-;   string[r8] <= buffer[r8 + reference]
-    st r5, r2, r8
+;   string[counter] <= buffer[counter]
+    st r5, r2, r4
     
 ;   Increments counter
-    addi r8, #1
+    addi r4, #1
     
 ;   If counter == Amount of chars to be copied, breaks, else, loops back to ReadLoop
-    sub r5, r8, r3
-    jmpnd #ReadLoop
+    sub r5, r4, r3
+    jmpzd #ReadReturn
+    jmpd #ReadLoop
     
   ReadReturn:
-  
-;   Sets new buffer start position, right after current buffer end position
-    ldh r1, #UartRxBufferEnd
-    ldl r1, #UartRxBufferEnd
-    ld r5, r0, r1
-    addi r5, #1
 
-;   If new start position = 80, loops back to 0
-    ldh r1, #0
-    ldl r1, #80
-    sub r1, r5, r1
-    jmpnd #ReadSetStart
+;   Resets buffer indexer
+    ldh r1, #UartRxBufferIndexer
+    ldl r1, #UartRxBufferIndexer
+    st r0, r0, r1
     
-;   Only reaches this line if r5 == 80
-    xor r5, r5, r5
-    
-  ReadSetStart:
-  
-;   Stores new start position value
-    ldh r1, #UartRxBufferStart
-    ldl r1, #UartRxBufferStart
-    st r5, r0, r1
-    
+;   Sets return value
+    add r14, r0, r3
+
   ReadPop:
   
-    pop r8
-    pop r7
-    pop r6
     pop r5
+    pop r4
     pop r3
     pop r1
 
@@ -1737,7 +1698,7 @@ RepeteLoop:
 
     syscall
 
-    add r14, r0, r14 
+    add r14, r0, r14
     jmpzd #RepeteLoop
     
 Imprime:
