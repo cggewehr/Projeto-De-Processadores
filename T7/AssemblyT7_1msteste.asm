@@ -774,8 +774,11 @@ UartRXDriver:
     jmpd #UartRxReturn
 
   UartRxReturn:
-  
-;   Increments buffer indexer (if indexer == 80, loops bak to 0)
+    
+;   Increments buffer indexer (if indexer == 80, loops back to 0)
+    ldh r7, #UartRxBufferIndexer
+    ldl r7, #UartRxBufferIndexer
+    ld r7, r0, r7
     addi r7, #1
     ldh r1, #0
     ldl r1, #80
@@ -792,7 +795,7 @@ UartRXDriver:
     ldh r1, #UartRxBufferIndexer ; Indexer < 80
     ldl r1, #UartRxBufferIndexer
     st r7, r0, r1 ; BufferIndexer
-  
+    
     pop r7
     pop r6
     pop r5
