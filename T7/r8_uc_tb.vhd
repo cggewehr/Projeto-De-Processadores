@@ -102,6 +102,7 @@ begin
          wait for 100 us;
 				
 			av_sim <= '1';
+			--av_sim <= '0';
 			
 			wait for 50 ns;
 			
