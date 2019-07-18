@@ -893,12 +893,12 @@ ButtonUpDriver:
     ldh r1, #debounceUP
     ldl r1, #debounceUP
     ldh r6, #0
-    ldl r6, #100
+    ldl r6, #250
     st r6, r0, r1
     
-;   Se contadorManual for == 200, volta para 0
+;   Se contadorManual for == 100, volta para 0
     ldh r6, #0
-    ldl r6, #200
+    ldl r6, #100
     sub r6, r5, r6
     jmpnd #ButtonUpDriverReturn
     
@@ -939,7 +939,7 @@ ButtonDownDriver:
     ldh r1, #debounceDOWN
     ldl r1, #debounceDOWN
     ldh r5, #0
-    ldl r5, #200
+    ldl r5, #250
     st r5, r0, r1
     
 ;   Se contadorManual for == 0, volta para 99
