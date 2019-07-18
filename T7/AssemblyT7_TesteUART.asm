@@ -1715,11 +1715,27 @@ RepeteLoop:
 
 Imprime:
 
+;   Imprime string convertida
     ldh r1, #0
     ldl r1, #0
     ldh r2, #stringTemp
     ldl r2, #stringTemp
     syscall ; PrintString 
+    
+;   Converte filled flag
+    ldh r1, #0
+    ldl r1, #1
+    ldh r2, #UartRxBufferFilledFlag
+    ldl r2, #UartRxBufferFilledFlag
+    xor r0, r0, r0
+    ld r2, r0, r2
+    syscall ; IntegerToString
+    
+;   Imprime filled flag
+    add r2, r0, r14
+    ldh r1, #0
+    ldl r1, #0
+    syscall ; PrintString
 
     jmpd #RepeteLoop
 
