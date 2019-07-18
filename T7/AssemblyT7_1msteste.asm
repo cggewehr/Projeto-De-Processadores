@@ -368,7 +368,7 @@ irq0Handler: ; TIMER
 irq1Handler: ; UART RX DATA AV
 
     jsrd #UartRXDriver
-    
+    halt
     rts
 
 irq2Handler: ; OPEN
