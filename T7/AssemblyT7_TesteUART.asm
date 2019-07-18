@@ -674,7 +674,8 @@ UartRXDriver:
     xor r0, r0, r0
     
 ;   Prints current buffer position
-    add r2, r0, r5
+    ldh r2, #UartRxBufferIndexer
+    ldl r2, #UartRxBufferIndexer
     jsrd #IntegerToString
     
     add r2, r0, r14
@@ -1439,6 +1440,7 @@ Read: ; Returns on r14, 0 if a string hasnt been received through UART, or the s
 ; r5 = Temp for loading data from buffer and storing it into given string pointer
 
     push r1
+    push r2
     push r3
     push r4
     push r5
@@ -1449,6 +1451,7 @@ Read: ; Returns on r14, 0 if a string hasnt been received through UART, or the s
 ;   Checks if there is new data available on buffer
     ldh r1, #UartRxBufferFilledFlag
     ldl r1, #UartRxBufferFilledFlag
+    xor r0, r0, r0
     ld r1, r0, r1
     add r1, r0, r1
     
@@ -1484,10 +1487,14 @@ Read: ; Returns on r14, 0 if a string hasnt been received through UART, or the s
     jmpd #ReadLoop
     
   ReadReturn:
+  
+;   Prints transfered string
+    jsrd #PrintString
 
 ;   Resets buffer indexer
     ldh r1, #UartRxBufferIndexer
     ldl r1, #UartRxBufferIndexer
+    xor r0, r0, r0
     st r0, r0, r1
 
   ReadPop:
@@ -1495,6 +1502,7 @@ Read: ; Returns on r14, 0 if a string hasnt been received through UART, or the s
     pop r5
     pop r4
     pop r3
+    pop r2
     pop r1
 
     rts
