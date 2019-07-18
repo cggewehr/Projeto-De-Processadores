@@ -1454,9 +1454,11 @@ Read: ; Returns on r14, 0 if a string hasnt been received through UART, or the s
     ldl r1, #UartRxBufferFilledFlag
     xor r0, r0, r0
     ld r1, r0, r1
+    xor r0, r0, r0
     add r1, r0, r1
     
 ;   If no new data is available, returns 0, else, transfer buffer into given string pointer (r2)
+    xor r14, r14, r14
     jmpzd #ReadPop
     
   ReadTransferBufferToString:
@@ -1710,6 +1712,7 @@ RepeteLoop:
 
     syscall ; Read
 
+    xor r0, r0, r0
     add r14, r0, r14 ; Gera flag
     jmpzd #RepeteLoop
 
@@ -1735,6 +1738,35 @@ Imprime:
     add r2, r0, r14
     ldh r1, #0
     ldl r1, #0
+    syscall ; PrintString
+
+;   Imprime nova linha
+    ldh r1, #0
+    ldl r1, #0
+    ldh r2, #stringNovaLinha
+    ldl r2, #stringNovaLinha
+    syscall ; PrintString
+    
+;   Converte indexador do buffer
+    ldh r1, #0
+    ldl r1, #1
+    ldh r2, #UartRxBufferIndexer
+    ldl r2, #UartRxBufferIndexer
+    xor r0, r0, r0
+    ld r2, r0, r2
+    syscall ; IntegerToString
+    
+;   Imprime indexador do buffer
+    ldh r1, #0
+    ldl r1, #0
+    add r2, r0, r14
+    syscall ; PrintString
+    
+;   Imprime nova linha
+    ldh r1, #0
+    ldl r1, #0
+    ldh r2, #stringNovaLinha
+    ldl r2, #stringNovaLinha
     syscall ; PrintString
 
     jmpd #RepeteLoop
