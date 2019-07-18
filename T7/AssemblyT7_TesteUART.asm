@@ -717,13 +717,17 @@ UartRXDriver:
 
 ;   Checks if current char is '/n' ( Enter ), if it is, inserts '\0' terminator at current buffer position and flags buffer is available, else, adds current char to buffer
     subi r5, #10 ; Integer 10 is ASCII code for '/n'
+    add r5, r0, r5
+    jmpzd #UartRxAppendTerminator
+    subi r5, #3 ; Integer 13 is ASCII code for '/l'
+    add r5, r0, r5
     jmpzd #UartRxAppendTerminator
     jmpd #UartRxAppendChar
 
   UartRxAppendChar:
 
 ;   Restores char value and stores it on buffer
-    addi r5, #10
+    addi r5, #13
     st r5, r6, r7 ; Buffer[BufferIndexer] <= Current Char (not '\n')
 
 ;   Signals buffer not ready
@@ -772,6 +776,13 @@ UartRXDriver:
     st r5, r0, r1
     
   UartRxPop:
+  
+;   Prints current buffer position
+    add r2, r0, r5
+    jsrd #IntegerToString
+    
+    add r2, r0, r14
+    jsrd #PrintString
     
     pop r7
     pop r6
@@ -1661,11 +1672,11 @@ main:
     ; Set the callback flag value
     ldh r5, #00h
     ldl r5, #00h            ; r5 <= 0
-    
+
     syscall
-    
+ 
 RepeteLoop:
-    
+
     ; Set the Syscall value
     ldh r1, #0
     ldl r1, #5
@@ -1680,9 +1691,9 @@ RepeteLoop:
 
     syscall ; Read
 
-    add r14, r0, r14
+    add r14, r0, r14 ; Gera flag
     jmpzd #RepeteLoop
-    
+
 Imprime:
 
     ldh r1, #0
