@@ -1724,6 +1724,19 @@ RepeteLoop:
 
     xor r0, r0, r0
     add r14, r0, r14 ; Gera flag
+    
+;   Converte valor de retorno do syscall read
+    ldh r1, #0
+    ldl r1, #1
+    add r2, r0, r14
+    syscall ; IntegerToString
+    
+;   Imprime valor de retorno do syscall read
+    ldh r1, #0
+    ldl r1, #0
+    add r2, r0, r14
+    syscall ; PrintString
+    
     jmpzd #RepeteLoop
 
 Imprime:
@@ -1736,48 +1749,48 @@ Imprime:
     syscall ; PrintString 
     
 ;   Converte filled flag
-    ldh r1, #0
-    ldl r1, #1
-    ldh r2, #UartRxBufferFilledFlag
-    ldl r2, #UartRxBufferFilledFlag
-    xor r0, r0, r0
-    ld r2, r0, r2
-    syscall ; IntegerToString
-    
-;   Imprime filled flag
-    add r2, r0, r14
-    ldh r1, #0
-    ldl r1, #0
-    syscall ; PrintString
-
-;   Imprime nova linha
-    ldh r1, #0
-    ldl r1, #0
-    ldh r2, #stringNovaLinha
-    ldl r2, #stringNovaLinha
-    syscall ; PrintString
-    
-;   Converte indexador do buffer
-    ldh r1, #0
-    ldl r1, #1
-    ldh r2, #UartRxBufferIndexer
-    ldl r2, #UartRxBufferIndexer
-    xor r0, r0, r0
-    ld r2, r0, r2
-    syscall ; IntegerToString
-    
-;   Imprime indexador do buffer
-    ldh r1, #0
-    ldl r1, #0
-    add r2, r0, r14
-    syscall ; PrintString
-    
-;   Imprime nova linha
-    ldh r1, #0
-    ldl r1, #0
-    ldh r2, #stringNovaLinha
-    ldl r2, #stringNovaLinha
-    syscall ; PrintString
+;    ldh r1, #0
+;    ldl r1, #1
+;    ldh r2, #UartRxBufferFilledFlag
+;    ldl r2, #UartRxBufferFilledFlag
+;    xor r0, r0, r0
+;    ld r2, r0, r2
+;    syscall ; IntegerToString
+;    
+;;   Imprime filled flag
+;    add r2, r0, r14
+;    ldh r1, #0
+;    ldl r1, #0
+;    syscall ; PrintString;;
+;
+;;   Imprime nova linha
+;    ldh r1, #0
+;    ldl r1, #0
+;    ldh r2, #stringNovaLinha
+;    ldl r2, #stringNovaLinha
+;    syscall ; PrintString
+;    
+;;   Converte indexador do buffer
+;    ldh r1, #0
+;    ldl r1, #1
+;    ldh r2, #UartRxBufferIndexer
+;    ldl r2, #UartRxBufferIndexer
+;    xor r0, r0, r0
+;    ld r2, r0, r2
+;    syscall ; IntegerToString
+;    
+;;   Imprime indexador do buffer
+;    ldh r1, #0
+;    ldl r1, #0
+;    add r2, r0, r14
+;    syscall ; PrintString
+;    
+;;   Imprime nova linha
+;    ldh r1, #0
+;    ldl r1, #0
+;    ldh r2, #stringNovaLinha
+;    ldl r2, #stringNovaLinha
+;    syscall ; PrintString;;;;;;;;;;;;;
 
 ;   Imprime nova linha
     ldh r1, #0
