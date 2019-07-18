@@ -676,6 +676,7 @@ UartRXDriver:
 ;   Prints current buffer position
     ldh r2, #UartRxBufferIndexer
     ldl r2, #UartRxBufferIndexer
+    ld r2, r0, r2
     jsrd #IntegerToString
     
     add r2, r0, r14
@@ -1494,6 +1495,12 @@ Read: ; Returns on r14, 0 if a string hasnt been received through UART, or the s
 ;   Resets buffer indexer
     ldh r1, #UartRxBufferIndexer
     ldl r1, #UartRxBufferIndexer
+    xor r0, r0, r0
+    st r0, r0, r1
+    
+;   Resets buffer filled flag
+    ldh r1, #UartRxBufferFilledFlag
+    ldl r1, #UartRxBufferFilledFlag
     xor r0, r0, r0
     st r0, r0, r1
 
