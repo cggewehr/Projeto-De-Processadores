@@ -41,24 +41,7 @@
 ; irq[3] = OPEN
 ; irq[2] = OPEN
 ; irq[1] = UART RX
-; irq[0] = OPEN
-
-; port_io[15] = OPEN
-; port_io[14] = OPEN
-; port_io[13] = OPEN
-; port_io[12] = OPEN
-; port_io[11] = OPEN
-; port_io[10] = OPEN
-; port_io[9] = OPEN
-; port_io[8] = OPEN
-; port_io[7] = OPEN
-; port_io[6] = OPEN
-; port_io[5] = OPEN
-; port_io[4] = OPEN
-; port_io[3] = OPEN
-; port_io[2] = OPEN
-; port_io[1] = OPEN
-; port_io[0] = OPEN
+; irq[0] = TIMER
 
 .org #0000h
 
@@ -79,7 +62,7 @@
     ldh r8, #00h
     ldl r8, #00h        ; Carrega a Mascara para o PIC [ r8 <= "0000_0000_0000_0000"]
 
-    st r8, r0, r7       ; arrayPIC [MASK] <= "xxxx_xxxx_0000_0010"
+    st r8, r0, r7       ; arrayPIC [MASK] <= "xxxx_xxxx_0000_0000"
 
 ; Array de registradores do controlador de interrupções
 ; arrayPIC [ IrqID(0x80F0) | IntACK(0x80F1) | Mask(0x80F2) ]
@@ -115,8 +98,10 @@
     ldl r1, #arrayUART_RX
     addi r1, #1
     ld r1, r0, r1
-    ldh r5, #03h
-    ldl r5, #64h
+    ;ldh r5, #03h
+    ;ldl r5, #64h
+    ldh r5, #0
+    ldl r5, #4
     st r5, r0, r1
     
 ;   Seta RATE_FREQ_BAUD = 869 (0x364) (57600 baud @ 50 MHz)
@@ -124,8 +109,10 @@
     ldl r1, #arrayUART_TX
     addi r1, #1
     ld r1, r0, r1
-    ldh r5, #03h
-    ldl r5, #64h
+    ;ldh r5, #03h
+    ;ldl r5, #64h
+    ldh r5, #0
+    ldl r5, #4
     st r5, r0, r1
 
 ;   Inicializa registradores
@@ -159,15 +146,11 @@
     ldh r10, #7Fh
     ldl r10, #FFh
 
-    jmpd #main
-
 ; END BOOT
 ;____________________________________________________________________________________________________________
 
 
 ;------------------------------------------- PROGRAMA PRINCIPAL ---------------------------------------------
-
-main:
 
 UartRxDataAVPollingLoop:
 
@@ -177,7 +160,6 @@ UartRxDataAVPollingLoop:
 
 ;   if irq(1) = 1 (UART RX DATA AV), transfer UART RX data to RAM, else, waits for data to be available
     jmpzd #UartRxDataAVPollingLoop
-    jmpd #TransferByte
 
 TransferByte:
 ; Register Table:
@@ -189,7 +171,7 @@ TransferByte:
 ; r6 = &IntACK
 ; r7 = Irq(1) Mask
 ; r8 = Offset mask
-; r9 = SaveOnLower backup (used on SaveOnHgher in order to not execute a load instruction) 
+; r9 = SaveOnLower backup (used on SaveOnHigher in order to not execute a load instruction) 
 
 ;   r4 <= Nova parte da instrução
     ldh r4, #arrayUART_RX
@@ -233,8 +215,8 @@ TransferByte:
 ;   Proximo byte a ser salvo na parte alta
     xor r2, r2, r2 ; r2 <= 0
     
-;   Verifica se r3 aponta para ultima posiçãoi de memoria
-    xor r11, r3, r10
+;   Verifica se r3 aponta para ultima posição de memoria
+    sub r11, r3, r10
     jmpzd #EndTransfer ; Se r3 = 32767, finaliza programa
     
 ;   Incrementa Ponteiro da RAM
@@ -253,8 +235,8 @@ TransferByte:
 ;   Returns to polling loop
     jmpd #UartRxDataAVPollingLoop
     
-  EndTransfer: ; Loops until next reset
-    jmpd #EndTransfer
+  EndTransfer: ; Waits for next reset
+    halt
 
 .endcode
 ;=============================================================================================================

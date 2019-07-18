@@ -44,7 +44,7 @@ begin
 	 clk_tx <= not clk_tx after 10 ns;
     rst <= '1', '0' after 15 ns;
 --	 port_io <= "ZZZZZZZZZZZZZZZZ";
-    prog_mode <= '0';--, '0' after 11 us;
+    prog_mode <= '0', '1' after 1 ms, '0' after 8 ms;
 
 --
 --    -- UART RX
@@ -86,38 +86,66 @@ begin
 			data_av => data_av_tx,
 			ready => ready_tx
 		);
-			
-	SIM: process begin
-	
-		count <= 868;
-		av_sim <= '0';
-		port_io <= "ZZZZZZZZZZZZZZZZ";
-		
-		wait for 50 ns;
-		
-		--av_sim <= '0';
-		
-		wait for 7 ms;
 
-	   count <= 54; -- ASCII 6
-	   av_sim <= '1';
-		  
-	   wait for 50 ns;
-		  
-      av_sim <= '0';
-		  
-  	   wait for 500 us;
-		  
-		count <= 10;
-		av_sim <= '1';
-		port_io <= "01ZZZZZZZZZZZZZZ";
-		  
-		wait for 50 ns;
-		
-		port_io <= "00ZZZZZZZZZZZZZZ";
-		av_sim <= '0';
-			
-	    --end loop;
-	end process;
+    SIM: process begin
+    
+      wait for 15 ns;
 	
+		count <= 4; -- Freq baud rate
+        
+      wait for 10 ns;
+                
+		wait for 1 ms;
+		
+		for i in 1 to 65536 loop
+        
+         wait for 100 us;
+				
+			av_sim <= '1';
+			
+			wait for 50 ns;
+			
+			av_sim <= '0';
+			
+			count <= count + 1;
+			
+			wait until ready_tx = '1';
+			
+	   end loop;
+		 
+	end process;
+			
+--	SIM: process begin
+--	
+--		count <= 868;
+--		av_sim <= '0';
+--		port_io <= "ZZZZZZZZZZZZZZZZ";
+--		
+--		wait for 50 ns;
+--		
+--		--av_sim <= '0';
+--		
+--		wait for 7 ms;
+--
+--	   count <= 54; -- ASCII 6
+--	   av_sim <= '1';
+--		  
+--	   wait for 50 ns;
+--		  
+--      av_sim <= '0';
+--		  
+--  	   wait for 500 us;
+--		  
+--		count <= 10;
+--		av_sim <= '1';
+--		port_io <= "01ZZZZZZZZZZZZZZ";
+--		  
+--		wait for 50 ns;
+--		
+--		port_io <= "00ZZZZZZZZZZZZZZ";
+--		av_sim <= '0';
+--			
+--	    --end loop;
+--	end process;
+
 end behavioral;
