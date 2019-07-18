@@ -889,6 +889,13 @@ ButtonUpDriver:
     addi r5, #1
     st r5, r0, r1
     
+;   Sets debounce counter (to be decremented in timer driver)
+    ldh r1, #debounceUP
+    ldl r1, #debounceUP
+    ldh r5, #0
+    ldl r5, #30
+    st r5, r0, r1
+    
 ;   Se contadorManual for == 100, volta para 0
     ldh r6, #0
     ldl r6, #100
@@ -927,6 +934,13 @@ ButtonDownDriver:
     jmpd #ButtonDownDriverReturn
     
   ButtonDownAction:
+  
+;   Sets debounce counter (to be decremented in timer driver)
+    ldh r1, #debounceDOWN
+    ldl r1, #debounceDOWN
+    ldh r5, #0
+    ldl r5, #30
+    st r5, r0, r1
     
 ;   Se contadorManual for == 0, volta para 99
     ldh r1, #contadorManual
