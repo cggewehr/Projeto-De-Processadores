@@ -666,6 +666,7 @@ UartRXDriver:
 ; r7 = Buffer indexer
 
     push r1
+    push r2
     push r5
     push r6
     push r7
@@ -745,55 +746,37 @@ UartRXDriver:
     ldl r5, #1
     st r5, r0, r1
 
-;   r1 <= &TX READY
-    ldh r1, #arrayUART_TX
-    ldl r1, #arrayUART_TX
-    addi r1, #2
-    ld r1, r0, r1 ; r1 <= &Ready
-
-  UartRxLoopSendCR: ; Loops while TX is unavailable
-
-    ld r6, r0, r1
-    add r6, r0, r6
-    jmpzd #UartRxLoopSendCR
-
-;   Sends '/r' character (Carriage Return) through UART TX
-    ldh r1, #arrayUART_TX
-    ldl r1, #arrayUART_TX
-    ld r1, r0, r1 ; r1 <= &TX DATA
-    ldh r5, #0
-    ldl r5, #13   ; r5 <= '\r'
-    st r5, r0, r1
- 
-;   Jumps to to return
-    jmpd #UartRxReturn
+;   Sends new line chars
+    ldh r2, #stringNovaLinha
+    ldl r2, #stringNovaLinha
+    jsrd #PrintString
 
   UartRxReturn:
     
 ;   Increments buffer indexer (if indexer == 80, loops back to 0)
-    ldh r7, #UartRxBufferIndexer
-    ldl r7, #UartRxBufferIndexer
-    ld r7, r0, r7
-    addi r7, #1
-    ldh r1, #0
-    ldl r1, #80
-    sub r1, r7, r1 ; r1 <= ++indexer - 80
-    jmpzd #UartRxResetsIndexer
-    jmpd #UartRxStoreIndexer
+    ldh r1, #UartRxBufferIndexer
+    ldl r1, #UartRxBufferIndexer
+    ld r5, r0, r1
+    addi r5, #1
+    st r5, r0, r1
+    
+;   Checks if buffer indexers exceeds buffer size
+    ldh r7, #0
+    ldl r7, #80
+    sub r5, r5, r7 ; r1 <= ++indexer - 80
+    jmpnd #UartRxPop
     
   UartRxResetsIndexer:
     
-    xor r7, r7, r7 ; Indexer <= 0
+    xor r5, r5, r5 ; Indexer <= 0
+    st r5, r0, r1
     
-  UartRxStoreIndexer:
-    
-    ldh r1, #UartRxBufferIndexer ; Indexer < 80
-    ldl r1, #UartRxBufferIndexer
-    st r7, r0, r1 ; BufferIndexer
+  UartRxPop:
     
     pop r7
     pop r6
     pop r5
+    pop r2
     pop r1
     
     rts
@@ -1456,16 +1439,18 @@ Read: ; Returns on r14, 0 if a string hasnt been received through UART, or the s
     
 ;   If no new data is available, returns 0, else, transfer buffer into given string pointer (r2)
     jmpzd #ReadPop
-    jmpd #ReadTransferBufferToString
     
   ReadTransferBufferToString:
-  
+    
 ;   r1 <= &RxBuffer
     ldh r1, #UartRxBuffer
     ldl r1, #UartRxBuffer
     
-;   r4 <= transfer counter
+;   r4 <= Transfer counter
     xor r4, r4, r4
+    
+;   Sets return value
+    add r14, r0, r3
 
   ReadLoop: ; Loops until buffer is transfered into given string pointer
 
@@ -1489,12 +1474,9 @@ Read: ; Returns on r14, 0 if a string hasnt been received through UART, or the s
     ldh r1, #UartRxBufferIndexer
     ldl r1, #UartRxBufferIndexer
     st r0, r0, r1
-    
-;   Sets return value
-    add r14, r0, r3
 
   ReadPop:
-  
+
     pop r5
     pop r4
     pop r3
@@ -1696,7 +1678,7 @@ RepeteLoop:
     ldh r3, #0
     ldl r3, #50 ; 50 chars to be copied
 
-    syscall
+    syscall ; Read
 
     add r14, r0, r14
     jmpzd #RepeteLoop
@@ -1705,20 +1687,8 @@ Imprime:
 
     ldh r1, #0
     ldl r1, #0
-    ldh r2, #stringNovaLinha
-    ldl r2, #stringNovaLinha
-    syscall ; PrintString 
-
-    ldh r1, #0
-    ldl r1, #0
     ldh r2, #stringTemp
     ldl r2, #stringTemp
-    syscall ; PrintString 
-    
-    ldh r1, #0
-    ldl r1, #0
-    ldh r2, #stringNovaLinha
-    ldl r2, #stringNovaLinha
     syscall ; PrintString 
 
     jmpd #RepeteLoop
