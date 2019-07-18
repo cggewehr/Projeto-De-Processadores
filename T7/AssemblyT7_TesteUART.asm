@@ -672,6 +672,13 @@ UartRXDriver:
     push r7
 
     xor r0, r0, r0
+    
+;   Prints current buffer position
+    add r2, r0, r5
+    jsrd #IntegerToString
+    
+    add r2, r0, r14
+    jsrd #PrintString
 
 ;   r5 <= RX DATA
     ldh r1, #arrayUART_RX
@@ -733,6 +740,7 @@ UartRXDriver:
 ;   Signals buffer not ready
     ldh r1, #UartRxBufferFilledFlag
     ldl r1, #UartRxBufferFilledFlag
+    xor r0, r0, r0
     st r0, r0, r1
 
 ;   Jumps to return
@@ -741,6 +749,7 @@ UartRXDriver:
   UartRxAppendTerminator:
 
 ;   Stores '/0' at current position
+    xor r0, r0, r0
     st r0, r6, r7 ; Buffer[BufferIndexer] <= '\0'
 
 ;   Signals new string available in buffer
@@ -758,6 +767,7 @@ UartRXDriver:
   UartRxReturn:
     
 ;   Increments buffer indexer (if indexer == 80, loops back to 0)
+    xor r0, r0, r0
     ldh r1, #UartRxBufferIndexer
     ldl r1, #UartRxBufferIndexer
     ld r5, r0, r1
@@ -767,22 +777,16 @@ UartRXDriver:
 ;   Checks if buffer indexers exceeds buffer size
     ldh r7, #0
     ldl r7, #80
-    sub r5, r5, r7 ; r1 <= ++indexer - 80
+    sub r7, r5, r7 ; r1 <= ++indexer - 80
     jmpnd #UartRxPop
     
   UartRxResetsIndexer:
     
+    xor r0, r0, r0
     xor r5, r5, r5 ; Indexer <= 0
     st r5, r0, r1
     
   UartRxPop:
-  
-;   Prints current buffer position
-    add r2, r0, r5
-    jsrd #IntegerToString
-    
-    add r2, r0, r14
-    jsrd #PrintString
     
     pop r7
     pop r6
