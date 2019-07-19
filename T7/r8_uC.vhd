@@ -31,21 +31,20 @@ end R8_uC;
 
 architecture behavioral of R8_uC is
    
-    signal ce, rw                                   : std_logic;                      -- I/O operation being carried out
-    signal rw_MEM, clk_MEM, en_RAM, en_ROM, en_PORT : std_logic;                      -- Enables for I/O operation targets
+    signal ce, rw                                    : std_logic;                      -- I/O operation being carried out
+    signal rw_MEM, clk_MEM, en_RAM, en_PORT          : std_logic;                      -- Enables for I/O operation targets
 
-    signal data_PORT, data_ROM_out, data_RAM_out    : std_logic_vector(15 downto 0);  -- Peripherals/Memory interface
-    signal data_r8_in, data_r8_out, address         : std_logic_vector(15 downto 0);  -- Processor interface
+    signal data_PORT, data_MEM_in, data_RAM_out      : std_logic_vector(15 downto 0);  -- Peripherals/Memory interface
+    signal data_r8_in, data_r8_out, address          : std_logic_vector(15 downto 0);  -- Processor interface
 
-    signal rst_R8                                   : std_logic;
-    signal prog_mode_change_flag                    : std_logic;
-	 signal prog_mode_prev                           : std_logic;  
+    signal rst_R8                                    : std_logic;
 
-    alias address_PORT                              : std_logic_vector(1 downto 0) is address(1 downto 0);   -- Address for I/O Port registers ( Data, Config, Enable or InterruptEnable)
-    alias mem_address                               : std_logic_vector(14 downto 0)is address(14 downto 0);  -- Memory (RAM and ROM) address space (15th bit is reserved for I/O operations (I/O port, PIC, UART)
-    alias ID_PERIFERICO                             : std_logic_vector(3 downto 0) is address(7 downto  4);  -- Peripheral ID
-    alias REG_PERIFERICO                            : std_logic_vector(3 downto 0) is address(3 downto  0);  -- Peripheral Address
-    alias ENABLE_PERIFERICO                         : std_logic is address(15); 							 -- Perfipheral Enable (I/O operation to be carried out on peripheral)
+    alias address_PORT                               : std_logic_vector(1 downto 0) is address(1 downto 0);   -- Address for I/O Port registers ( Data, Config, Enable or InterruptEnable)
+    alias mem_address                                : std_logic_vector(14 downto 0)is address(14 downto 0);  -- Memory address space (15th bit is reserved for I/O operations (I/O port, PIC, UART)
+    signal ram_addr                                   : std_logic_vector(14 downto 0);
+	 alias ID_PERIFERICO                              : std_logic_vector(3 downto 0) is address(7 downto  4);  -- Peripheral ID
+    alias REG_PERIFERICO                             : std_logic_vector(3 downto 0) is address(3 downto  0);  -- Peripheral Address
+    alias ENABLE_PERIFERICO                          : std_logic is address(15); 							 -- Perfipheral Enable (I/O operation to be carried out on peripheral)
 	
     -- Tristate for bidirectional bus between processor and I/O port
 	signal TRISTATE_PORT_EN   : std_logic;
@@ -79,6 +78,12 @@ architecture behavioral of R8_uC is
 	 signal ce_timer           : std_logic;
 	 signal tristate_timer_en  : std_logic;
 	 signal data_timer         : std_logic_vector(15 downto 0);
+	 
+	 -- Programmer signals
+	 signal rw_prog            : std_logic;
+	 signal ce_prog            : std_logic;
+	 signal data_prog_out      : std_logic_vector(15 downto 0);
+	 signal prog_addr          : std_logic_vector(15 downto 0);
 
 begin
 		
@@ -87,27 +92,10 @@ begin
                   ("00000000" & data_PIC) when ENABLE_PERIFERICO = '1' and ID_PERIFERICO = ADDR_PIC     else
                   data_out_UART_TX        when ENABLE_PERIFERICO = '1' and ID_PERIFERICO = ADDR_UART_TX else
                   data_out_UART_RX        when ENABLE_PERIFERICO = '1' and ID_PERIFERICO = ADDR_UART_RX else
-                  data_ROM_out            when ENABLE_PERIFERICO = '0' and prog_mode = '1'              else
+                  data_timer              when ENABLE_PERIFERICO = '1' and ID_PERIFERICO = ADDR_TIMER   else
                   data_RAM_out;
                       
-    rst_R8 <= '1' when (rst = '1' or prog_mode_change_flag = '1') else '0';
-    prog_mode_change_flag <= prog_mode_prev xor prog_mode;
-
-    R8_RESET_HANDLER: process(clk, rst)
-                     
-    begin
-        
-        if rst = '1' then
-            
-            prog_mode_prev <= '0';
-
-        elsif rising_edge(clk) then
-            
-            prog_mode_prev <= prog_mode;
-
-        end if;
-
-    end process;
+    rst_R8 <= '1' when (rst = '1' or prog_mode = '1') else '0';
                       
     -- Processor
     R8Processor: entity work.R8 
@@ -124,10 +112,12 @@ begin
         );
 		
     -- RAM signals
-    clk_MEM <= not clk;   -- Makes memory sensitive to falling edge
-    rw_MEM  <= not rw;    -- Writes when 1, Reads when 0
-    en_RAM  <= '1' when (ce = '1' and ENABLE_PERIFERICO = '0' and (prog_mode = '0' or (prog_mode = '1' and rw_MEM = '1'))) else '0'; -- Enabled when programming mode is off, or when programming mode is on and storing (stores on RAM)    
-    
+    clk_MEM <= not clk;                                                                      -- Makes memory sensitive to falling edge
+    rw_MEM  <= (not rw) when prog_mode = '0' else rw_PROG;                                   -- Writes when 1, Reads when 0
+    en_RAM  <= '1' when ( (ce = '1' and ENABLE_PERIFERICO = '0') or ce_PROG = '1') else '0'; -- Enabled when programming mode is off, or when programming mode is on and storing (stores on RAM)    
+    data_MEM_in <= data_r8_out when prog_mode = '0' else data_PROG_out;                      -- Data from processor when prog_mode is turned off, else, data from programmer
+    RAM_ADDR <= mem_address when prog_mode = '0' else prog_ADDR(14 downto 0);                -- Address from processor when prog_mode is turned off, else, address from programmer
+
     -- RAM (software programmable)
     RAM: entity work.Memory 
         generic map(
@@ -137,32 +127,32 @@ begin
             SIZE => 32768
         )
         port map(
-            clk => clk_MEM,
-            wr  => rw_MEM,
-            en  => en_RAM,
-            address  => mem_address, 
-            data_in  => data_r8_out,
+            clk      => clk_MEM,
+            wr       => rw_MEM,
+            en       => en_RAM,
+            --address  => mem_address, 
+				address  => RAM_ADDR,
+            --data_in  => data_r8_out,
+            data_in  => data_MEM_in,
             data_out => data_RAM_out
         );
 
-    -- ROM signals
-    en_ROM <= '1' when (ce = '1' and ENABLE_PERIFERICO = '0' and prog_mode = '1' and rw_MEM = '0') else '0'; -- Enabled when programming mode is on and reading     
-
-    -- ROM (contains RAM programming routine)
-    ROM: entity work.Memory 
+    -- Programmer (Fills RAM with data from UART RX if prog_mode is = '1')
+    PROGRAMMER: entity work.Programmer
         generic map(
-            DATA_WIDTH => 16,
-            ADDR_WIDTH => 15,
-            IMAGE => ROM_IMAGE, -- Assembly code (must be in same directory)
-            SIZE => 200
+            UART_RX_ADDR => ADDR_UART_RX,
+            RX_DATA_ADDR => "0000"
         )
         port map(
-            clk => clk_MEM,
-            wr  => rw_MEM,
-            en  => en_ROM,
-            address  => mem_address, 
-            data_in  => data_r8_out,
-            data_out => data_ROM_out    
+            clk  => clk,
+            rst  => rst,
+            en => prog_mode,
+            ce => ce_PROG,
+            rw => rw_PROG,
+            address => prog_ADDR,
+            data_in => data_RAM_out,
+            data_out => data_PROG_out,
+            rx_data_av => data_av_UART_RX
         );
 
     -- Port signals

@@ -21,7 +21,7 @@ end R8_uC_TOPLVL;
 architecture Behavioural of R8_uC_TOPLVL is
 
     -- Basic signals
-	signal clk_2, clk_4               : std_logic; -- 50MHz clock for uC and 25 MHz clock (unused)
+	signal clk_2, clk_4               : std_logic; -- 25MHz clock for uC and reset sync
 	signal reset_sync                 : std_logic; -- Synchronous reset
 
 begin
@@ -37,7 +37,7 @@ begin
     -- Reset Synchronizer    
     ResetSynchronizer: entity work.ResetSynchronizer
         port map(
-            clk     => clk_2,
+            clk     => clk_4,
             rst_in  => reset,
             rst_out => reset_sync
         );
@@ -54,7 +54,7 @@ begin
             ADDR_TIMER    => "1011"
     	)
 		port map (
-    	    clk       => clk_2,
+    	    clk       => clk_4,
     		rst       => reset_sync,
     		port_io   => port_io_uC,
             uart_tx   => uart_tx,

@@ -129,22 +129,22 @@
     ldl r5, #FFh   ; Habilita acesso a todos os bits da porta de I/O, menos bit 13 e bit 8
     st r5, r1, r4  ; PortEnable <= "11011110_11111111"
     
-;   Seta RATE_FREQ_BAUD = 869 (0x364) (57600 baud @ 50 MHz)
+;   Seta RATE_FREQ_BAUD = 434 (0x31b2) (57600 baud @ 50 MHz)
     ldh r1, #arrayUART_RX
     ldl r1, #arrayUART_RX
     addi r1, #1
     ld r1, r0, r1  ; r1 <= &RATE_FREQ_BAUD (RX)
-    ldh r5, #03h
-    ldl r5, #64h   ; Seta BAUD_RATE = 869
+    ldh r5, #01h
+    ldl r5, #B2h   ; Seta BAUD_RATE = 869
     st r5, r0, r1  ;
     
-;   Seta RATE_FREQ_BAUD = 869 (0x364) (57600 baud @ 50 MHz)
+;   Seta RATE_FREQ_BAUD = 434 (0x1B2) (57600 baud @ 50 MHz)
     ldh r1, #arrayUART_TX
     ldl r1, #arrayUART_TX
     addi r1, #1
     ld r1, r0, r1  ; r1 <= &RATE_FREQ_BAUD (TX)
-    ldh r5, #03h
-    ldl r5, #64h   ; Seta BAUD_RATE = 869
+    ldh r5, #01h
+    ldl r5, #B2h   ; Seta BAUD_RATE = 869
     st r5, r0, r1  ;
     
 ;   Starts UART RX buffer @ 0
@@ -491,7 +491,7 @@ syscall2Handler: ; IntegerToHexString (Converts a given hexadecimal value to a A
 
     rts
 
-syscall3Handler: ; Delay1ms (Waits for "r2" milliseconds, assumes a clock of 50MHz)
+syscall3Handler: ; Delay1ms (Waits for "r2" milliseconds, assumes a clock of 25MHz)
 
     jsrd #Delay1ms
 
@@ -1385,7 +1385,7 @@ IntegerToHexString: ; Espera valor a ser convertido em r2, retorna ponteiro para
 
     rts
 
-Delay1ms: ; Assumes clk = 50MHz (MIGHT CAUSE PROBELMS IF GIVEN NUMBER IS GREATER THAN 2¹⁵, WHICH IS INTERPRETED AS A NEGATIVE NUMBER)
+Delay1ms: ; Assumes clk = 25MHz (MIGHT CAUSE PROBELMS IF GIVEN NUMBER IS GREATER THAN 2¹⁵, WHICH IS INTERPRETED AS A NEGATIVE NUMBER)
 ; Register table
 ; r2 = Number of milliseconds to hold in this function
 ; r4 = Loop iterator
@@ -1395,11 +1395,11 @@ Delay1ms: ; Assumes clk = 50MHz (MIGHT CAUSE PROBELMS IF GIVEN NUMBER IS GREATER
 
   Delay1msloopReset:
 
-;   Iterador do loop de 1ms <= 2500
-    ldh r4, #09h
-    ldl r4, #C4h
+;   Iterador do loop de 1ms <= 1250
+    ldh r4, #04h
+    ldl r4, #E2h
 
-  Delay1msloop:             ; Repeats 2500 times, 20 cycles
+  Delay1msloop:             ; Repeats 1250 times, 20 cycles
     subi r4, #1             ;  4 cycles
     nop                     ;  7 cycles
     nop                     ; 10 cycles
@@ -1461,12 +1461,33 @@ Read: ; Returns on r14, 0 if a string hasnt been received through UART, or the s
 ;   Checks if there is new data available on buffer
     ldh r1, #UartRxBufferFilledFlag
     ldl r1, #UartRxBufferFilledFlag
-    xor r0, r0, r0
     ld r1, r0, r1
-    xor r0, r0, r0
     add r1, r0, r1
+    add r9, r0, r1
+    
+;   Prints message
+    ldh r2, #stringDebugBufferFilledFlagRead
+    ldl r2, #stringDebugBufferFilledFlagRead
+    jsrd #PrintString
+    
+;   Converts BufferFilledFlag
+    xor r0, r0, r0
+    add r2, r0, r9
+    jsrd #IntegerToString
+    
+;   Prints BufferFilledFlag
+    xor r0, r0, r0
+    add r2, r0, r14
+    jsrd #PrintString
+    
+;   Prints new line
+    ldh r2, #stringNovaLinha
+    ldl r2, #stringNovaLinha
+    jsrd #PrintString
     
 ;   If no new data is available, returns 0, else, transfer buffer into given string pointer (r2)
+    xor r0, r0, r0
+    add r1, r0, r9
     jmpzd #ReadPop
     
   ReadTransferBufferToString:
@@ -1503,17 +1524,70 @@ Read: ; Returns on r14, 0 if a string hasnt been received through UART, or the s
 ;   Prints transfered string
     jsrd #PrintString
 
+;   Prints new line
+    ldh r2, #stringNovaLinha
+    ldl r2, #stringNovaLinha
+    jsrd #PrintString
+    
+
 ;   Resets buffer indexer
     ldh r1, #UartRxBufferIndexer
     ldl r1, #UartRxBufferIndexer
     xor r0, r0, r0
     st r0, r0, r1
     
+;   Prints message
+    ldh r2, #stringDebugBufferIndexerRead
+    ldl r2, #stringDebugBufferIndexerRead
+    jsrd #PrintString
+    
+;   Converts BufferIndexer
+    ldh r1, #UartRxBufferIndexer
+    ldl r1, #UartRxBufferIndexer
+    xor r0, r0, r0
+    ld r2, r0, r1
+    jsrd #IntegerToString
+    
+;   Prints BufferIndexer
+    xor r0, r0, r0
+    add r2, r0, r14
+    jsrd #PrintString  
+    
+;   Prints new line
+    ldh r2, #stringNovaLinha
+    ldl r2, #stringNovaLinha
+    jsrd #PrintString
+    
+    
+    
 ;   Resets buffer filled flag
     ldh r1, #UartRxBufferFilledFlag
     ldl r1, #UartRxBufferFilledFlag
     xor r0, r0, r0
     st r0, r0, r1
+
+;   Prints message
+    ldh r2, #stringDebugBufferFilledFlagRead
+    ldl r2, #stringDebugBufferFilledFlagRead
+    jsrd #PrintString
+    
+;   Converts BufferFilledFlag
+    ldh r2, #UartRxBufferIndexer
+    ldl r2, #UartRxBufferIndexer
+    xor r0, r0, r0
+    ld r2, r0, r2
+    jsrd #IntegerToString
+    
+;   Prints BufferFilledFlag
+    xor r0, r0, r0
+    add r2, r0, r14
+    jsrd #PrintString
+    
+;   Prints new line
+    ldh r2, #stringNovaLinha
+    ldl r2, #stringNovaLinha
+    jsrd #PrintString
+    
 
   ReadPop:
 
@@ -1647,9 +1721,9 @@ SetTimer: ; (Generates a high priority interruption on a given time difference (
     ldl r1, #arrayTIMER
     ld r1, r0, r1
 
-;   r6 <= 50 (1 us = 50 clock cycles)
+;   r6 <= 525 (1 us = 25 clock cycles @ 25MHz)
     ldh r6, #0
-    ldl r6, #50
+    ldl r6, #25
     
 ;   r5 <= period in clock cycles
     mul r2, r6
@@ -1707,15 +1781,15 @@ main:
  
 RepeteLoop:
 
-    ; Set the Syscall value
+;   Set the Syscall value
     ldh r1, #0
     ldl r1, #5
 
-    ; Set the Syscall param
+;   Set the Syscall param
     ldh r2, #stringTemp
     ldl r2, #stringTemp
     
-    ; Set the amount of chars to be read
+;   Set the amount of chars to be read
     ldh r3, #0
     ldl r3, #50 ; 50 chars to be copied
 
@@ -1727,6 +1801,13 @@ RepeteLoop:
     jmpzd #RepeteLoop
 
 Imprime:
+
+;   Print message
+    ldh r1, #0
+    ldl r1, #0
+    ldh r2, #stringDebugReadReturn
+    ldl r2, #stringDebugReadReturn
+    syscall ; PrintString
     
 ;   Converte valor de retorno do syscall read
     ldh r1, #0
@@ -2242,5 +2323,14 @@ debounceUP:               db #0
 
 ; Debounce counter for DOWN button
 debounceDOWN:             db #0
+
+; "BufferFilledFlag dentro do syscall read: "
+stringDebugBufferFilledFlagRead: db #42h, #75h, #66h, #66h, #65h, #72h, #46h, #69h, #6ch, #6ch, #65h, #64h, #46h, #6ch, #61h, #67h, #20h, #64h, #65h, #6eh, #74h, #72h, #6fh, #20h, #64h, #6fh, #20h, #73h, #79h, #73h, #63h, #61h, #6ch, #6ch, #20h, #72h, #65h, #61h, #64h, #3ah, #20h, #0
+
+; "BufferIndexer dentro do syscall read: "
+stringDebugBufferIndexerRead: db #42h, #75h, #66h, #66h, #65h, #72h, #49h, #6eh, #64h, #65h, #78h, #65h, #72h, #20h, #64h, #65h, #6eh, #74h, #72h, #6fh, #20h, #64h, #6fh, #20h, #73h, #79h, #73h, #63h, #61h, #6ch, #6ch, #20h, #72h, #65h, #61h, #64h, #3ah, #20h, #0
+
+; "Valor de retorno do syscall read: "
+stringDebugReadReturn:    db #56h, #61h, #6ch, #6fh, #72h, #20h, #64h, #65h, #20h, #72h, #65h, #74h, #6fh, #72h, #6eh, #6fh, #20h, #64h, #6fh, #20h, #73h, #79h, #73h, #63h, #61h, #6ch, #6ch, #20h, #72h, #65h, #61h, #64h, #3ah, #20h, #0
 
 .enddata
