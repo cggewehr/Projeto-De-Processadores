@@ -1886,6 +1886,12 @@ RequestOrder:
     
     ldh r1, #0
     ldl r1, #0
+    ldh r2, #stringNovaLinha
+    ldl r2, #stringNovaLinha
+    syscall ; PrintString
+    
+    ldh r1, #0
+    ldl r1, #0
     ldh r2, #stringDivisor
     ldl r2, #stringDivisor
     syscall ; PrintString
@@ -2027,6 +2033,12 @@ end:
     ldl r1, #0
     ldh r2, #stringTerminaSort
     ldl r2, #stringTerminaSort
+    syscall ; PrintString
+    
+    ldh r1, #0
+    ldl r1, #0
+    ldh r2, #stringNovaLinha
+    ldl r2, #stringNovaLinha
     syscall ; PrintString
     
     ldh r1, #0
