@@ -129,22 +129,22 @@
     ldl r5, #FFh   ; Habilita acesso a todos os bits da porta de I/O, menos bit 13 e bit 8
     st r5, r1, r4  ; PortEnable <= "11011110_11111111"
     
-;   Seta RATE_FREQ_BAUD = 434 (0x31b2) (57600 baud @ 50 MHz)
+;   Seta RATE_FREQ_BAUD = 440 (0x31b2) (57600 baud @ 25 MHz)
     ldh r1, #arrayUART_RX
     ldl r1, #arrayUART_RX
     addi r1, #1
     ld r1, r0, r1  ; r1 <= &RATE_FREQ_BAUD (RX)
     ldh r5, #01h
-    ldl r5, #B2h   ; Seta BAUD_RATE = 869
+    ldl r5, #B8h   ; Seta BAUD_RATE = 440
     st r5, r0, r1  ;
     
-;   Seta RATE_FREQ_BAUD = 434 (0x1B2) (57600 baud @ 50 MHz)
+;   Seta RATE_FREQ_BAUD = 434 (0x1B2) (57600 baud @ 25 MHz)
     ldh r1, #arrayUART_TX
     ldl r1, #arrayUART_TX
     addi r1, #1
     ld r1, r0, r1  ; r1 <= &RATE_FREQ_BAUD (TX)
     ldh r5, #01h
-    ldl r5, #B2h   ; Seta BAUD_RATE = 869
+    ldl r5, #B8h   ; Seta BAUD_RATE = 440
     st r5, r0, r1  ;
     
 ;   Starts UART RX buffer @ 0
