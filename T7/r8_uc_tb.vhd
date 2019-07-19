@@ -44,7 +44,7 @@ begin
 	 clk_tx <= not clk_tx after 10 ns;
     rst <= '1', '0' after 15 ns;
 --	 port_io <= "ZZZZZZZZZZZZZZZZ";
-    prog_mode <= '0', '1' after 1 ms, '0' after 8 ms;
+    prog_mode <= '0';--, '1' after 1 ms, '0' after 8 ms;
 
 --
 --    -- UART RX
@@ -91,7 +91,7 @@ begin
     
       wait for 15 ns;
 	
-		count <= 4; -- Freq baud rate
+		count <= 440; -- Freq baud rate
         
       wait for 10 ns;
                 

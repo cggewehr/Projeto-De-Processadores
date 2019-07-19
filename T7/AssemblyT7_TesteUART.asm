@@ -243,6 +243,8 @@ InterruptionServiceRoutine:
     push r11
     push r12
     push r13
+    push r14
+    push r15
     pushf
 
     xor r0, r0, r0
@@ -277,6 +279,8 @@ InterruptionServiceRoutine:
 
 ;   Recupera contexto
     popf
+    pop r15
+    pop r14
     pop r13
     pop r12
     pop r11
@@ -1463,7 +1467,6 @@ Read: ; Returns on r14, 0 if a string hasnt been received through UART, or the s
     ldl r1, #UartRxBufferFilledFlag
     ld r1, r0, r1
     add r1, r0, r1
-    add r9, r0, r1
     
 ;   Prints message
     ldh r2, #stringDebugBufferFilledFlagRead
@@ -1486,8 +1489,12 @@ Read: ; Returns on r14, 0 if a string hasnt been received through UART, or the s
     jsrd #PrintString
     
 ;   If no new data is available, returns 0, else, transfer buffer into given string pointer (r2)
+    ldh r1, #UartRxBufferFilledFlag
+    ldl r1, #UartRxBufferFilledFlag
     xor r0, r0, r0
-    add r1, r0, r9
+    ld r1, r0, r1
+    xor r0, r0, r0
+    add r1, r0, r1
     jmpzd #ReadPop
     
   ReadTransferBufferToString:
@@ -1502,6 +1509,7 @@ Read: ; Returns on r14, 0 if a string hasnt been received through UART, or the s
 ;   Sets return value
     xor r0, r0, r0
     add r14, r0, r3
+    push r14
 
   ReadLoop: ; Loops until buffer is transfered into given string pointer
 
@@ -1590,6 +1598,8 @@ Read: ; Returns on r14, 0 if a string hasnt been received through UART, or the s
     
 
   ReadPop:
+
+    pop r14
 
     pop r5
     pop r4
@@ -1721,7 +1731,7 @@ SetTimer: ; (Generates a high priority interruption on a given time difference (
     ldl r1, #arrayTIMER
     ld r1, r0, r1
 
-;   r6 <= 525 (1 us = 25 clock cycles @ 25MHz)
+;   r6 <= 25 (1 us = 25 clock cycles @ 25MHz)
     ldh r6, #0
     ldl r6, #25
     
