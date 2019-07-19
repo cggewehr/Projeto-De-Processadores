@@ -1467,37 +1467,19 @@ Read: ; Returns on r14, 0 if a string hasnt been received through UART, or the s
     ldl r1, #UartRxBufferFilledFlag
     ld r1, r0, r1
     add r1, r0, r1
-    
-;   Prints message
-    ldh r2, #stringDebugBufferFilledFlagRead
-    ldl r2, #stringDebugBufferFilledFlagRead
-    jsrd #PrintString
-    
-;   Converts BufferFilledFlag
-    xor r0, r0, r0
-    add r2, r0, r9
-    jsrd #IntegerToString
-    
-;   Prints BufferFilledFlag
-    xor r0, r0, r0
-    add r2, r0, r14
-    jsrd #PrintString
-    
-;   Prints new line
-    ldh r2, #stringNovaLinha
-    ldl r2, #stringNovaLinha
-    jsrd #PrintString
-    
-;   If no new data is available, returns 0, else, transfer buffer into given string pointer (r2)
-    ldh r1, #UartRxBufferFilledFlag
-    ldl r1, #UartRxBufferFilledFlag
-    xor r0, r0, r0
-    ld r1, r0, r1
-    xor r0, r0, r0
-    add r1, r0, r1
+
     jmpzd #ReadPop
     
   ReadTransferBufferToString:
+  
+;   Imprime msg
+    ldh r2, #stringDebugTransfer
+    ldl r2, #stringDebugTransfer
+    jsrd #PrintString
+    
+    ldh r2, #stringNovaLinha
+    ldl r2, #stringNovaLinha
+    jsrd #PrintString
     
 ;   r1 <= &RxBuffer
     ldh r1, #UartRxBuffer
@@ -1529,6 +1511,15 @@ Read: ; Returns on r14, 0 if a string hasnt been received through UART, or the s
     
   ReadReturn:
   
+    push r2
+  
+;   Print msg
+    ldh r2, #stringBufferDentroRead
+    ldl r2, #stringBufferDentroRead
+    jsrd #PrintString  
+    
+    pop r2
+  
 ;   Prints transfered string
     jsrd #PrintString
 
@@ -1544,58 +1535,12 @@ Read: ; Returns on r14, 0 if a string hasnt been received through UART, or the s
     xor r0, r0, r0
     st r0, r0, r1
     
-;   Prints message
-    ldh r2, #stringDebugBufferIndexerRead
-    ldl r2, #stringDebugBufferIndexerRead
-    jsrd #PrintString
-    
-;   Converts BufferIndexer
-    ldh r1, #UartRxBufferIndexer
-    ldl r1, #UartRxBufferIndexer
-    xor r0, r0, r0
-    ld r2, r0, r1
-    jsrd #IntegerToString
-    
-;   Prints BufferIndexer
-    xor r0, r0, r0
-    add r2, r0, r14
-    jsrd #PrintString  
-    
-;   Prints new line
-    ldh r2, #stringNovaLinha
-    ldl r2, #stringNovaLinha
-    jsrd #PrintString
-    
-    
     
 ;   Resets buffer filled flag
     ldh r1, #UartRxBufferFilledFlag
     ldl r1, #UartRxBufferFilledFlag
     xor r0, r0, r0
     st r0, r0, r1
-
-;   Prints message
-    ldh r2, #stringDebugBufferFilledFlagRead
-    ldl r2, #stringDebugBufferFilledFlagRead
-    jsrd #PrintString
-    
-;   Converts BufferFilledFlag
-    ldh r2, #UartRxBufferIndexer
-    ldl r2, #UartRxBufferIndexer
-    xor r0, r0, r0
-    ld r2, r0, r2
-    jsrd #IntegerToString
-    
-;   Prints BufferFilledFlag
-    xor r0, r0, r0
-    add r2, r0, r14
-    jsrd #PrintString
-    
-;   Prints new line
-    ldh r2, #stringNovaLinha
-    ldl r2, #stringNovaLinha
-    jsrd #PrintString
-    
 
   ReadPop:
 
@@ -1838,50 +1783,6 @@ Imprime:
     ldl r2, #stringTemp
     syscall ; PrintString 
     
-;   Converte filled flag
-;    ldh r1, #0
-;    ldl r1, #1
-;    ldh r2, #UartRxBufferFilledFlag
-;    ldl r2, #UartRxBufferFilledFlag
-;    xor r0, r0, r0
-;    ld r2, r0, r2
-;    syscall ; IntegerToString
-;    
-;;   Imprime filled flag
-;    add r2, r0, r14
-;    ldh r1, #0
-;    ldl r1, #0
-;    syscall ; PrintString;;
-;
-;;   Imprime nova linha
-;    ldh r1, #0
-;    ldl r1, #0
-;    ldh r2, #stringNovaLinha
-;    ldl r2, #stringNovaLinha
-;    syscall ; PrintString
-;    
-;;   Converte indexador do buffer
-;    ldh r1, #0
-;    ldl r1, #1
-;    ldh r2, #UartRxBufferIndexer
-;    ldl r2, #UartRxBufferIndexer
-;    xor r0, r0, r0
-;    ld r2, r0, r2
-;    syscall ; IntegerToString
-;    
-;;   Imprime indexador do buffer
-;    ldh r1, #0
-;    ldl r1, #0
-;    add r2, r0, r14
-;    syscall ; PrintString
-;    
-;;   Imprime nova linha
-;    ldh r1, #0
-;    ldl r1, #0
-;    ldh r2, #stringNovaLinha
-;    ldl r2, #stringNovaLinha
-;    syscall ; PrintString;;;;;;;;;;;;;
-
 ;   Imprime nova linha
     ldh r1, #0
     ldl r1, #0
@@ -2342,5 +2243,13 @@ stringDebugBufferIndexerRead: db #42h, #75h, #66h, #66h, #65h, #72h, #49h, #6eh,
 
 ; "Valor de retorno do syscall read: "
 stringDebugReadReturn:    db #56h, #61h, #6ch, #6fh, #72h, #20h, #64h, #65h, #20h, #72h, #65h, #74h, #6fh, #72h, #6eh, #6fh, #20h, #64h, #6fh, #20h, #73h, #79h, #73h, #63h, #61h, #6ch, #6ch, #20h, #72h, #65h, #61h, #64h, #3ah, #20h, #0
+
+; "Transferindo Caracteres: "
+stringDebugTransfer:      db #54h, #72h, #61h, #6eh, #73h, #66h, #65h, #72h, #69h, #6eh, #64h, #6fh, #20h, #63h, #61h, #72h, #61h, #63h, #74h, #65h, #72h, #65h, #73h, #3ah, #20h, #0
+
+; "Buffer dentro de read: "
+stringBufferDentroRead:   db #42h, #75h, #66h, #66h, #65h, #72h, #20h, #64h, #65h, #6eh, #74h, #72h, #6fh, #20h, #64h, #65h, #20h, #72h, #65h, #61h, #64h, #3ah, #20h, #0
+
+
 
 .enddata
