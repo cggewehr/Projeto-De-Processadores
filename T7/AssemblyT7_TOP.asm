@@ -1544,19 +1544,6 @@ StringToInteger: ; (Converts a given string (on r2) to an integer (returned on r
 	push r5  ; Constant 48 ASCII offset
     
     xor r0, r0, r0
-    
-    push r2
-    
-;   Print source address
-    ldh r1, #0
-    ldl r1, #1
-    jsrd #IntegerToString
-    add r2, r0, r14
-    ldh r1, #0
-    ldl r1, #0
-    jsrd #PrintString
-    
-    pop r2
 
 	; Clean registers
 	xor r3, r3, r3    ; r3  <- 0
@@ -1733,13 +1720,6 @@ RequestSize:
     syscall ; Read
     add r14, r0, r14
     jmpzd #RequestSizeReadLoop
-    
-;   Prints stringTemp
-    ldh r1, #0
-    ldl r1, #0
-    ldh r2, #stringTemp
-    ldl r2, #stringTemp
-    syscall ; PrintString
     
 ;   Converts Size string to integer
     ldh r1, #0
