@@ -833,8 +833,6 @@ SyscallDriver:
 ; 3. jsr reg (chama função)
 ; 4. rts
 
-    push r0
-
 ;   r0 <= Jump Table
     ldh r0, #syscallJumpTable
     ldl r0, #syscallJumpTable
@@ -844,8 +842,9 @@ SyscallDriver:
 
 ;   PC <= Função Solicitada
     jsr r0
-
-    pop r0
+    
+;   Reseta r0
+    xor r0, r0, r0
 
     rts
 
@@ -1725,6 +1724,10 @@ RepeteLoop:
     xor r0, r0, r0
     add r14, r0, r14 ; Gera flag
     
+    jmpzd #RepeteLoop
+
+Imprime:
+    
 ;   Converte valor de retorno do syscall read
     ldh r1, #0
     ldl r1, #1
@@ -1737,10 +1740,6 @@ RepeteLoop:
     add r2, r0, r14
     syscall ; PrintString
     
-    jmpzd #RepeteLoop
-
-Imprime:
-
 ;   Imprime string convertida
     ldh r1, #0
     ldl r1, #0
