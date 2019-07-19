@@ -1721,46 +1721,157 @@ main:
     
     syscall
     
-RepeteLoop:
+RequestSize:
+
+;   Request size of array to be ordered
+    ldh r1, #0
+    ldl r1, #0
+    ldh r2, #stringTamanho
+    ldl r2, #stringTamanho
+    syscall ; PrintString     
     
-    ; Set the Syscall value
+  RequestSizeReadLoop:
+  
+;   Gets array size from terminal
     ldh r1, #0
     ldl r1, #5
-
-    ; Set the Syscall param
     ldh r2, #stringTemp
     ldl r2, #stringTemp
-    
-    ; Set the amount of chars to be read
     ldh r3, #0
-    ldl r3, #50 ; 50 chars to be copied
-
+    ldl r3, #50
     syscall
-
-    add r14, r0, r14 
-    jmpzd #RepeteLoop
+    add r14, r0, r14
+    jmpzd #RequestSizeReadLoop
     
-Imprime:
-
+;   Converts Size string to integer
     ldh r1, #0
-    ldl r1, #0
-    ldh r2, #stringNovaLinha
-    ldl r2, #stringNovaLinha
-    syscall ; PrintString 
-
-    ldh r1, #0
-    ldl r1, #0
+    ldl r1, #6
     ldh r2, #stringTemp
     ldl r2, #stringTemp
-    syscall ; PrintString 
+    syscall ; StringToInteger    
     
+;   Stores size on its variable
+    add r2, r0, r14
+    ldh r1, #arraySortSize
+    ldl r1, #arraySortSize
+    st r2, r0, r1
+
+;   Sets comparison number for RequestElementsLoop iterator   
+    add r5, r0, r2
+
+;   Prints new line characters
     ldh r1, #0
     ldl r1, #0
     ldh r2, #stringNovaLinha
     ldl r2, #stringNovaLinha
-    syscall ; PrintString 
+    syscall ; PrintString     
 
-    jmpd #RepeteLoop
+;   Initializes RequestElementsLoop iterator
+    xor r4, r4, r4
+
+RequestElementsLoop:
+
+;   If iterator = size, breaks loop
+    sub r1, r4, r5
+    jmpzd #RequestOrder
+
+;   Request a new element (first part of request string)
+    ldh r1, #0
+    ldl r1, #0
+    ldh r2, #stringElementoA
+    ldl r2, #stringElementoA
+    syscall ; PrintString
+
+;   Converts iterator to string
+    ldh r1, #0
+    ldl r1, #1
+    add r2, r0, r4
+    syscall ; IntegerToString
+    
+;   Prints iterator
+    ldh r1, #0
+    ldl r1, #0
+    add r2, r0, r14
+    addi r2, #1
+    
+;   Request a new element (second part of request string)
+    ldh r1, #0
+    ldl r1, #0
+    ldh r2, #stringElementoB
+    ldl r2, #stringElementoB
+    syscall ; PrintString
+    
+  RequestElementsReadLoop:
+  
+;   Gets array size from terminal
+    ldh r1, #0
+    ldl r1, #5
+    ldh r2, #stringTemp
+    ldl r2, #stringTemp
+    ldh r3, #0
+    ldl r3, #50
+    syscall
+    add r14, r0, r14
+    jmpzd #RequestElementsReadLoop
+
+;   Converts Size string to integer
+    ldh r1, #0
+    ldl r1, #6
+    ldh r2, #stringTemp
+    ldl r2, #stringTemp
+    syscall ; StringToInteger
+    
+;   Stores new element in array to be sorted
+    ldh r1, #arraySort
+    ldl r1, #arraySort
+    st r14, r1, r4
+    
+;   Prints new line characters
+    ldh r1, #0
+    ldl r1, #0
+    ldh r2, #stringNovaLinha
+    ldl r2, #stringNovaLinha
+    syscall ; PrintString    
+    
+;   Increments iterator
+    addi r4, #1
+
+    jmpd #RequestElementsLoop
+    
+RequestOrder: 
+
+;   Request type of sorting order (0 for increasing, 1 for decreasing)
+    ldh r1, #0
+    ldl r1, #0
+    ldh r2, #stringOrdenacao
+    ldl r2, #stringOrdenacao
+    syscall ; PrintString
+    
+  RequestOrderReadLoop:
+  
+;   Gets array size from terminal
+    ldh r1, #0
+    ldl r1, #5
+    ldh r2, #stringTemp
+    ldl r2, #stringTemp
+    ldh r3, #0
+    ldl r3, #50
+    syscall
+    add r14, r0, r14
+    jmpzd #RequestOrderReadLoop
+
+;   Converts Order string to integer
+    ldh r1, #0
+    ldl r1, #6
+    ldh r2, #stringTemp
+    ldl r2, #stringTemp
+    syscall ; StringToInteger
+    
+;   r12 <= sort order
+    add r12, r0, r14
+    
+halt
+    
 
 ;----------------------------------------------- SUBROTINAS --------------------------------------------------
 
