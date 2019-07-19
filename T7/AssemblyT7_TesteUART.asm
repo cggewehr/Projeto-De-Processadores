@@ -1510,31 +1510,12 @@ Read: ; Returns on r14, 0 if a string hasnt been received through UART, or the s
     jmpd #ReadLoop
     
   ReadReturn:
-  
-    push r2
-  
-;   Print msg
-    ldh r2, #stringBufferDentroRead
-    ldl r2, #stringBufferDentroRead
-    jsrd #PrintString  
-    
-    pop r2
-  
-;   Prints transfered string
-    jsrd #PrintString
-
-;   Prints new line
-    ldh r2, #stringNovaLinha
-    ldl r2, #stringNovaLinha
-    jsrd #PrintString
-    
 
 ;   Resets buffer indexer
     ldh r1, #UartRxBufferIndexer
     ldl r1, #UartRxBufferIndexer
     xor r0, r0, r0
     st r0, r0, r1
-    
     
 ;   Resets buffer filled flag
     ldh r1, #UartRxBufferFilledFlag
@@ -1770,10 +1751,24 @@ Imprime:
     add r2, r0, r14
     syscall ; IntegerToString
     
+;   Imprime nova linha
+    ldh r1, #0
+    ldl r1, #0
+    ldh r2, #stringNovaLinha
+    ldl r2, #stringNovaLinha
+    syscall ; PrintString
+    
 ;   Imprime valor de retorno do syscall read
     ldh r1, #0
     ldl r1, #0
     add r2, r0, r14
+    syscall ; PrintString
+    
+;   Imprime msg
+    ldh r1, #0
+    ldl r1, #0
+    ldh r2, #stringDebugTransferido
+    ldl r2, #stringDebugTransferido
     syscall ; PrintString
     
 ;   Imprime string convertida
@@ -2250,6 +2245,7 @@ stringDebugTransfer:      db #54h, #72h, #61h, #6eh, #73h, #66h, #65h, #72h, #69
 ; "Buffer dentro de read: "
 stringBufferDentroRead:   db #42h, #75h, #66h, #66h, #65h, #72h, #20h, #64h, #65h, #6eh, #74h, #72h, #6fh, #20h, #64h, #65h, #20h, #72h, #65h, #61h, #64h, #3ah, #20h, #0
 
-
+; "Counteudo transferido: "
+stringDebugTransferido:   db #53h, #74h, #72h, #69h, #6eh, #67h, #20h, #74h, #72h, #61h, #6eh, #73h, #66h, #65h, #72h, #69h, #64h, #61h, #3ah, #20h, #0
 
 .enddata

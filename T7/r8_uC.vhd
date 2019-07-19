@@ -37,7 +37,7 @@ architecture behavioral of R8_uC is
     signal data_PORT, data_MEM_in, data_RAM_out      : std_logic_vector(15 downto 0);  -- Peripherals/Memory interface
     signal data_r8_in, data_r8_out, address          : std_logic_vector(15 downto 0);  -- Processor interface
 
-    signal rst_R8                                    : std_logic;
+    signal rst_global                                : std_logic;
 
     alias address_PORT                               : std_logic_vector(1 downto 0) is address(1 downto 0);   -- Address for I/O Port registers ( Data, Config, Enable or InterruptEnable)
     alias mem_address                                : std_logic_vector(14 downto 0)is address(14 downto 0);  -- Memory address space (15th bit is reserved for I/O operations (I/O port, PIC, UART)
@@ -95,13 +95,13 @@ begin
                   data_timer              when ENABLE_PERIFERICO = '1' and ID_PERIFERICO = ADDR_TIMER   else
                   data_RAM_out;
                       
-    rst_R8 <= '1' when (rst = '1' or prog_mode = '1') else '0';
+    rst_global <= '1' when (rst = '1' or prog_mode = '1') else '0';
                       
     -- Processor
     R8Processor: entity work.R8 
         port map(
             clk       => clk,
-            rst       => rst_R8,
+            rst       => rst_global,
 			   irq       => intr_PIC,
             prog_mode => prog_mode,
             address   => address,
@@ -173,7 +173,7 @@ begin
         )
         port map(
             clk => clk, 
-            rst => rst,
+            rst => rst_global,
 
             -- Processor Interface
             data => data_PORT,
@@ -212,7 +212,7 @@ begin
         )   
         port map(
             clk       => clk,
-            rst       => rst,
+            rst       => rst_global,
             data      => data_PIC,
             address   => REG_PERIFERICO,
             rw        => rw_MEM,         -- 0: read; 1: write
@@ -235,7 +235,7 @@ begin
         )
         port map (
             clk      => clk,
-            rst      => rst,
+            rst      => rst_global,
             ce       => ce_UART_TX,
             rw       => rw_MEM,
             tx       => uart_tx,
@@ -258,7 +258,7 @@ begin
         )
         port map(
             clk      => clk,
-            rst      => rst,
+            rst      => rst_global,
             ce       => ce_UART_RX,
             rw       => rw_MEM,
             rx       => uart_rx,
@@ -281,7 +281,7 @@ begin
         )
         port map(
             clk      => clk,
-            rst      => rst,
+            rst      => rst_global,
             ce       => ce_TIMER,
             rw       => rw_MEM,
             address  => REG_PERIFERICO,
