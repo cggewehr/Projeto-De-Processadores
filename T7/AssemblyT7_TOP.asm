@@ -1730,6 +1730,13 @@ RequestSize:
     add r14, r0, r14
     jmpzd #RequestSizeReadLoop
     
+;   Prints stringTemp
+    ldh r1, #0
+    ldl r1, #0
+    ldh r2, #stringTemp
+    ldl r2, #stringTemp
+    syscall ; PrintString
+    
 ;   Converts Size string to integer
     ldh r1, #0
     ldl r1, #6
