@@ -1782,6 +1782,7 @@ RequestElementsLoop:
 ;   Converts iterator to string
     ldh r1, #0
     ldl r1, #1
+    xor r0, r0, r0
     add r2, r0, r4
     syscall ; IntegerToString
     
@@ -1789,7 +1790,7 @@ RequestElementsLoop:
     ldh r1, #0
     ldl r1, #0
     add r2, r0, r14
-    addi r2, #1
+    syscall
     
 ;   Request a new element (second part of request string)
     ldh r1, #0
@@ -1808,6 +1809,7 @@ RequestElementsLoop:
     ldh r3, #0
     ldl r3, #50
     syscall
+    xor r0, r0, r0
     add r14, r0, r14
     jmpzd #RequestElementsReadLoop
 
