@@ -1544,6 +1544,8 @@ StringToInteger: ; (Converts a given string (on r2) to an integer (returned on r
     
     xor r0, r0, r0
     
+    push r2
+    
 ;   Print source address
     ldh r1, #0
     ldl r1, #1
@@ -1553,7 +1555,7 @@ StringToInteger: ; (Converts a given string (on r2) to an integer (returned on r
     ldl r1, #0
     jsrd #PrintString
     
-    add r2, r0, r1
+    pop r2
 
 	; Clean registers
 	xor r3, r3, r3    ; r3  <- 0
