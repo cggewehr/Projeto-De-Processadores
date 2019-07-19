@@ -1728,6 +1728,7 @@ RequestSize:
     ldl r2, #stringTemp
     ldh r3, #0
     ldl r3, #50
+    xor r14, r14, r14
     syscall ; Read
     add r14, r0, r14
     jmpzd #RequestSizeReadLoop
@@ -1788,7 +1789,7 @@ RequestElementsLoop:
     
 ;   Prints iterator
     ldh r1, #0
-    ldl r1, #0
+    ldl r1, #0  
     add r2, r0, r14
     syscall
     
@@ -1808,6 +1809,7 @@ RequestElementsLoop:
     ldl r2, #stringTemp
     ldh r3, #0
     ldl r3, #50
+    xor r14, r14, r14
     syscall
     xor r0, r0, r0
     add r14, r0, r14
@@ -1855,6 +1857,7 @@ RequestOrder:
     ldl r2, #stringTemp
     ldh r3, #0
     ldl r3, #50
+    xor r14, r14, r14
     syscall
     add r14, r0, r14
     jmpzd #RequestOrderReadLoop
