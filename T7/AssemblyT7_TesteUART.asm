@@ -1471,15 +1471,6 @@ Read: ; Returns on r14, 0 if a string hasnt been received through UART, or the s
     jmpzd #ReadPop
     
   ReadTransferBufferToString:
-  
-;   Imprime msg
-    ldh r2, #stringDebugTransfer
-    ldl r2, #stringDebugTransfer
-    jsrd #PrintString
-    
-    ldh r2, #stringNovaLinha
-    ldl r2, #stringNovaLinha
-    jsrd #PrintString
     
 ;   r1 <= &RxBuffer
     ldh r1, #UartRxBuffer
@@ -1751,17 +1742,17 @@ Imprime:
     add r2, r0, r14
     syscall ; IntegerToString
     
+;   Imprime valor de retorno do syscall read
+    ldh r1, #0
+    ldl r1, #0
+    add r2, r0, r14
+    syscall ; PrintString
+    
 ;   Imprime nova linha
     ldh r1, #0
     ldl r1, #0
     ldh r2, #stringNovaLinha
     ldl r2, #stringNovaLinha
-    syscall ; PrintString
-    
-;   Imprime valor de retorno do syscall read
-    ldh r1, #0
-    ldl r1, #0
-    add r2, r0, r14
     syscall ; PrintString
     
 ;   Imprime msg
