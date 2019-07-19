@@ -677,16 +677,6 @@ UartRXDriver:
 
     xor r0, r0, r0
     
-;   Prints current buffer position
-    ldh r2, #UartRxBufferIndexer
-    ldl r2, #UartRxBufferIndexer
-    xor r0, r0, r0
-    ld r2, r0, r2
-    jsrd #IntegerToString
-    
-    add r2, r0, r14
-    jsrd #PrintString
-
 ;   r5 <= RX DATA
     ldh r1, #arrayUART_RX
     ldl r1, #arrayUART_RX
@@ -1551,6 +1541,19 @@ StringToInteger: ; (Converts a given string (on r2) to an integer (returned on r
 	push r3  ; Temporary
 	push r4  ; Constant 10
 	push r5  ; Constant 48 ASCII offset
+    
+    xor r0, r0, r0
+    
+;   Print source address
+    ldh r1, #0
+    ldl r1, #1
+    jsrd #IntegerToString
+    add r2, r0, r14
+    ldh r1, #0
+    ldl r1, #0
+    jsrd #PrintString
+    
+    add r2, r0, r1
 
 	; Clean registers
 	xor r3, r3, r3    ; r3  <- 0
@@ -1685,7 +1688,7 @@ WaitForTimer: ; Returns 0 while timer period hasnt been reached, else returns 1
 ;------------------------------------------- PROGRAMA PRINCIPAL ---------------------------------------------
 main:
 
-;   Set the time for the function
+    xor r0, r0, r0
 
     ; Set the Syscall Number
     ldh r1, #00h
@@ -1723,7 +1726,7 @@ RequestSize:
     ldl r2, #stringTemp
     ldh r3, #0
     ldl r3, #50
-    syscall
+    syscall ; Read
     add r14, r0, r14
     jmpzd #RequestSizeReadLoop
     
@@ -1735,6 +1738,7 @@ RequestSize:
     syscall ; StringToInteger    
     
 ;   Stores size on its variable
+    xor r0, r0, r0
     add r2, r0, r14
     ldh r1, #arraySortSize
     ldl r1, #arraySortSize
