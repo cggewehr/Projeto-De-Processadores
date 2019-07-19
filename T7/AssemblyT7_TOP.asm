@@ -1854,9 +1854,237 @@ RequestOrder:
 ;   r12 <= sort order
     add r12, r0, r14
     
-halt
+    ldh r1, #0
+    ldl r1, #0
+    ldh r2, #stringNovaLinha
+    ldl r2, #stringNovaLinha
+    syscall ; PrintString
     
+    ldh r1, #0
+    ldl r1, #0
+    ldh r2, #stringNovaLinha
+    ldl r2, #stringNovaLinha
+    syscall ; PrintString
+    
+    ldh r1, #0
+    ldl r1, #0
+    ldh r2, #stringDivisor
+    ldl r2, #stringDivisor
+    syscall ; PrintString
+    
+    ldh r1, #0
+    ldl r1, #0
+    ldh r2, #stringNovaLinha
+    ldl r2, #stringNovaLinha
+    syscall ; PrintString
+    
+    ldh r1, #0
+    ldl r1, #0
+    ldh r2, #stringComecaSort
+    ldl r2, #stringComecaSort
+    syscall ; PrintString
+    
+    ldh r1, #0
+    ldl r1, #0
+    ldh r2, #stringDivisor
+    ldl r2, #stringDivisor
+    syscall ; PrintString
+    
+    ldh r1, #0
+    ldl r1, #0
+    ldh r2, #stringNovaLinha
+    ldl r2, #stringNovaLinha
+    syscall ; PrintString
+    
+    ldh r1, #0
+    ldl r1, #0
+    ldh r2, #stringNovaLinha
+    ldl r2, #stringNovaLinha
+    syscall ; PrintString
+    
+    
+;; BUBBLE SORT DO CARARA
 
+;* Bubble sort
+
+;*      Sort array in ascending order
+;*
+;*      Used registers:
+;*          r1: points the first element of array
+;*          r2: temporary register
+;*          r3: points the end of array (right after the last element)
+;*          r4: indicates elements swaping (r4 = 1)
+;*          r5: array index
+;*          r6: array index
+;*          r7: element array[r5]
+;*          r8: element array[r8]
+;*          r9: send count
+;*          r10: array size
+;*          r11: transmission count
+;*          r12: Array sort order (0 = Increasing, 1 = Decreasing)
+;*
+;*********************************************************************
+
+BubbleSort:
+
+    ;halt ; DEBUG, ignora bubble sort
+
+    ; Initialization code
+    xor r0, r0, r0           ; r0 <- 0
+    xor r11, r11, r11        ; r11 <- 0
+
+    ldh r1, #arraySort       ;
+    ldl r1, #arraySort       ; r1 <- &array
+
+    ldh r2, #arraySortSize   ;
+    ldl r2, #arraySortSize   ; r2 <- &size
+    ld r2, r2, r0            ; r2 <- size
+
+    add r10, r0, r2          ; r10 <- arraySortsize (to be used on Serial Transmission)
+
+    add r3, r2, r1           ; r3 points the end of array (right after the last element)
+
+    ;ldl r4, #0              ;
+    ;ldh r4, #1              ; r4 <- 1
+    ldh r4, #0
+    ldl r4, #1
+
+; Main code
+scan:
+    addi r4, #0             ; Verifies if there was element swapping
+    jmpzd #end              ; If r4 = 0 then no element swapping
+
+    xor r4, r4, r4          ; r4 <- 0 before each pass
+
+    add r5, r1, r0          ; r5 points the first array element
+
+    add r6, r1, r0          ;
+    addi r6, #1             ; r6 points the second array element
+
+; Read two consecutive elements and compares them
+loop:
+    ld r7, r5, r0           ; r7 <- array[r5]
+    ld r8, r6, r0           ; r8 <- array[r6]
+
+    add r12, r0, r12        ; Generate flag for order of array
+    jmpzd #increasing
+    jmpd #decreasing
+
+increasing:
+    sub r2, r8, r7          ; If r8 > r7, negative flag is set
+    jmpnd #swap             ; (if array[r5] > array[r6] jump)
+    jmpd #continue
+
+decreasing:
+    sub r2, r7, r8          ; If r8 < r7, negative flag is set
+    jmpnd #swap             ; (if array[r5] < array[r6] jump)
+    jmpd #continue
+
+; Increments the index registers and verifies if the pass is concluded
+continue:
+    addi r5, #1             ; r5++
+    addi r6, #1             ; r6++
+
+    sub r2, r6, r3          ; Verifies if the end of array was reached (r6 = r3)
+    jmpzd #scan             ; If r6 = r3 jump
+    jmpd #loop              ; else, the next two elements are compared
+
+; Swaps two array elements (memory)
+swap:
+    st r7, r6, r0           ; array[r6] <- r7
+    st r8, r5, r0           ; array[r5] <- r8
+    ldl r4, #1              ; Set the element swapping (r4 <- 1)
+    jmpd #continue
+
+; Converts array to char and transmits via UART
+end:
+
+    ldh r1, #0
+    ldl r1, #0
+    ldh r2, #stringNovaLinha
+    ldl r2, #stringNovaLinha
+    syscall ; PrintString
+    
+    ldh r1, #0
+    ldl r1, #0
+    ldh r2, #stringNovaLinha
+    ldl r2, #stringNovaLinha
+    syscall ; PrintString
+    
+    ldh r1, #0
+    ldl r1, #0
+    ldh r2, #stringDivisor
+    ldl r2, #stringDivisor
+    syscall ; PrintString
+    
+    ldh r1, #0
+    ldl r1, #0
+    ldh r2, #stringNovaLinha
+    ldl r2, #stringNovaLinha
+    syscall ; PrintString
+    
+    ldh r1, #0
+    ldl r1, #0
+    ldh r2, #stringTerminaSort
+    ldl r2, #stringTerminaSort
+    syscall ; PrintString
+    
+    ldh r1, #0
+    ldl r1, #0
+    ldh r2, #stringDivisor
+    ldl r2, #stringDivisor
+    syscall ; PrintString
+    
+    ldh r1, #0
+    ldl r1, #0
+    ldh r2, #stringNovaLinha
+    ldl r2, #stringNovaLinha
+    syscall ; PrintString
+    
+    ldh r1, #0
+    ldl r1, #0
+    ldh r2, #stringNovaLinha
+    ldl r2, #stringNovaLinha
+    syscall ; PrintString
+        
+Exibe:
+
+    xor r0, r0, r0
+    xor r4, r4, r4
+
+    ldh r7, #arraySortSize
+    ldl r7, #arraySortSize
+    ld r7, r0, r7
+    
+    ldh r8, #arraySort
+    ldl r8, #arraySort
+    
+ExibeLoop:
+
+    ld r2, r8, r4
+    
+    ldh r1, #0
+    ldl r1, #1
+    syscall ; IntegerToString
+    
+    ldh r1, #0
+    ldl r1, #0
+    add r2, r0, r14
+    syscall ; PrintString
+    
+    ldh r1, #0
+    ldl r1, #0
+    ldh r2, #stringNovaLinha
+    ldl r2, #stringNovaLinha
+    syscall
+    
+    addi r4, #1
+    sub r2, r4, r7
+    
+    jmpnd #ExibeLoop
+    jmpd #main
+    
+    
 ;----------------------------------------------- SUBROTINAS --------------------------------------------------
 
 Display0:
@@ -2310,5 +2538,15 @@ stringBufferDentroRead:   db #42h, #75h, #66h, #66h, #65h, #72h, #20h, #64h, #65
 
 ; "Counteudo transferido: "
 stringDebugTransferido:   db #53h, #74h, #72h, #69h, #6eh, #67h, #20h, #74h, #72h, #61h, #6eh, #73h, #66h, #65h, #72h, #69h, #64h, #61h, #3ah, #20h, #0
+
+; "=================================================="
+stringDivisor:            db #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #3dh, #0
+
+; "Comecando ordenacao "
+stringComecaSort:         db #43h, #6fh, #6dh, #65h, #63h, #61h, #6eh, #64h, #6fh, #20h, #6fh, #72h, #64h, #65h, #6eh, #61h, #63h, #61h, #6fh, #20h, #0
+
+; "Ordenacao finalizada "
+stringTerminaSort:        db #4fh, #72h, #64h, #65h, #6eh, #61h, #63h, #61h, #6fh, #20h, #66h, #69h, #6eh, #61h, #6ch, #69h, #7ah, #61h, #64h, #61h, #20h, #0
+
 
 .enddata
